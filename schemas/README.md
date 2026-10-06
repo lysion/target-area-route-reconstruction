@@ -49,12 +49,47 @@ Shared schema conventions and `common.schema.json` are complete.
 
 Implemented core schemas:
 
+- `activity.schema.json`
+- `track-source.schema.json`
 - `canonical-track.schema.json`
 - `target-area.schema.json`
 - `spatial-assessment.schema.json`
 - `target-segment.schema.json`
 
 Initial fixtures and expected validation layers are recorded in `../tests/fixtures/manifest.json`.
+
+### Activity representation
+
+The Activity schema is intentionally minimal.
+
+It freezes only:
+
+- `schema_version`;
+- stable project-local `id`;
+- optional explicitly namespaced extensions.
+
+Activity does **not** embed source-native IDs, source metadata similarity fields, TrackSource children, geometry, or spatial classification.
+
+This is deliberate: Activity is the stable real-world event identity anchor. Source-native identity belongs to TrackSource provenance, and cross-source reconciliation remains an explicit future adapter/runtime process under ADR-0008.
+
+An Activity with zero TrackSources is schema-valid.
+
+### TrackSource representation
+
+The schema freezes:
+
+- immutable TrackSource identity/revision;
+- ownership by stable Activity identity;
+- source namespace/origin provenance;
+- optional source-native ID and provenance locator;
+- representation media type;
+- optional original display/file name;
+- optional SHA-256 content identity;
+- no assumption that the source must be a filesystem file.
+
+TrackSource does not contain parse status or CanonicalTrack output. A durably preserved source can remain a valid TrackSource even when parsing later fails.
+
+A remote URL/locator alone does not establish durable acquisition; durable lifecycle enforcement remains Milestone 3/5 runtime behavior.
 
 ### CanonicalTrack representation
 
@@ -121,9 +156,13 @@ The schema freezes:
 
 Positive length, parent-position bounds, geometry/lineage regeneration, and ordering consistency are semantic validation requirements rather than JSON Schema-only checks.
 
-### Remaining core schema order
+### Core schema set complete
 
-1. TrackSource
-2. Activity
+All six frozen v0.1 core entity schemas are now present.
 
-The four spatially coupled schemas are now present. The next validation step is cross-object semantic validation across CanonicalTrack, TargetArea, SpatialAssessment, and TargetSegment revisions.
+The next Milestone 1 focus is validation rather than defining additional core entities:
+
+1. automated Draft 2020-12 fixture validation;
+2. cross-object semantic validation;
+3. linked scenario fixtures;
+4. full mapping from Milestone 0 edge cases to fixture/test representations.
