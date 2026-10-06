@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1.0",
+  "id": "track-coordinate-only",
+  "revision_id": "track-coordinate-only-r1",
+  "track_source": {
+    "id": "source-coordinate-only",
+    "revision_id": "source-coordinate-only-r1"
+  },
+  "spatial_reference": "OGC:CRS84",
+  "parts": [
+    {
+      "observations": [
+        {"position": [112.9000, 28.2000]},
+        {"position": [112.9010, 28.2010]},
+        {"position": [112.9020, 28.2020]}
+      ]
+    }
+  ],
+  "normalizer": {
+    "name": "fixture-normalizer",
+    "version": "0.1.0"
+  }
+}
