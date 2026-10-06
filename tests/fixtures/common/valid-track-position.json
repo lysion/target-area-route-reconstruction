@@ -1,0 +1,8 @@
+{
+  "definition": "trackPosition",
+  "value": {
+    "part_index": 0,
+    "observation_index": 42,
+    "fraction_to_next": 0.999
+  }
+}
