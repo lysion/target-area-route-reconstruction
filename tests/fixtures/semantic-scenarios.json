@@ -11,7 +11,12 @@
       "spatial_assessment": "scenarios/partial-crossing/spatial-assessment.json",
       "target_segments": [
         "scenarios/partial-crossing/target-segment.json"
-      ]
+      ],
+      "edge_cases": [
+        "EC-17",
+        "EC-23"
+      ],
+      "purpose": "single entry/exit produces one traceable TargetSegment"
     },
     {
       "name": "invalid-target-segment-lineage",
@@ -23,7 +28,11 @@
       "spatial_assessment": "scenarios/partial-crossing/spatial-assessment.json",
       "target_segments": [
         "scenarios/partial-crossing/target-segment-invalid-lineage.json"
-      ]
+      ],
+      "edge_cases": [
+        "EC-23"
+      ],
+      "purpose": "schema-valid geometry/lineage mismatch must fail semantic validation"
     },
     {
       "name": "invalid-assessment-track-reference",
@@ -35,7 +44,9 @@
       "spatial_assessment": "scenarios/partial-crossing/spatial-assessment-invalid-track-ref.json",
       "target_segments": [
         "scenarios/partial-crossing/target-segment.json"
-      ]
+      ],
+      "edge_cases": [],
+      "purpose": "schema-valid cross-revision reference mismatch must fail semantic validation"
     },
     {
       "name": "fully-inside",
