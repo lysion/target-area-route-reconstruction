@@ -6,11 +6,11 @@ It records evidence-backed domain semantics. It intentionally does not freeze JS
 
 ## Status
 
-**Milestone:** 0 — Domain Contract  
-**Contract status:** freeze candidate  
+**Milestone:** 0 — Domain Contract (DONE)  
+**Contract status:** **FROZEN — v0.1 domain contract**  
 **Evidence basis:** EP-01, EP-02, EP-04, EP-05, EP-06, EP-07, and EP-08 are supported; EP-03 supports the required provenance boundary between normalized observations and cleaned/usable geometry, while exhaustive anomaly taxonomy is explicitly deferred.
 
-No blocking domain-design question remains. The full EC-01 through EC-29 regression has passed with zero FAIL and zero REVIEW cases; Milestone 0 remains pending final contract freeze.
+Milestone 0 exit criteria are satisfied. The EC-01 through EC-29 regression passed with zero FAIL and zero REVIEW cases, the final freeze review passed, and this document is the frozen v0.1 domain baseline for Milestone 1.
 
 ## Core principles
 
@@ -569,28 +569,27 @@ Current evidence rejects the following shortcuts:
 - ADR-0007 — SpatialAssessment target-coverage completeness
 - ADR-0008 — Cross-source Activity identity is explicit, never similarity-implied
 - ADR-0009 — Manual decisions are auditable overlays, not mutations of SpatialAssessment
+- ADR-0010 — Freeze the v0.1 domain contract
 
 ---
 
-## Remaining Milestone 0 work
+## Freeze status
 
-No blocking domain-design decision remains.
+Milestone 0 is complete.
 
-Before Milestone 0 can be marked DONE:
+The final contract freeze review is recorded in `docs/contract-freeze-review.md`; ADR-0010 freezes this v0.1 domain contract.
 
-1. perform the final contract-freeze review;
-2. freeze the v0.1 domain contract before starting JSON Schema work.
+Milestone 1 may define machine-readable schemas and fixtures, but representation choices must preserve the semantics in this document.
 
-The complete edge-case regression is recorded in `docs/edge-case-regression.md` and passed with 26 PASS, 0 REVIEW, 0 FAIL, and 3 explicitly bounded DEFERRED cases.
+### Intentionally deferred implementation details
 
-### Explicitly deferred implementation details
-
-The following do not block the domain contract:
+The following do not reopen the domain contract unless they require changing frozen semantics:
 
 - optional quality annotation / derived usable-geometry representation and anomaly thresholds;
 - continuity-break detection thresholds;
 - target-gap reachability algorithms;
 - exact TrackPosition field names and numeric serialization;
+- canonical spatial-reference identifier serialization and reprojection implementation;
 - CoverageUncertainty schema details;
 - cross-source reconciliation object/persistence model for future adapters;
 - ManualDecision persistence and multi-decision precedence policy for the runtime layer.
