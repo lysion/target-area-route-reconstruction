@@ -1,0 +1,14 @@
+{
+  "schema_version": "0.1.0",
+  "id": "source-invalid-representation",
+  "revision_id": "source-invalid-representation-r1",
+  "activity": {
+    "id": "activity-a"
+  },
+  "origin": {
+    "namespace": "local_import"
+  },
+  "representation": {
+    "original_name": "activity.fit"
+  }
+}
