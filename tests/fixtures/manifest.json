@@ -59,21 +59,24 @@
       "schema": "../../../schemas/canonical-track.schema.json",
       "expect_schema_valid": true,
       "expect_semantic_valid": true,
-      "purpose": "minimum ordered coordinate-only CanonicalTrack without timestamps"
+      "purpose": "minimum ordered coordinate-only CanonicalTrack without timestamps",
+      "expect_assessable": true
     },
     {
       "path": "canonical-track/valid-multipart-with-telemetry.json",
       "schema": "../../../schemas/canonical-track.schema.json",
       "expect_schema_valid": true,
       "expect_semantic_valid": true,
-      "purpose": "multiple continuity parts with optional temporal and observed speed evidence"
+      "purpose": "multiple continuity parts with optional temporal and observed speed evidence",
+      "expect_assessable": true
     },
     {
       "path": "canonical-track/valid-singleton-evidence.json",
       "schema": "../../../schemas/canonical-track.schema.json",
       "expect_schema_valid": true,
       "expect_semantic_valid": true,
-      "purpose": "singleton canonical evidence is preservable although not assessable as positive-length route geometry"
+      "purpose": "singleton canonical evidence is preservable although not assessable as positive-length route geometry",
+      "expect_assessable": false
     },
     {
       "path": "canonical-track/invalid-empty-parts.json",
@@ -113,6 +116,13 @@
       "expect_schema_valid": true,
       "expect_semantic_valid": false,
       "purpose": "JSON structural shape cannot by itself prove polygon ring closure"
+    },
+    {
+      "path": "target-area/semantic-invalid-self-intersection.json",
+      "schema": "../../../schemas/target-area.schema.json",
+      "expect_schema_valid": true,
+      "expect_semantic_valid": false,
+      "purpose": "JSON shape permits a closed ring, but self-intersection violates the TargetArea topology contract"
     }
   ]
 }
