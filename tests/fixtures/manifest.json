@@ -1,0 +1,58 @@
+{
+  "schema_version": "0.1.0",
+  "fixtures": [
+    {
+      "path": "spatial-assessment/valid-partial-complete.json",
+      "schema": "../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": true,
+      "expect_semantic_valid": true,
+      "purpose": "partial + complete with one known TargetSegment"
+    },
+    {
+      "path": "spatial-assessment/valid-partial-incomplete.json",
+      "schema": "../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": true,
+      "expect_semantic_valid": true,
+      "purpose": "partial relation remains determined while target coverage is incomplete"
+    },
+    {
+      "path": "spatial-assessment/valid-outside-complete.json",
+      "schema": "../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": true,
+      "expect_semantic_valid": true,
+      "purpose": "outside requires complete coverage and zero TargetSegments"
+    },
+    {
+      "path": "spatial-assessment/invalid-unknown-complete.json",
+      "schema": "../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "unknown must imply incomplete"
+    },
+    {
+      "path": "spatial-assessment/invalid-incomplete-without-uncertainty.json",
+      "schema": "../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "incomplete requires auditable CoverageUncertainty"
+    },
+    {
+      "path": "target-segment/valid-basic.json",
+      "schema": "../../../schemas/target-segment.schema.json",
+      "expect_schema_valid": true,
+      "expect_semantic_valid": true,
+      "purpose": "basic traceable positive-length TargetSegment"
+    },
+    {
+      "path": "target-segment/invalid-fraction-one.json",
+      "schema": "../../../schemas/target-segment.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "TrackPosition fraction 1 must be normalized to next observation at fraction 0"
+    },
+    {
+      "path": "target-segment/semantic-invalid-zero-length.json",
+      "schema": "../../../schemas/target-segment.schema.json",
+      "expect_schema_valid": true,
+      "expect_semantic_valid": false,
+      "purpose": "JSON shape is valid but zero-length geometry violates TargetSegment domain semantics"
+    }
+  ]
+}
