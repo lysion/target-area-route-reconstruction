@@ -34,3 +34,6 @@ jobs:
 
       - name: Validate edge-case coverage map
         run: python scripts/validate_edge_case_coverage.py
+
+      - name: Validate raw source fixture baseline
+        run: python scripts/validate_source_fixture_baseline.py
