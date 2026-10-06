@@ -47,11 +47,51 @@ Milestone 1/2 distinguishes:
 
 Shared schema conventions and `common.schema.json` are complete.
 
-Next schema order:
+Implemented core schemas:
+
+- `spatial-assessment.schema.json`
+- `target-segment.schema.json`
+
+Initial fixtures and expected validation layers are recorded in `../tests/fixtures/manifest.json`.
+
+### SpatialAssessment representation
+
+The schema freezes:
+
+- exact CanonicalTrack and TargetArea revision references;
+- `relation = inside | partial | outside | unknown`;
+- `coverage_completeness = complete | incomplete`;
+- structured `coverage_uncertainties`;
+- ordered TargetSegment revision references;
+- algorithm provenance.
+
+Schema-level invariants include:
+
+- `unknown → incomplete`;
+- `outside → complete`;
+- `outside → zero TargetSegment refs`;
+- `inside/partial → at least one TargetSegment ref`;
+- `incomplete → at least one CoverageUncertainty`;
+- `complete → zero CoverageUncertainty`.
+
+Cross-object spatial claims remain semantic-validator responsibilities.
+
+### TargetSegment representation
+
+The schema freezes:
+
+- exact parent SpatialAssessment revision;
+- exact parent CanonicalTrack revision;
+- zero-based ordinal;
+- OGC:CRS84 geometry;
+- start/end TrackPosition lineage;
+- derived LineString geometry.
+
+Positive length, parent-position bounds, geometry/lineage regeneration, and ordering consistency are semantic validation requirements rather than JSON Schema-only checks.
+
+### Remaining core schema order
 
 1. CanonicalTrack
 2. TargetArea
-3. SpatialAssessment
-4. TargetSegment
-5. TrackSource
-6. Activity
+3. TrackSource
+4. Activity
