@@ -79,6 +79,8 @@ Current design artifacts:
 - [Milestone 1 complete edge-case coverage](docs/milestone1-edge-case-coverage.md)
 - [Milestone 1 validation run](docs/milestone1-validation-run.md)
 - [Milestone 1 exit review](docs/milestone1-exit-review.md)
+- [Synthetic raw source fixtures](tests/source-fixtures/README.md)
+- Raw source fixture validation: `python scripts/validate_source_fixture_baseline.py`
 - Edge-case coverage validation: `python scripts/validate_edge_case_coverage.py`
 - [Evidence plan](docs/evidence-plan.md)
 - [Real-world evidence record](docs/real-world-cases.md)
@@ -86,4 +88,4 @@ Current design artifacts:
 
 ## Status
 
-Early public development. **Milestone 0: Domain Contract is DONE** and the v0.1 domain contract is frozen. The project is now in **Milestone 1: Schemas and Fixtures**. Shared schema conventions and reusable common definitions are established. All six frozen v0.1 core entity schemas are implemented, with valid/invalid fixtures across Activity, TrackSource, CanonicalTrack, TargetArea, SpatialAssessment, and TargetSegment. Formal Draft 2020-12, independent semantic-validation, and edge-case-coverage runners are in place and executed by GitHub Actions. All EC-01 through EC-29 now have an explicit Milestone 1 representation: schema fixture, linked semantic scenario, or machine-readable non-file contract case. The current registry contains 113 fixture entries, 16 linked semantic scenarios, 13 non-file contract cases, and 6 negative cross-object cases, including 14 independent conformance probes for shared common definitions. The full validation gate is green: 113/113 schema fixture expectations, 33/33 semantic expectations, and 29/29 frozen edge cases mapped. The Milestone 1 exit review found one remaining blocker: the repository still lacks the small synthetic FIT/GPX raw-source fixture baseline explicitly required by the roadmap before deterministic parser implementation begins. The Milestone 0 regression finished with 26 PASS, 0 REVIEW, 0 FAIL, and 3 explicitly bounded DEFERRED cases.
+Early public development. **Milestone 0: Domain Contract is DONE** and **Milestone 1: Schemas and Fixtures is DONE**. The project is now in **Milestone 2: Deterministic Core**. All six frozen v0.1 core entity schemas are implemented, EC-01 through EC-29 are explicitly represented, and the repository includes 113 schema fixtures, 16 linked semantic scenarios, 13 non-file contract cases, 6 negative cross-object cases, 14 common-definition conformance probes, and a six-file synthetic FIT/GPX raw-source baseline. The final Milestone 1 validation gate is green: 113/113 schema expectations, 33/33 semantic expectations, 29/29 edge cases mapped, 6/6 raw source files verified, and the equivalent GPX/FIT route baseline matched within declared coordinate tolerance. Milestone 2 now begins with FIT/GPX ingestion and normalization into the frozen `CanonicalTrack` contract.
