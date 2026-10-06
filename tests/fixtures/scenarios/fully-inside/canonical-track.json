@@ -1,0 +1,38 @@
+{
+  "schema_version": "0.1.0",
+  "id": "fully-inside-track",
+  "revision_id": "fully-inside-track-r1",
+  "track_source": {
+    "id": "fully-inside-source",
+    "revision_id": "fully-inside-source-r1"
+  },
+  "spatial_reference": "OGC:CRS84",
+  "parts": [
+    {
+      "observations": [
+        {
+          "position": [
+            112.25,
+            28.25
+          ]
+        },
+        {
+          "position": [
+            112.5,
+            28.5
+          ]
+        },
+        {
+          "position": [
+            112.75,
+            28.75
+          ]
+        }
+      ]
+    }
+  ],
+  "normalizer": {
+    "name": "fixture-normalizer",
+    "version": "0.1.0"
+  }
+}
