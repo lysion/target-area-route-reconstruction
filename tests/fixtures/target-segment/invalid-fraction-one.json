@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1.0",
+  "id": "segment-invalid-a",
+  "revision_id": "segment-invalid-a-r1",
+  "spatial_assessment": {
+    "id": "assessment-a",
+    "revision_id": "assessment-a-r1"
+  },
+  "canonical_track": {
+    "id": "track-a",
+    "revision_id": "track-a-r1"
+  },
+  "ordinal": 0,
+  "spatial_reference": "OGC:CRS84",
+  "start_position": {
+    "part_index": 0,
+    "observation_index": 60,
+    "fraction_to_next": 1
+  },
+  "end_position": {
+    "part_index": 0,
+    "observation_index": 80,
+    "fraction_to_next": 0
+  },
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [112.9000, 28.2000],
+      [112.9010, 28.2010]
+    ]
+  }
+}
