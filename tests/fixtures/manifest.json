@@ -554,6 +554,66 @@
       "schema": "../../../../schemas/target-segment.schema.json",
       "expect_schema_valid": true,
       "purpose": "schema-valid TargetSegment component 1 of linked semantic scenario polygon-hole"
+    },
+    {
+      "path": "scenarios/partial-crossing/target-segment-invalid-out-of-bounds.json",
+      "schema": "../../../../schemas/target-segment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid TargetSegment used for out-of-bounds TrackPosition semantic failure"
+    },
+    {
+      "path": "scenarios/partial-crossing/spatial-assessment-invalid-area-ref.json",
+      "schema": "../../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid SpatialAssessment used for wrong TargetArea revision semantic failure"
+    },
+    {
+      "path": "scenarios/repeated-entry/spatial-assessment-invalid-segment-order.json",
+      "schema": "../../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid SpatialAssessment with reversed TargetSegment reference order"
+    },
+    {
+      "path": "target-segment/invalid-spatial-reference.json",
+      "schema": "../../../schemas/target-segment.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "v0.1 canonical spatial reference is fixed to OGC:CRS84, so a cross-object CRS mismatch is rejected at Layer A before semantic validation"
+    },
+    {
+      "path": "scenarios/partial-incomplete-gap/activity.json",
+      "schema": "../../../../schemas/activity.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked EC-29 partial + incomplete scenario"
+    },
+    {
+      "path": "scenarios/partial-incomplete-gap/track-source.json",
+      "schema": "../../../../schemas/track-source.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked EC-29 partial + incomplete scenario"
+    },
+    {
+      "path": "scenarios/partial-incomplete-gap/canonical-track.json",
+      "schema": "../../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked EC-29 partial + incomplete scenario"
+    },
+    {
+      "path": "scenarios/partial-incomplete-gap/target-area.json",
+      "schema": "../../../../schemas/target-area.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked EC-29 partial + incomplete scenario"
+    },
+    {
+      "path": "scenarios/partial-incomplete-gap/spatial-assessment.json",
+      "schema": "../../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked EC-29 partial + incomplete scenario"
+    },
+    {
+      "path": "scenarios/partial-incomplete-gap/target-segment-0.json",
+      "schema": "../../../../schemas/target-segment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked EC-29 partial + incomplete scenario"
     }
   ]
 }
