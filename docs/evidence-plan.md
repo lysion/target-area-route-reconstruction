@@ -93,11 +93,13 @@ The following outcomes reflect the evidence and controlled attacks completed dur
 | EP-05 — TargetSegment lineage | SUPPORTED | TargetSegment requires parent-track lineage with interpolated TrackPosition semantics |
 | EP-06 — TargetArea geometry | SUPPORTED | v0.1 supports valid Polygon/MultiPolygon and rejects arbitrary/invalid target geometry |
 | EP-07 — spatial boundary semantics | SUPPORTED | four-state relation retained; zero-length point touch is not traversal; positive-length boundary overlap is coverage |
-| EP-08 — manual decision lifecycle | REVIEW | algorithmic assessment must remain immutable, but override representation is not yet frozen |
+| EP-08 — manual decision lifecycle | SUPPORTED | ManualDecision is an auditable review/runtime overlay; algorithmic SpatialAssessment remains immutable |
 
 EP-02, EP-05, EP-06, and EP-07 have completed their required synthetic attacks. EP-03 has enough evidence to fix the provenance boundary but not to claim an exhaustive GPS anomaly model.
 
 A cross-cutting completeness question discovered during the target-area gap attacks is also **SUPPORTED**: SpatialAssessment must distinguish core relation from target-coverage reconstruction completeness. ADR-0007 freezes a two-state completeness contract (`complete` / `incomplete`) and requires incomplete results to retain auditable target-relevant uncertainty provenance.
+
+The two remaining architectural blockers are now also resolved: ADR-0008 freezes explicit cross-source Activity identity semantics without similarity-implied merging, and ADR-0009 freezes the ManualDecision audit-layer lifecycle for EP-08.
 
 # Evidence questions
 
@@ -471,6 +473,26 @@ Use one real review scenario in which:
 ### Decision trigger
 
 If algorithmic evidence and human interpretation have independent lifecycle/audit requirements, they must not overwrite each other.
+
+### Outcome
+
+**SUPPORTED.**
+
+The representative workflow was validated against the contract:
+
+- algorithmic `SpatialAssessment.relation = partial`;
+- a human reviewer chooses `outside` for a defined task scope;
+- the algorithmic assessment remains unchanged and retains its algorithm/version provenance;
+- an auditable `ManualDecision` record preserves the chosen task-facing relation, reason, actor/source, decision time, scope, and lifecycle provenance;
+- the effective task-facing classification is derived from the immutable algorithmic result plus the applicable ManualDecision.
+
+Candidate A (override fields inside SpatialAssessment) is rejected because it mixes algorithmic evidence with human interpretation.
+
+Candidate B is accepted at the review/runtime extension layer: ManualDecision is first-class and independently auditable but is not promoted into the six spatial-core entities.
+
+Candidate C is accepted only in the sense that manual review remains outside the spatial core; it is not allowed to be an unstructured external note because the effective result and audit lifecycle must remain deterministic.
+
+See ADR-0009.
 
 ---
 
