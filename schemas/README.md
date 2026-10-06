@@ -56,6 +56,44 @@ This runner intentionally does **not** evaluate `expect_semantic_valid` or `expe
 
 GitHub Actions executes the same command on pushes to `main`, pull requests, and manual workflow dispatch through `.github/workflows/schema-validation.yml`.
 
+## Executable semantic validation
+
+Layer B is implemented independently in:
+
+```bash
+python scripts/validate_semantic_fixtures.py
+```
+
+Use `--verbose` to print the reasons expected-invalid semantic fixtures/scenarios are rejected.
+
+The semantic runner does not use JSON Schema as a substitute for domain logic. It evaluates:
+
+- explicit Polygon/MultiPolygon ring closure and Shapely/GEOS topology validity;
+- CanonicalTrack positive-length assessability separately from canonical evidence validity;
+- TargetSegment positive length and ordered same-part lineage;
+- TrackPosition bounds against the parent CanonicalTrack;
+- deterministic interpolation of TrackPosition endpoints;
+- TargetSegment geometry regeneration against the parent track interval;
+- TargetArea coverage of linked TargetSegment geometry;
+- exact Activity → TrackSource → CanonicalTrack revision/identity links;
+- exact SpatialAssessment → CanonicalTrack/TargetArea revision links;
+- exact TargetSegment → SpatialAssessment/CanonicalTrack revision links;
+- spatial-reference consistency;
+- TargetSegment ordinal/reference ordering;
+- deterministic relation and exhaustive target coverage for complete, fully observed single-part linked scenarios.
+
+Local semantic expectations come from `tests/fixtures/manifest.json`. Cross-object expectations come from `tests/fixtures/semantic-scenarios.json`.
+
+The runner keeps `expect_assessable` separate from `expect_semantic_valid`: a singleton CanonicalTrack is valid canonical evidence but is not assessable as positive-length route geometry.
+
+Exit codes mirror the schema runner:
+
+- `0` — every semantic/assessability/scenario expectation matched;
+- `1` — at least one semantic expectation mismatched;
+- `2` — repository, manifest, JSON, or runner state prevented a trustworthy run.
+
+The CI workflow runs Layer A first and this independent Layer B runner second.
+
 ## Validation layers
 
 A valid JSON Schema instance is not automatically a semantically valid route-reconstruction object.
@@ -193,9 +231,9 @@ Positive length, parent-position bounds, geometry/lineage regeneration, and orde
 
 All six frozen v0.1 core entity schemas are now present.
 
-The next Milestone 1 focus is validation rather than defining additional core entities:
+The schema and semantic runners are now both executable. The next Milestone 1 focus is coverage and conformance:
 
-1. automated Draft 2020-12 fixture validation;
-2. cross-object semantic validation;
-3. linked scenario fixtures;
-4. full mapping from Milestone 0 edge cases to fixture/test representations.
+1. expand linked semantic scenarios beyond the initial partial-crossing case;
+2. map every Milestone 0 edge case to a fixture, semantic scenario, or explicit non-file test representation;
+3. add semantic cases for holes, MultiPolygon components, point touch, boundary overlap, relevant gaps, and multiple TargetSegments;
+4. stabilize both runners in CI before declaring Milestone 1 complete.
