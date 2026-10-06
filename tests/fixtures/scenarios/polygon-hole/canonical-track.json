@@ -1,0 +1,56 @@
+{
+  "schema_version": "0.1.0",
+  "id": "polygon-hole-track",
+  "revision_id": "polygon-hole-track-r1",
+  "track_source": {
+    "id": "polygon-hole-source",
+    "revision_id": "polygon-hole-source-r1"
+  },
+  "spatial_reference": "OGC:CRS84",
+  "parts": [
+    {
+      "observations": [
+        {
+          "position": [
+            111.5,
+            29
+          ]
+        },
+        {
+          "position": [
+            112.5,
+            29
+          ]
+        },
+        {
+          "position": [
+            113.5,
+            29
+          ]
+        },
+        {
+          "position": [
+            114.5,
+            29
+          ]
+        },
+        {
+          "position": [
+            115.5,
+            29
+          ]
+        },
+        {
+          "position": [
+            116.5,
+            29
+          ]
+        }
+      ]
+    }
+  ],
+  "normalizer": {
+    "name": "fixture-normalizer",
+    "version": "0.1.0"
+  }
+}
