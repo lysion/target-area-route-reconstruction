@@ -1,0 +1,36 @@
+{
+  "schema_version": "0.1.0",
+  "id": "boundary-overlap-area",
+  "revision_id": "boundary-overlap-area-r1",
+  "spatial_reference": "OGC:CRS84",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          112,
+          28
+        ],
+        [
+          113,
+          28
+        ],
+        [
+          113,
+          29
+        ],
+        [
+          112,
+          29
+        ],
+        [
+          112,
+          28
+        ]
+      ]
+    ]
+  },
+  "definition_provenance": {
+    "description": "Synthetic boundary-overlap TargetArea fixture."
+  }
+}
