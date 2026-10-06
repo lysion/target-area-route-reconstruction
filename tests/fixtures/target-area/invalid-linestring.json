@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.1.0",
+  "id": "area-invalid-linestring",
+  "revision_id": "area-invalid-linestring-r1",
+  "spatial_reference": "OGC:CRS84",
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [112.9000, 28.2000],
+      [112.9100, 28.2100]
+    ]
+  },
+  "definition_provenance": {
+    "description": "Invalid TargetArea geometry type fixture."
+  }
+}
