@@ -35,6 +35,10 @@ A continuity break by itself:
 
 The chord between break endpoints is not evidence geometry.
 
+Within one continuity part, adjacent observations may form canonical line geometry according to the accepted interpolation rule. The absence of an observation at every intermediate location does not by itself create a continuity break.
+
+If a sampling interval is judged too sparse, too uncertain, or otherwise insufficient to support interpolation, that uncertainty must be represented before spatial assessment by splitting continuity or by an equivalent quality-controlled unresolved interval. The exact detection threshold is an implementation/quality rule and is not frozen by this ADR.
+
 ## Consequences
 
 The deterministic core must not:
