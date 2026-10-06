@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1.0",
+  "id": "fully-inside-assessment",
+  "revision_id": "fully-inside-assessment-r1",
+  "canonical_track": {
+    "id": "fully-inside-track",
+    "revision_id": "fully-inside-track-r1"
+  },
+  "target_area": {
+    "id": "fully-inside-area",
+    "revision_id": "fully-inside-area-r1"
+  },
+  "relation": "inside",
+  "coverage_completeness": "complete",
+  "coverage_uncertainties": [],
+  "target_segment_refs": [
+    {
+      "id": "fully-inside-segment-0",
+      "revision_id": "fully-inside-segment-0-r1"
+    }
+  ],
+  "algorithm": {
+    "name": "fixture-assessment",
+    "version": "0.1.0"
+  }
+}
