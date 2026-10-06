@@ -97,6 +97,8 @@ The following outcomes reflect the evidence and controlled attacks completed dur
 
 EP-02, EP-05, EP-06, and EP-07 have completed their required synthetic attacks. EP-03 has enough evidence to fix the provenance boundary but not to claim an exhaustive GPS anomaly model.
 
+A cross-cutting completeness question discovered during the target-area gap attacks is also **SUPPORTED**: SpatialAssessment must distinguish core relation from target-coverage reconstruction completeness. ADR-0007 freezes a two-state completeness contract (`complete` / `incomplete`) and requires incomplete results to retain auditable target-relevant uncertainty provenance.
+
 # Evidence questions
 
 ## EP-01 — Minimum valid CanonicalTrack
