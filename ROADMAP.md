@@ -419,15 +419,18 @@ Encode the frozen domain contract into machine-verifiable schemas and reproducib
 - fixed canonical geometry serialization to OGC:CRS84 with `[longitude, latitude]` positions;
 - fixed zero-based TrackPosition serialization as `part_index / observation_index / fraction_to_next`;
 - added reusable definitions in `schemas/common.schema.json`;
-- added `schemas/README.md` as the schema workspace guide.
+- added `schemas/README.md` as the schema workspace guide;
+- implemented `schemas/spatial-assessment.schema.json` with relation/completeness invariants and CoverageUncertainty;
+- implemented `schemas/target-segment.schema.json` with revision lineage, TrackPosition endpoints, ordinal, and canonical LineString geometry;
+- added initial valid/invalid schema fixtures and a fixture manifest distinguishing JSON-Schema and semantic validation.
 
 **Immediate Milestone 1 work:**
 
-1. implement `CanonicalTrack` and `TargetArea` schemas first because they constrain geometry, continuity, observations, and spatial-reference compatibility;
-2. implement `SpatialAssessment` and `TargetSegment` schemas next, including coverage completeness, CoverageUncertainty, TrackPosition, and lineage;
-3. implement `TrackSource` and `Activity` schemas;
-4. convert the Milestone 0 edge cases and attack matrix into public synthetic fixtures and expected outputs;
-5. validate schema and semantic-validation layers separately;
+1. implement `CanonicalTrack` and `TargetArea` schemas so the existing SpatialAssessment / TargetSegment references can be validated end-to-end;
+2. implement `TrackSource` and `Activity` schemas;
+3. expand the fixture manifest to cover all Milestone 0 edge cases and attack cases;
+4. implement automated JSON Schema validation and deterministic semantic validators for cross-object/geometry invariants;
+5. validate lineage regeneration, relation/completeness combinations, and target-segment ordering;
 6. verify no schema introduces COROS/FIT-specific core semantics.
 
 Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut.
