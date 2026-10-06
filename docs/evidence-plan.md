@@ -1,5 +1,7 @@
 # Evidence Plan
 
+**Milestone 0 status:** COMPLETE — evidence decisions incorporated into the frozen v0.1 domain contract.
+
 This document defines how Milestone 0 will use real-world and synthetic evidence to resolve the open questions in `docs/edge-cases.md`.
 
 The purpose is not to collect many activity files. The purpose is to obtain the **minimum evidence needed to distinguish competing domain-model designs** before the v0.1 contract is frozen.
