@@ -15,7 +15,7 @@ cannot reliably express, including:
 - exact cross-object revision references;
 - spatial-reference consistency;
 - linked SpatialAssessment/TargetSegment consistency;
-- relation consistency for fully observed single-part linked scenarios.
+- relation consistency for complete linked scenarios without unresolved target-relevant uncertainty.
 
 The runner consumes semantic expectations already present in
 tests/fixtures/manifest.json and linked object bundles declared in
@@ -569,26 +569,38 @@ def linear_components(geometry: Any) -> Any:
     return GeometryCollection()
 
 
-def derive_relation_for_single_part(
+def canonical_part_lines(track: dict[str, Any]) -> list[LineString]:
+    """Build only within-part evidence geometry; never bridge continuity breaks."""
+
+    lines: list[LineString] = []
+    for part in track["parts"]:
+        observations = part["observations"]
+        if len(observations) < 2:
+            continue
+        line = LineString([item["position"] for item in observations])
+        if line.length > GEOMETRY_TOLERANCE:
+            lines.append(line)
+    return lines
+
+
+def derive_relation_for_complete_track(
     track: dict[str, Any],
     area_geometry: Any,
 ) -> str | None:
-    if len(track["parts"]) != 1:
+    lines = canonical_part_lines(track)
+    if not lines:
         return None
 
-    observations = track["parts"][0]["observations"]
-    if len(observations) < 2:
-        return None
+    inside_length = 0.0
+    outside_length = 0.0
 
-    line = LineString([item["position"] for item in observations])
-    if line.length <= 0:
-        return None
-
-    inside = linear_components(line.intersection(area_geometry))
-    outside = linear_components(line.difference(area_geometry))
-
-    inside_length = inside.length
-    outside_length = outside.length
+    for line in lines:
+        inside_length += linear_components(
+            line.intersection(area_geometry)
+        ).length
+        outside_length += linear_components(
+            line.difference(area_geometry)
+        ).length
 
     if inside_length > GEOMETRY_TOLERANCE:
         if outside_length > GEOMETRY_TOLERANCE:
@@ -596,6 +608,22 @@ def derive_relation_for_single_part(
         return "inside"
 
     return "outside"
+
+
+def expected_complete_target_coverage(
+    track: dict[str, Any],
+    area_geometry: Any,
+) -> Any:
+    covered = [
+        linear_components(line.intersection(area_geometry))
+        for line in canonical_part_lines(track)
+    ]
+    covered = [
+        geometry
+        for geometry in covered
+        if not geometry.is_empty and geometry.length > GEOMETRY_TOLERANCE
+    ]
+    return unary_union(covered) if covered else GeometryCollection()
 
 
 def validate_linked_scenario(
@@ -659,6 +687,21 @@ def validate_linked_scenario(
         errors.append(
             "CanonicalTrack and TargetArea spatial references do not match"
         )
+
+    for index, uncertainty in enumerate(
+        spatial_assessment.get("coverage_uncertainties", [])
+    ):
+        affected = uncertainty["affected_track_range"]
+        for endpoint_name in ("start", "end"):
+            for error in validate_track_position_against_parent(
+                canonical_track,
+                affected[endpoint_name],
+                label=(
+                    f"coverage_uncertainties[{index}].affected_track_range."
+                    f"{endpoint_name}"
+                ),
+            ):
+                errors.append(error)
 
     area_geometry = shape(target_area["geometry"])
 
@@ -725,14 +768,14 @@ def validate_linked_scenario(
         except Exception:
             pass
 
-    # For a complete, fully observed single-part route, relation and exhaustive
-    # target coverage can be checked deterministically from geometry alone.
+    # For a complete route with no unresolved target-relevant uncertainty,
+    # relation and exhaustive target coverage can be derived from within-part
+    # evidence geometry only. Continuity breaks are never bridged.
     if (
         spatial_assessment["coverage_completeness"] == "complete"
         and not spatial_assessment["coverage_uncertainties"]
-        and len(canonical_track["parts"]) == 1
     ):
-        derived_relation = derive_relation_for_single_part(
+        derived_relation = derive_relation_for_complete_track(
             canonical_track, area_geometry
         )
         if (
@@ -744,13 +787,9 @@ def validate_linked_scenario(
                 f"single-part geometry: expected {derived_relation!r}"
             )
 
-        line = LineString(
-            [
-                item["position"]
-                for item in canonical_track["parts"][0]["observations"]
-            ]
+        expected_inside = expected_complete_target_coverage(
+            canonical_track, area_geometry
         )
-        expected_inside = linear_components(line.intersection(area_geometry))
         actual_inside = (
             unary_union(segment_geometries)
             if segment_geometries
