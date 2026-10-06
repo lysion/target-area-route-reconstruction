@@ -95,10 +95,11 @@ The spatial-reference case is intentionally a Layer A negative rather than a sch
 At the time this mapping was completed:
 
 - frozen edge cases mapped: **29 / 29**;
-- fixture manifest entries: **99**;
+- fixture manifest entries: **113**;
 - linked semantic scenarios: **16**;
 - explicit non-file contract cases: **13**;
-- registered negative cross-object cases: **6**.
+- registered negative cross-object cases: **6**;
+- independent common-definition conformance fixtures: **14**.
 
 These counts are implementation status, not a claim that CI has already passed every current case. The repository runners/CI remain the authoritative execution result.
 
