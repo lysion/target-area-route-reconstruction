@@ -257,6 +257,23 @@
         "minLength": 3
       },
       "additionalProperties": true
+    },
+    "trackRange": {
+      "type": "object",
+      "description": "Inclusive ordered endpoints identifying an affected interval on a parent CanonicalTrack. Cross-part/order validity requires semantic validation.",
+      "required": [
+        "start",
+        "end"
+      ],
+      "properties": {
+        "start": {
+          "$ref": "#/$defs/trackPosition"
+        },
+        "end": {
+          "$ref": "#/$defs/trackPosition"
+        }
+      },
+      "additionalProperties": false
     }
   }
 }
