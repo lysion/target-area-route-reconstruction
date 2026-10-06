@@ -123,6 +123,65 @@
       "expect_schema_valid": true,
       "expect_semantic_valid": false,
       "purpose": "JSON shape permits a closed ring, but self-intersection violates the TargetArea topology contract"
+    },
+    {
+      "path": "activity/valid-minimal.json",
+      "schema": "../../../schemas/activity.schema.json",
+      "expect_schema_valid": true,
+      "expect_semantic_valid": true,
+      "purpose": "Activity is a stable project-local event identity and may exist with zero TrackSources"
+    },
+    {
+      "path": "activity/valid-with-extension.json",
+      "schema": "../../../schemas/activity.schema.json",
+      "expect_schema_valid": true,
+      "expect_semantic_valid": true,
+      "purpose": "optional extension data does not alter Activity core identity semantics"
+    },
+    {
+      "path": "activity/invalid-source-native-id.json",
+      "schema": "../../../schemas/activity.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "source-native identifiers are TrackSource provenance, not core Activity fields"
+    },
+    {
+      "path": "track-source/valid-local-file.json",
+      "schema": "../../../schemas/track-source.schema.json",
+      "expect_schema_valid": true,
+      "expect_semantic_valid": true,
+      "purpose": "durable local file evidence with source provenance and optional content hash"
+    },
+    {
+      "path": "track-source/valid-point-stream.json",
+      "schema": "../../../schemas/track-source.schema.json",
+      "expect_schema_valid": true,
+      "expect_semantic_valid": true,
+      "purpose": "TrackSource abstraction supports non-file source evidence without core redesign"
+    },
+    {
+      "path": "track-source/valid-corrupted-file-evidence.json",
+      "schema": "../../../schemas/track-source.schema.json",
+      "expect_schema_valid": true,
+      "expect_semantic_valid": true,
+      "purpose": "durably acquired corrupted evidence remains a valid TrackSource even when parsing later fails"
+    },
+    {
+      "path": "track-source/invalid-missing-origin-namespace.json",
+      "schema": "../../../schemas/track-source.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "source-native provenance is meaningless without a source namespace"
+    },
+    {
+      "path": "track-source/invalid-activity-revision-ref.json",
+      "schema": "../../../schemas/track-source.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "TrackSource belongs to stable Activity identity rather than an invented Activity revision contract"
+    },
+    {
+      "path": "track-source/invalid-missing-media-type.json",
+      "schema": "../../../schemas/track-source.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "TrackSource must identify the representation type of preserved source evidence"
     }
   ]
 }
