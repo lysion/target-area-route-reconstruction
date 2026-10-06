@@ -1,0 +1,21 @@
+{
+  "schema_version": "0.1.0",
+  "id": "point-touch-assessment",
+  "revision_id": "point-touch-assessment-r1",
+  "canonical_track": {
+    "id": "point-touch-track",
+    "revision_id": "point-touch-track-r1"
+  },
+  "target_area": {
+    "id": "point-touch-area",
+    "revision_id": "point-touch-area-r1"
+  },
+  "relation": "outside",
+  "coverage_completeness": "complete",
+  "coverage_uncertainties": [],
+  "target_segment_refs": [],
+  "algorithm": {
+    "name": "fixture-assessment",
+    "version": "0.1.0"
+  }
+}
