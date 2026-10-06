@@ -406,13 +406,13 @@ No project decision should rely solely on chat history.
 - froze target-coverage completeness as a second SpatialAssessment dimension (`complete` / `incomplete`) with auditable unresolved uncertainty provenance;
 - resolved cross-source Activity identity: similarity never implies identity, and future reconciliation remains explicit/auditable outside the v0.1 spatial core;
 - closed EP-08: ManualDecision is a first-class audit/runtime overlay that never mutates algorithmic SpatialAssessment;
+- completed the full EC-01 through EC-29 edge-case regression: 26 PASS, 0 REVIEW, 0 FAIL, 3 explicitly bounded DEFERRED;
 - retained planned speed/pace metric overlays as a later derived capability rather than a Milestone 0 core field.
 
 **Remaining Milestone 0 work:**
 
-1. re-run the full edge-case matrix against `docs/domain-model.md` and ADR-0001 through ADR-0009;
-2. verify zero blocking `FAIL` and zero blocking `REVIEW` cases;
-3. verify every `DEFERRED` case has an explicit later-milestone boundary;
-4. freeze the v0.1 domain contract before creating JSON Schemas.
+1. perform the final contract-freeze review against `docs/domain-model.md`, ADR-0001 through ADR-0009, and `docs/edge-case-regression.md`;
+2. freeze the v0.1 domain contract;
+3. only then activate Milestone 1 and begin JSON Schemas / fixtures.
 
 Work on Milestone 1 or later remains deferred until these exit criteria are met.
