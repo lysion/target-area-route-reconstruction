@@ -1,0 +1,110 @@
+{
+  "schema_version": "0.1.0",
+  "description": "Explicit non-file test representations for frozen edge cases whose invariant is about lifecycle, absence, reconciliation, persistence, or later-milestone policy rather than one standalone core JSON entity.",
+  "cases": [
+    {
+      "edge_case": "EC-02",
+      "title": "Cross-source similarity does not imply Activity identity",
+      "execution_milestone": "Milestone 5 — Source Adapter Layer",
+      "assertion": "Two source records with similar time/distance/geometry remain distinct Activities unless an explicit auditable reconciliation establishes equivalence.",
+      "future_test_shape": "Feed two adapter records with deliberately similar metadata and assert that no automatic core merge occurs; then test an explicit reconciliation path separately.",
+      "reason_not_entity_fixture": "The frozen Activity schema intentionally contains no approximate matching fields or reconciliation object."
+    },
+    {
+      "edge_case": "EC-03",
+      "title": "Repeated ingestion preserves real-world Activity identity",
+      "execution_milestone": "Milestone 3 — Persistent Runtime",
+      "assertion": "Re-ingesting the same source evidence must not create a duplicate real-world Activity fact.",
+      "future_test_shape": "Ingest identical source content twice under the same and different display names; assert persisted Activity/TrackSource idempotency according to content/provenance policy.",
+      "reason_not_entity_fixture": "Idempotency is behavior across persistence operations, not a property of one serialized entity."
+    },
+    {
+      "edge_case": "EC-04",
+      "title": "One Activity may own multiple TrackSources",
+      "execution_milestone": "Milestone 2 — Deterministic Core / integration fixtures",
+      "assertion": "A single established Activity identity may be referenced by multiple independent TrackSources such as FIT and GPX without source multiplicity creating Activity multiplicity.",
+      "future_test_shape": "Build one Activity plus two TrackSources with distinct representation/provenance, normalize both independently, and assert both retain the same Activity owner.",
+      "reason_not_entity_fixture": "The invariant is graph cardinality across multiple aggregate instances."
+    },
+    {
+      "edge_case": "EC-05",
+      "title": "Corrupted durable source remains evidence while parse fails",
+      "execution_milestone": "Milestone 2 — Deterministic Core",
+      "assertion": "A durable TrackSource remains valid evidence when parsing fails; no CanonicalTrack or outside classification is synthesized from that failure.",
+      "future_test_shape": "Run a corrupted source through the parser and assert explicit parse failure, preserved TrackSource provenance, zero produced CanonicalTrack revisions, and zero SpatialAssessment results.",
+      "reason_not_entity_fixture": "The existing corrupted TrackSource fixture proves source representability; parse failure/outcome is execution behavior."
+    },
+    {
+      "edge_case": "EC-09",
+      "title": "No usable GPS produces no assessable track or assessment",
+      "execution_milestone": "Milestone 2 — Deterministic Core",
+      "assertion": "A source with workout metadata but no usable positions does not produce an assessable CanonicalTrack and never synthesizes outside.",
+      "future_test_shape": "Parse a no-position source fixture; assert no usable CanonicalTrack/SpatialAssessment and explicit unresolved workflow outcome.",
+      "reason_not_entity_fixture": "The invariant depends on absence of derived objects after parsing rather than validity of one entity JSON file."
+    },
+    {
+      "edge_case": "EC-11",
+      "title": "Quality cleaning never erases normalized observations",
+      "execution_milestone": "Milestone 2 — Deterministic Core",
+      "assertion": "Outlier detection/cleaning may derive usable geometry or quality annotations, but normalized observation evidence and algorithm/version provenance remain auditable.",
+      "future_test_shape": "Run an extreme-jump track through quality validation and assert raw normalized observations are unchanged while any cleaned result is separately provenance-tagged.",
+      "reason_not_entity_fixture": "The exact quality-derived representation and anomaly thresholds are intentionally implementation-layer decisions."
+    },
+    {
+      "edge_case": "EC-12",
+      "title": "One CanonicalTrack can be assessed independently against multiple TargetAreas",
+      "execution_milestone": "Milestone 2 — Deterministic Core",
+      "assertion": "Two Track × TargetArea-revision pairs yield independent SpatialAssessments without storing relation on CanonicalTrack.",
+      "future_test_shape": "Reuse one CanonicalTrack revision with two TargetArea revisions and assert two independent assessment identities/results while the track JSON is byte-identical.",
+      "reason_not_entity_fixture": "The invariant compares a graph containing multiple assessments rather than one standalone entity."
+    },
+    {
+      "edge_case": "EC-13",
+      "title": "TargetArea revision does not mutate source or canonical evidence",
+      "execution_milestone": "Milestone 2 — Deterministic Core",
+      "assertion": "Changing a TargetArea boundary creates a new TargetArea revision and new derived assessment while historical area/assessment revisions and CanonicalTrack remain unchanged.",
+      "future_test_shape": "Assess one CanonicalTrack against TargetArea r1 and r2; assert both historical assessments remain addressable and track/source hashes remain unchanged.",
+      "reason_not_entity_fixture": "Version-change immutability is a multi-revision lifecycle assertion."
+    },
+    {
+      "edge_case": "EC-24",
+      "title": "ManualDecision never overwrites algorithmic SpatialAssessment",
+      "execution_milestone": "Milestone 3 — Persistent Runtime",
+      "assertion": "A human task-facing override is appended as an auditable ManualDecision referencing an exact SpatialAssessment revision; the algorithmic relation/completeness/segments remain immutable.",
+      "future_test_shape": "Persist partial assessment, append manual outside decision, derive effective task-facing outside result, supersede/revoke decision, and assert the original assessment and prior decision remain unchanged.",
+      "reason_not_entity_fixture": "ManualDecision is an audit/runtime extension outside the six v0.1 spatial-core schemas."
+    },
+    {
+      "edge_case": "EC-25",
+      "title": "Duplicate raw-file import is idempotent",
+      "execution_milestone": "Milestone 3 — Persistent Runtime",
+      "assertion": "Repeated import of identical durable content must not create duplicate evidence facts.",
+      "future_test_shape": "Import identical bytes twice using different filenames and assert content identity/deduplication and stable provenance behavior.",
+      "reason_not_entity_fixture": "The case is explicitly deferred to persistent content hashing and idempotency."
+    },
+    {
+      "edge_case": "EC-26",
+      "title": "Remote locator is not durable acquisition",
+      "execution_milestone": "Milestone 5 — Source Adapter Layer with Milestone 3 durability",
+      "assertion": "Receiving a URL/temporary locator is not acquisition success until source bytes/evidence are durably persisted and reopenable.",
+      "future_test_shape": "Return a valid remote locator but fail persistence/reopen; assert no durable-available TrackSource state is recorded.",
+      "reason_not_entity_fixture": "TrackSource core schema represents preserved evidence, while acquisition state belongs to adapter/runtime lifecycle."
+    },
+    {
+      "edge_case": "EC-27",
+      "title": "Parser-version changes remain traceable to one immutable TrackSource",
+      "execution_milestone": "Milestone 2 — Deterministic Core",
+      "assertion": "Different parser/normalizer versions may produce different CanonicalTrack revisions from the same TrackSource revision, and each output records exact normalizer provenance.",
+      "future_test_shape": "Normalize the same source using parser v1 and v2; assert distinct CanonicalTrack revision IDs, identical TrackSource revision reference, and distinct normalizer.version provenance.",
+      "reason_not_entity_fixture": "The schema already carries provenance; the edge case requires comparative execution across parser versions."
+    },
+    {
+      "edge_case": "EC-28",
+      "title": "Task completion can precede remote-source exhaustion",
+      "execution_milestone": "Milestone 6 — Resource-Aware Acquisition",
+      "assertion": "Stopping criteria are task/runtime policy and must not alter Activity, TrackSource, or CanonicalTrack identity.",
+      "future_test_shape": "Given an objective already satisfied by acquired evidence and remaining low-value remote candidates, assert acquisition stops while core persisted entities remain unchanged.",
+      "reason_not_entity_fixture": "Objective-aware stopping is explicitly deferred resource policy."
+    }
+  ]
+}
