@@ -1,0 +1,58 @@
+{
+  "schema_version": "0.1.0",
+  "id": "polygon-hole-area",
+  "revision_id": "polygon-hole-area-r1",
+  "spatial_reference": "OGC:CRS84",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          112,
+          28
+        ],
+        [
+          116,
+          28
+        ],
+        [
+          116,
+          30
+        ],
+        [
+          112,
+          30
+        ],
+        [
+          112,
+          28
+        ]
+      ],
+      [
+        [
+          113,
+          28.5
+        ],
+        [
+          115,
+          28.5
+        ],
+        [
+          115,
+          29.5
+        ],
+        [
+          113,
+          29.5
+        ],
+        [
+          113,
+          28.5
+        ]
+      ]
+    ]
+  },
+  "definition_provenance": {
+    "description": "Synthetic Polygon TargetArea with an interior hole."
+  }
+}
