@@ -27,14 +27,15 @@ The first milestone is deliberately narrow:
 - spatial classification as `inside`, `partial`, `outside`, or `unknown`;
 - extraction of target-area segments;
 - GeoJSON export;
-- a basic interactive map.
+- a basic interactive map;
+- optional quality-aware speed/pace coloring when valid temporal evidence is available.
 
 The following are deferred until the deterministic core is stable:
 
 - COROS, Garmin, Strava, or other platform adapters;
 - acquisition quota/cost optimization;
 - route-network aggregation and heatmaps;
-- training-performance analysis;
+- training-performance or physiological analysis beyond local track speed/pace visualization;
 - route recommendation.
 
 ## Draft domain model
@@ -63,6 +64,13 @@ Development follows a contract-first and test-first sequence:
 
 See [ROADMAP.md](ROADMAP.md) for milestone gates, exit criteria, and change-control rules.
 
+Current design artifacts:
+
+- [Edge cases](docs/edge-cases.md)
+- [Evidence plan](docs/evidence-plan.md)
+- [Real-world evidence record](docs/real-world-cases.md)
+- [Track metric overlays](docs/track-metric-overlays.md)
+
 ## Status
 
-Early public development. The repository is currently in **Milestone 0: Domain Contract**.
+Early public development. The repository is currently in **Milestone 0: Domain Contract**, with the edge-case matrix and evidence plan defined and real-world evidence collection next.
