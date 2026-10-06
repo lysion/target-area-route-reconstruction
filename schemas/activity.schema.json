@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Activity",
+  "description": "Stable project-local identity for one real-world recorded activity event. Activity is not a file, geometry, source-platform object, or spatial classification.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "common.schema.json#/$defs/schemaVersion"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/entityId"
+    },
+    "extensions": {
+      "$ref": "common.schema.json#/$defs/extensions",
+      "description": "Optional non-core attributes. Cross-source identity must never depend on extension similarity."
+    }
+  },
+  "additionalProperties": false
+}
