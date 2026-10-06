@@ -1,0 +1,15 @@
+{
+  "schema_version": "0.1.0",
+  "id": "track-invalid-empty",
+  "revision_id": "track-invalid-empty-r1",
+  "track_source": {
+    "id": "source-invalid-empty",
+    "revision_id": "source-invalid-empty-r1"
+  },
+  "spatial_reference": "OGC:CRS84",
+  "parts": [],
+  "normalizer": {
+    "name": "fixture-normalizer",
+    "version": "0.1.0"
+  }
+}
