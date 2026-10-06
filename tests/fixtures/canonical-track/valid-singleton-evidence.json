@@ -1,0 +1,21 @@
+{
+  "schema_version": "0.1.0",
+  "id": "track-singleton",
+  "revision_id": "track-singleton-r1",
+  "track_source": {
+    "id": "source-singleton",
+    "revision_id": "source-singleton-r1"
+  },
+  "spatial_reference": "OGC:CRS84",
+  "parts": [
+    {
+      "observations": [
+        {"position": [112.9000, 28.2000]}
+      ]
+    }
+  ],
+  "normalizer": {
+    "name": "fixture-normalizer",
+    "version": "0.1.0"
+  }
+}
