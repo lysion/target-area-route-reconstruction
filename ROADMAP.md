@@ -92,7 +92,7 @@ Milestone 0 is DONE only when:
 
 ## Milestone 1 — Schemas and Fixtures
 
-**Status:** ACTIVE  
+**Status:** DONE  
 **Target:** machine-verifiable v0.1 contracts
 
 ### Goal
@@ -130,7 +130,7 @@ Encode the frozen domain contract into schemas and reproducible test fixtures be
 
 ## Milestone 2 — Deterministic Core
 
-**Status:** NOT STARTED  
+**Status:** ACTIVE  
 **Release target:** v0.1.0
 
 ### Goal
@@ -388,7 +388,7 @@ No project decision should rely solely on chat history.
 
 ## Current execution point
 
-**Current milestone:** Milestone 1 — Schemas and Fixtures
+**Current milestone:** Milestone 2 — Deterministic Core
 
 **Milestone 0 outcome: DONE**
 
@@ -411,7 +411,9 @@ Milestone 0 completed:
 
 Encode the frozen domain contract into machine-verifiable schemas and reproducible fixtures without changing domain semantics.
 
-**Milestone 1 completed so far:**
+**Milestone 1 outcome: DONE**
+
+Milestone 1 completed:
 
 - defined shared schema conventions in `docs/schema-conventions.md`;
 - selected JSON Schema Draft 2020-12;
@@ -441,22 +443,23 @@ Encode the frozen domain contract into machine-verifiable schemas and reproducib
 - expanded the schema fixture manifest to 113 entries and linked semantic scenarios to 16;
 - added `schemas/common-conformance.schema.json` plus 14 independent valid/invalid probes for shared ID/reference/CRS/coordinate/time/TrackPosition/hash definitions;
 - ran the complete contract-validation workflow green on commit `74867ba37b6b48ecd7f70a588e3a7e86c2f569b7`: Layer A 113/113, Layer B 33/33, edge-case coverage 29/29; recorded in `docs/milestone1-validation-run.md`;
-- recorded complete coverage in `docs/milestone1-edge-case-coverage.md` and linked spatial detail in `docs/milestone1-linked-scenario-coverage.md`.
+- recorded complete coverage in `docs/milestone1-edge-case-coverage.md` and linked spatial detail in `docs/milestone1-linked-scenario-coverage.md`;
+- added a synthetic, privacy-safe raw source baseline under `tests/source-fixtures/`, including equivalent FIT/GPX inputs, no-timestamp GPX, explicit GPX discontinuity, malformed GPX, and valid no-position FIT;
+- added `tests/source-fixtures/manifest.json` with SHA-256 integrity, source-structure expectations, future normalization expectations, and GPX/FIT equivalence requirements;
+- added deterministic fixture generation and source-baseline validation scripts;
+- ran the final Milestone 1 contract workflow green: 113/113 schema expectations, 33/33 semantic expectations, 29/29 edge cases mapped, 6/6 raw source fixtures verified, and 1 FIT/GPX equivalence group verified;
+- closed the Milestone 1 exit review in `docs/milestone1-exit-review.md`.
 
-**Milestone 1 exit review:** NOT READY — one blocker remains.
+**Milestone 1 exit review:** PASS.
 
-Completed in the exit review:
+Milestone 1 is complete. The frozen v0.1 contract, schemas, fixtures, semantic scenarios, non-file test contracts, raw FIT/GPX parser-input baseline, and validation gates are all in place.
 
-- all six core schemas and validators passed the source/platform-independence audit;
-- all 13 explicit non-file contract cases have explicit later-milestone ownership and future test shapes;
-- the executable validation gate remains green: 113/113 schema fixture expectations, 33/33 semantic expectations, and 29/29 frozen edge cases mapped.
+**Immediate Milestone 2 work:**
 
-Remaining blocker:
-
-1. add a small synthetic, privacy-safe raw FIT/GPX source-fixture baseline plus a machine-readable normalization-expectation manifest. The repository currently has no committed `.fit` or `.gpx` files, while the Milestone 1 work list explicitly requires synthetic FIT/GPX/track fixtures before the Milestone 2 parser implementation begins.
-
-See `docs/milestone1-exit-review.md`.
-
-Milestone 1 remains ACTIVE until this blocker is closed.
+1. implement GPX ingestion against the committed raw-source fixtures;
+2. implement FIT ingestion against the equivalent and no-position FIT fixtures;
+3. normalize both formats into `CanonicalTrack` without changing the frozen schemas;
+4. make the existing source-fixture normalization expectations executable parser tests;
+5. proceed to deterministic spatial assessment and TargetSegment extraction only after parser normalization is stable.
 
 Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut.
