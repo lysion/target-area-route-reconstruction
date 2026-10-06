@@ -23,6 +23,22 @@ Shared reusable definitions are in:
 - `spatial-assessment.schema.json`
 - `target-segment.schema.json`
 
+## Common-definition conformance
+
+`common.schema.json` is exercised independently through the test-only wrapper `common-conformance.schema.json`.
+
+The current conformance fixtures cover paired valid/invalid cases for:
+
+- opaque `entityId`;
+- exact `revisionRef`;
+- canonical `spatialReference`;
+- CRS84 `position2d` bounds/order;
+- UTC `timestampUtc`;
+- canonical `trackPosition` fraction semantics;
+- lowercase SHA-256 `sha256Hash`.
+
+These are intentionally small contract probes rather than additional domain entities.
+
 ## Executable schema validation
 
 The repository now includes a formal Draft 2020-12 fixture runner:
@@ -249,7 +265,7 @@ Current coverage artifacts:
 - `../docs/milestone1-edge-case-coverage.md` — human-readable complete mapping;
 - `../docs/milestone1-linked-scenario-coverage.md` — linked spatial scenario details.
 
-Current registered set: 99 schema fixtures, 16 linked semantic scenarios, 13 non-file contract cases, and 6 negative cross-object cases.
+Current registered set: 113 schema fixtures, 16 linked semantic scenarios, 13 non-file contract cases, and 6 negative cross-object cases. Fourteen of the schema fixtures independently exercise shared common definitions.
 
 The next Milestone 1 focus is conformance rather than coverage design:
 
