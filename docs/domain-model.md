@@ -10,11 +10,7 @@ It records evidence-backed domain semantics. It intentionally does not freeze JS
 **Contract status:** draft with accepted spatial decisions  
 **Evidence basis:** EP-01, EP-02, EP-04, EP-05, EP-06, and EP-07 are supported; EP-03 supports source-observation preservation and separation from cleaned/usable geometry, while anomaly taxonomy remains open.
 
-The following remain unresolved before Milestone 0 can be marked DONE:
-
-- cross-source Activity reconciliation policy;
-- EP-08 manual-decision lifecycle;
-- full edge-case regression after the decisions in this document are applied.
+No blocking domain-design question remains. Milestone 0 still requires a full edge-case regression and contract-freeze review before it can be marked DONE.
 
 ## Core principles
 
@@ -61,9 +57,15 @@ It is not a file, source-platform object, geometry, or spatial assessment.
 
 ### Identity boundary
 
-v0.1 must not perform implicit cross-source merging from approximate time, distance, duration, or geometry similarity.
+Activity has a stable project-local identity.
 
-Cross-source reconciliation remains an explicit decision process. The initial local-file workflow may operate without a first-class reconciliation entity, but the model must remain compatible with one later.
+Source-native identifiers are source-scoped provenance and are not globally valid Activity identifiers.
+
+v0.1 must not perform implicit cross-source merging from approximate time, distance, duration, activity type, route geometry, or any weighted similarity across those fields.
+
+When two TrackSources are explicitly known to describe the same real-world event, they may belong to one Activity. When sameness has not been explicitly established, they remain separate Activities.
+
+Cross-source reconciliation is an explicit auditable adapter/runtime process outside the v0.1 spatial core. Similarity may propose a future reconciliation candidate but cannot itself mutate Activity identity. No reconciliation entity is added to the v0.1 core.
 
 ---
 
@@ -327,6 +329,35 @@ SpatialAssessment must retain the algorithm/version and TargetArea version used 
 
 ---
 
+## Manual review and effective task-facing classification
+
+Human interpretation has an independent lifecycle from algorithmic spatial evidence.
+
+A first-class **ManualDecision** audit-layer record may reference an exact SpatialAssessment version and choose a different task-facing relation for a defined task or decision scope.
+
+ManualDecision is not one of the six spatial-core entities. It belongs to the review/runtime extension layer.
+
+A ManualDecision must preserve at least:
+
+- stable decision identity;
+- referenced SpatialAssessment identity/version;
+- decision scope or task context;
+- chosen task-facing relation;
+- reason/rationale;
+- actor or decision-source provenance;
+- decision time;
+- superseding or revocation provenance when later changed.
+
+ManualDecision never rewrites SpatialAssessment, coverage completeness, TargetSegments, CanonicalTrack, or source evidence.
+
+The effective task-facing classification is a derived projection of the immutable algorithmic assessment plus an applicable ManualDecision. It must expose both the original algorithmic result and the decision provenance.
+
+Manual decisions are append-only audit facts. Replacement or revocation preserves the previous decision rather than destructively editing it.
+
+New spatial evidence is not a manual override: it must enter the evidence pipeline and produce a new algorithmic assessment.
+
+---
+
 ## TargetSegment
 
 ### Responsibility
@@ -504,6 +535,8 @@ Current evidence rejects the following shortcuts:
 12. Mutate canonical track evidence when TargetArea changes.
 13. Treat a determined relation as proof that all TargetSegments are known.
 14. Use a numeric confidence score as a substitute for deterministic completeness semantics.
+15. Merge cross-source Activities solely from approximate similarity.
+16. Overwrite algorithmic SpatialAssessment fields with a manual decision.
 
 ---
 
@@ -516,29 +549,33 @@ Current evidence rejects the following shortcuts:
 - ADR-0005 — TargetSegment multiplicity, maximality, ordering, and lineage
 - ADR-0006 — Minimum spatial CanonicalTrack contract
 - ADR-0007 — SpatialAssessment target-coverage completeness
+- ADR-0008 — Cross-source Activity identity is explicit, never similarity-implied
+- ADR-0009 — Manual decisions are auditable overlays, not mutations of SpatialAssessment
 
 ---
 
-## Open decisions before Milestone 0 exit
+## Remaining Milestone 0 work
 
-### Cross-source Activity reconciliation
+No blocking domain-design decision remains.
 
-v0.1 will not perform implicit approximate merging. Whether a future explicit reconciliation entity belongs in the core remains open.
+Before Milestone 0 can be marked DONE:
 
-### Manual decisions — EP-08
+1. re-run the complete edge-case matrix against this contract;
+2. verify zero blocking `FAIL` and zero blocking `REVIEW` cases;
+3. verify all deferred concerns have an explicit milestone/extension boundary;
+4. freeze the v0.1 domain contract before starting JSON Schema work.
 
-A human decision must never destroy the algorithmic SpatialAssessment.
+### Explicitly deferred implementation details
 
-The current six-entity core does not yet define whether manual decisions are:
+The following do not block the domain contract:
 
-- a separate Decision / Override entity; or
-- an auditable extension layer outside the v0.1 spatial core.
-
-This remains a blocking Milestone 0 decision.
-
-### Quality-controlled geometry representation
-
-Normalized observations must remain separate from judgment-based cleaning. Exact schemas and quality algorithms remain deferred.
+- exact quality-controlled/usable-geometry schema and anomaly thresholds;
+- continuity-break detection thresholds;
+- target-gap reachability algorithms;
+- exact TrackPosition field names and numeric serialization;
+- CoverageUncertainty schema details;
+- cross-source reconciliation object/persistence model for future adapters;
+- ManualDecision persistence and multi-decision precedence policy for the runtime layer.
 
 ---
 
