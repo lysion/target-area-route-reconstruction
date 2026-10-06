@@ -614,6 +614,90 @@
       "schema": "../../../../schemas/target-segment.schema.json",
       "expect_schema_valid": true,
       "purpose": "schema-valid component of linked EC-29 partial + incomplete scenario"
+    },
+    {
+      "path": "common/valid-entity-id.json",
+      "schema": "../../../schemas/common-conformance.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "opaque non-empty entity ID is valid"
+    },
+    {
+      "path": "common/invalid-empty-entity-id.json",
+      "schema": "../../../schemas/common-conformance.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "empty entity ID is invalid"
+    },
+    {
+      "path": "common/valid-revision-ref.json",
+      "schema": "../../../schemas/common-conformance.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "revisionRef requires exact id and revision_id"
+    },
+    {
+      "path": "common/invalid-revision-ref-missing-revision.json",
+      "schema": "../../../schemas/common-conformance.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "revisionRef without revision_id is invalid"
+    },
+    {
+      "path": "common/valid-spatial-reference.json",
+      "schema": "../../../schemas/common-conformance.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "OGC:CRS84 is the canonical v0.1 spatial reference"
+    },
+    {
+      "path": "common/invalid-spatial-reference.json",
+      "schema": "../../../schemas/common-conformance.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "alternate spatial reference identifier is rejected"
+    },
+    {
+      "path": "common/valid-position-boundary.json",
+      "schema": "../../../schemas/common-conformance.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "CRS84 coordinate boundary values are valid"
+    },
+    {
+      "path": "common/invalid-position-axis-range.json",
+      "schema": "../../../schemas/common-conformance.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "latitude outside [-90,90] is invalid"
+    },
+    {
+      "path": "common/valid-timestamp-utc.json",
+      "schema": "../../../schemas/common-conformance.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "canonical RFC3339 timestamp normalized to Z is valid"
+    },
+    {
+      "path": "common/invalid-timestamp-offset.json",
+      "schema": "../../../schemas/common-conformance.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "offset timestamp without trailing Z is invalid canonical form"
+    },
+    {
+      "path": "common/valid-track-position.json",
+      "schema": "../../../schemas/common-conformance.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "TrackPosition fraction below 1 is valid"
+    },
+    {
+      "path": "common/invalid-track-position-fraction-one.json",
+      "schema": "../../../schemas/common-conformance.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "TrackPosition fraction 1 is non-canonical and invalid"
+    },
+    {
+      "path": "common/valid-sha256.json",
+      "schema": "../../../schemas/common-conformance.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "canonical lowercase SHA-256 hash is valid"
+    },
+    {
+      "path": "common/invalid-sha256-uppercase.json",
+      "schema": "../../../schemas/common-conformance.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "uppercase SHA-256 digest is invalid canonical form"
     }
   ]
 }
