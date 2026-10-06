@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1.0",
+  "id": "starts-inside-leaves-assessment",
+  "revision_id": "starts-inside-leaves-assessment-r1",
+  "canonical_track": {
+    "id": "starts-inside-leaves-track",
+    "revision_id": "starts-inside-leaves-track-r1"
+  },
+  "target_area": {
+    "id": "starts-inside-leaves-area",
+    "revision_id": "starts-inside-leaves-area-r1"
+  },
+  "relation": "partial",
+  "coverage_completeness": "complete",
+  "coverage_uncertainties": [],
+  "target_segment_refs": [
+    {
+      "id": "starts-inside-leaves-segment-0",
+      "revision_id": "starts-inside-leaves-segment-0-r1"
+    }
+  ],
+  "algorithm": {
+    "name": "fixture-assessment",
+    "version": "0.1.0"
+  }
+}
