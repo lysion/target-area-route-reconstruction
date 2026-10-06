@@ -6,7 +6,7 @@ It exists to answer one question:
 
 > Can the current domain model represent real and failure-prone route-reconstruction scenarios without ad-hoc exceptions?
 
-This is a **Milestone 0 design artifact**, not an automated test suite. Cases that survive the domain-model review will later become schemas, fixtures, unit tests, integration tests, and agent evals.
+This is the completed **Milestone 0 design regression artifact**, not an automated test suite. The frozen cases now serve as requirements for Milestone 1 schemas/fixtures and later implementation tests/evals.
 
 ## Status vocabulary
 
@@ -17,7 +17,7 @@ This is a **Milestone 0 design artifact**, not an automated test suite. Cases th
 
 A `PASS` does not mean implementation is complete. It only means the **domain model is expressive enough** for the case.
 
-## Current candidate entities
+## Frozen v0.1 spatial-core entities
 
 - `Activity`
 - `TrackSource`
