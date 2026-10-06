@@ -23,7 +23,7 @@ A later milestone should not begin until the current milestone's exit criteria a
 
 ## Milestone 0 — Domain Contract
 
-**Status:** ACTIVE  
+**Status:** DONE  
 **Target:** design baseline for v0.1
 
 ### Goal
@@ -92,7 +92,7 @@ Milestone 0 is DONE only when:
 
 ## Milestone 1 — Schemas and Fixtures
 
-**Status:** NOT STARTED  
+**Status:** ACTIVE  
 **Target:** machine-verifiable v0.1 contracts
 
 ### Goal
@@ -388,31 +388,36 @@ No project decision should rely solely on chat history.
 
 ## Current execution point
 
-**Current milestone:** Milestone 0 — Domain Contract
+**Current milestone:** Milestone 1 — Schemas and Fixtures
 
-**Completed in this milestone:**
+**Milestone 0 outcome: DONE**
 
-- created and exercised `docs/edge-cases.md` as the design-time stress matrix;
-- created `docs/evidence-plan.md` and completed representative evidence for EP-02 through EP-07 where required;
-- recorded five anonymized real-world evidence cases in `docs/real-world-cases.md`;
-- completed controlled attacks for continuity, target clipping, repeated entry, MultiPolygon, polygon holes, point touch, positive-length boundary overlap, target-version changes, and target-relevant unobserved gaps;
-- accepted continuity-part semantics and prohibited inferred geometry across continuity breaks;
-- accepted TrackSource / CanonicalTrack provenance separation and preservation of normalized observations from judgment-based cleaned geometry;
-- accepted the v0.1 Polygon/MultiPolygon TargetArea contract;
-- accepted four-state evidence-aware spatial relation semantics;
-- accepted TargetSegment multiplicity, maximality, ordering, and parent-track lineage requirements;
-- added `docs/domain-model.md` and nine initial ADRs under `docs/decisions/`;
-- closed EP-01: ordered usable coordinates are the minimum spatial contract; timestamps and telemetry are optional capabilities;
-- froze target-coverage completeness as a second SpatialAssessment dimension (`complete` / `incomplete`) with auditable unresolved uncertainty provenance;
-- resolved cross-source Activity identity: similarity never implies identity, and future reconciliation remains explicit/auditable outside the v0.1 spatial core;
-- closed EP-08: ManualDecision is a first-class audit/runtime overlay that never mutates algorithmic SpatialAssessment;
-- completed the full EC-01 through EC-29 edge-case regression: 26 PASS, 0 REVIEW, 0 FAIL, 3 explicitly bounded DEFERRED;
-- retained planned speed/pace metric overlays as a later derived capability rather than a Milestone 0 core field.
+The v0.1 domain contract is frozen.
 
-**Remaining Milestone 0 work:**
+Milestone 0 completed:
 
-1. perform the final contract-freeze review against `docs/domain-model.md`, ADR-0001 through ADR-0009, and `docs/edge-case-regression.md`;
-2. freeze the v0.1 domain contract;
-3. only then activate Milestone 1 and begin JSON Schemas / fixtures.
+- evidence-backed domain model in `docs/domain-model.md`;
+- ADR-0001 through ADR-0010;
+- five anonymized real-world evidence cases;
+- controlled attacks for continuity, clipping, multiple entry, MultiPolygon, holes, boundary semantics, gap uncertainty, lineage, and coverage completeness;
+- cross-source Activity identity policy;
+- ManualDecision audit-layer lifecycle;
+- full EC-01 through EC-29 regression: 26 PASS, 0 REVIEW, 0 FAIL, 3 explicitly bounded DEFERRED;
+- final contract freeze review in `docs/contract-freeze-review.md`;
+- explicit canonical spatial-reference compatibility requirement;
+- explicit boundary between normalized observations and optional derived quality/usable geometry.
 
-Work on Milestone 1 or later remains deferred until these exit criteria are met.
+**Milestone 1 objective:**
+
+Encode the frozen domain contract into machine-verifiable schemas and reproducible fixtures without changing domain semantics.
+
+**Immediate Milestone 1 work:**
+
+1. define schema conventions shared by all six core entities: IDs, version/provenance references, coordinate/spatial-reference representation, enums, nullability, and extension rules;
+2. implement `CanonicalTrack` and `TargetArea` schemas first because they constrain geometry and spatial-reference compatibility;
+3. implement `SpatialAssessment` and `TargetSegment` schemas next, including coverage completeness, CoverageUncertainty, TrackPosition, and lineage;
+4. implement `TrackSource` and `Activity` schemas;
+5. convert the Milestone 0 edge cases and attack matrix into public synthetic fixtures and expected outputs;
+6. validate that no schema introduces COROS/FIT-specific core semantics.
+
+Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut.
