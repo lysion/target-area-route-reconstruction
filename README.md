@@ -49,7 +49,7 @@ The current evidence-backed model centers on six entities:
 - **SpatialAssessment** — the evidence-aware relation between a canonical track and target-area version, including target-coverage completeness.
 - **TargetSegment** — an ordered, traceable maximal covered portion of a canonical track.
 
-The core spatial decisions are documented in [docs/domain-model.md](docs/domain-model.md) and the ADRs under [docs/decisions/](docs/decisions/). Milestone 0 is still active because a small number of non-spatial contract questions remain open.
+The evidence-backed domain decisions are documented in [docs/domain-model.md](docs/domain-model.md) and the ADRs under [docs/decisions/](docs/decisions/). No blocking domain-design question remains; Milestone 0 is pending full edge-case regression and contract freeze.
 
 ## Development approach
 
@@ -75,4 +75,4 @@ Current design artifacts:
 
 ## Status
 
-Early public development. The repository is currently in **Milestone 0: Domain Contract**. Representative real-world evidence and controlled spatial attacks have been incorporated into the domain model and initial ADRs. Remaining work is to close the cross-source identity policy and manual-decision lifecycle, then run the full edge-case regression before freezing v0.1.
+Early public development. The repository is currently in **Milestone 0: Domain Contract**. Representative evidence, controlled attacks, cross-source identity semantics, coverage-completeness semantics, and manual-decision audit semantics are now incorporated into the domain model and ADRs. The remaining Milestone 0 work is the full edge-case regression and v0.1 contract freeze.
