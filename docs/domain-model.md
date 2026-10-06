@@ -7,8 +7,8 @@ It records evidence-backed domain semantics. It intentionally does not freeze JS
 ## Status
 
 **Milestone:** 0 — Domain Contract  
-**Contract status:** draft with accepted spatial decisions  
-**Evidence basis:** EP-01, EP-02, EP-04, EP-05, EP-06, and EP-07 are supported; EP-03 supports source-observation preservation and separation from cleaned/usable geometry, while anomaly taxonomy remains open.
+**Contract status:** freeze candidate  
+**Evidence basis:** EP-01, EP-02, EP-04, EP-05, EP-06, EP-07, and EP-08 are supported; EP-03 supports the required provenance boundary between normalized observations and cleaned/usable geometry, while exhaustive anomaly taxonomy is explicitly deferred.
 
 No blocking domain-design question remains. The full EC-01 through EC-29 regression has passed with zero FAIL and zero REVIEW cases; Milestone 0 remains pending final contract freeze.
 
@@ -23,6 +23,7 @@ No blocking domain-design question remains. The full EC-01 through EC-29 regress
 7. TargetArea version changes never mutate source or canonical track evidence.
 8. Source platform, source format, acquisition quota, and task-completion policy do not define core domain identity.
 9. Spatial relation certainty and target-coverage completeness are distinct dimensions.
+10. Spatial operations occur only on geometry normalized to a common declared canonical spatial reference; source coordinate encodings remain provenance, not core spatial semantics.
 
 ## Core entities
 
@@ -35,7 +36,7 @@ The v0.1 core continues to use six entities:
 - SpatialAssessment
 - TargetSegment
 
-Supporting value concepts such as continuity part and TrackPosition are part of the contract but are not independent aggregate roots.
+Supporting value concepts such as ContinuityPart, TrackPosition, and CoverageUncertainty are part of the contract but are not independent aggregate roots.
 
 ---
 
@@ -142,7 +143,7 @@ Therefore:
 - quality flags or cleaning decisions must not erase those observations;
 - any cleaned or usable geometry is derived evidence and must retain algorithm/version provenance.
 
-The exact v0.1 representation of quality-controlled geometry remains deferred to schema design after EP-03 is fully closed.
+Milestone 0 freezes the provenance boundary, not a universal GPS-cleaning model. Quality-controlled/usable geometry is derived output and is not required to be embedded in the core CanonicalTrack schema. Milestone 1 may define quality annotations or derived-result contracts as needed, while Milestone 2 owns concrete cleaning/validation algorithms. Exhaustive GPS anomaly taxonomy does not block the v0.1 domain contract.
 
 ### Minimum spatial contract
 
@@ -152,6 +153,8 @@ The minimum canonical observation required by the spatial core is:
 
 - a usable spatial coordinate in the canonical spatial reference;
 - deterministic order within its continuity part.
+
+The CanonicalTrack contract must identify the canonical spatial reference used by its coordinates, either directly or through a project-level contract that is unambiguous for the serialized object. Source-native coordinate encodings remain TrackSource provenance.
 
 Timestamp, altitude, distance, device speed, heart rate, cadence, and other telemetry are optional capabilities. Their absence does not invalidate otherwise usable spatial reconstruction.
 
@@ -187,6 +190,8 @@ v0.1 rejects at the core-contract boundary:
 
 The deterministic core must fail closed rather than silently repairing invalid target geometry.
 
+Before assessment, TargetArea geometry and CanonicalTrack geometry must be expressed in the same canonical spatial reference. Reprojection/normalization, when needed, is a deterministic preprocessing concern with provenance; it must not be hidden inside a topology predicate.
+
 ### Versioning
 
 TargetArea has stable semantic identity plus a versioned geometry/provenance definition.
@@ -218,7 +223,7 @@ Multiple entries, MultiPolygon components, and holes do not create multiple asse
 
 ### Assessment availability
 
-SpatialAssessment is only produced when a CanonicalTrack contains usable positive-length route geometry that can be assessed.
+SpatialAssessment is only produced when a CanonicalTrack contains usable positive-length route geometry that can be assessed and the CanonicalTrack and TargetArea are expressed in the same canonical spatial reference.
 
 If acquisition/parsing produces no usable CanonicalTrack, or a canonical derivation contains only singleton/zero-length evidence, no SpatialAssessment is created. The workflow remains unresolved and must not synthesize an `outside` result.
 
@@ -582,7 +587,7 @@ The complete edge-case regression is recorded in `docs/edge-case-regression.md` 
 
 The following do not block the domain contract:
 
-- exact quality-controlled/usable-geometry schema and anomaly thresholds;
+- optional quality annotation / derived usable-geometry representation and anomaly thresholds;
 - continuity-break detection thresholds;
 - target-gap reachability algorithms;
 - exact TrackPosition field names and numeric serialization;
