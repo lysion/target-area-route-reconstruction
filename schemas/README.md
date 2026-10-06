@@ -23,6 +23,39 @@ Shared reusable definitions are in:
 - `spatial-assessment.schema.json`
 - `target-segment.schema.json`
 
+## Executable schema validation
+
+The repository now includes a formal Draft 2020-12 fixture runner:
+
+```bash
+python -m pip install -r requirements-dev.txt
+python scripts/validate_schema_fixtures.py
+```
+
+Use `--verbose` to print validation errors for expected-invalid fixtures and to show semantic-layer annotations that are intentionally not evaluated by this runner.
+
+The runner:
+
+1. loads every `schemas/*.schema.json` document;
+2. checks each schema itself with `Draft202012Validator.check_schema`;
+3. assigns an in-memory file-URI `$id` so repository-relative `$ref` values resolve without changing checked-in schemas;
+4. builds a standards-based `referencing.Registry`;
+5. enables format checking, including canonical RFC3339/date-time constraints;
+6. reads `tests/fixtures/manifest.json`;
+7. validates each fixture against its declared schema;
+8. compares actual validity with `expect_schema_valid`;
+9. exits non-zero on any mismatch or runner/manifest/schema error.
+
+Exit codes:
+
+- `0` — every schema-validity expectation matched;
+- `1` — at least one fixture validity result disagreed with the manifest;
+- `2` — repository, manifest, JSON, schema, or reference-resolution error prevented a trustworthy run.
+
+This runner intentionally does **not** evaluate `expect_semantic_valid` or `expect_assessable`; those belong to the separate semantic-validation runner.
+
+GitHub Actions executes the same command on pushes to `main`, pull requests, and manual workflow dispatch through `.github/workflows/schema-validation.yml`.
+
 ## Validation layers
 
 A valid JSON Schema instance is not automatically a semantically valid route-reconstruction object.
