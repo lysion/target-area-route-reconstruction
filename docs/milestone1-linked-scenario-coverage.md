@@ -18,7 +18,8 @@ This document records which frozen edge cases are now represented by linked sema
 | EC-20 — boundary semantics | `point-touch`, `boundary-overlap` | point contact stays outside with zero segment; positive-length boundary overlap counts as target coverage |
 | EC-21 — target-relevant continuity gap | `relevant-gap-unknown` | no chord is created across continuity parts; unresolved target relevance remains unknown + incomplete |
 | EC-22 — multiple disjoint target segments | `repeated-entry`, `multipolygon`, `polygon-hole` | multiple TargetSegments remain children of one SpatialAssessment |
-| EC-23 — lineage | `valid-partial-crossing`, `repeated-entry`, `starts-inside-leaves`, `boundary-overlap`, `multipolygon`, `polygon-hole`, plus `invalid-target-segment-lineage` | start/end TrackPosition values regenerate target geometry and invalid lineage fails semantically |
+| EC-23 — lineage | `valid-partial-crossing`, `repeated-entry`, `starts-inside-leaves`, `boundary-overlap`, `multipolygon`, `polygon-hole`, plus lineage/order/bounds negatives | start/end TrackPosition values regenerate target geometry; invalid lineage, out-of-bounds positions, and reversed refs fail semantically |
+| EC-29 — determined relation with incomplete coverage | `partial-incomplete-gap` | observed geometry already proves partial while a separate unresolved continuity break may hide additional target coverage |
 
 ## Scenario chain
 
@@ -54,11 +55,17 @@ Positive scenarios:
 - `relevant-gap-unknown`
 - `multipolygon`
 - `polygon-hole`
+- `partial-incomplete-gap`
 
-Negative scenarios:
+Negative semantic scenarios:
 
 - `invalid-target-segment-lineage`
+- `invalid-target-segment-out-of-bounds`
 - `invalid-assessment-track-reference`
+- `invalid-assessment-area-reference`
+- `invalid-target-segment-reference-order`
+
+A spatial-reference mismatch is covered as a Layer A negative fixture because the v0.1 schema fixes canonical geometry to `OGC:CRS84`; a schema-valid mismatched CRS cannot exist.
 
 The linked scenario manifest is:
 
@@ -89,13 +96,14 @@ The scenario set now exercises:
 - target-relevant CoverageUncertainty;
 - exhaustive target coverage for complete scenarios.
 
-## Remaining Milestone 1 coverage work
+## Relationship to complete edge-case mapping
 
-This is not yet the complete EC-01 through EC-29 mapping.
+The full EC-01 through EC-29 mapping is now recorded in:
 
-Remaining work includes:
+- `tests/edge-case-coverage.json`
+- `tests/nonfile-contract-cases.json`
+- `docs/milestone1-edge-case-coverage.md`
 
-- explicit fixture/test representations for the non-spatial identity/source/runtime edge cases outside EC-14 through EC-23;
-- additional negative cross-object cases such as out-of-bounds TrackPosition, reversed segment order, wrong TargetArea revision, and spatial-reference mismatch;
-- CI-confirmed execution of the complete Layer A and Layer B suites;
-- final Milestone 1 exit review.
+This document remains focused on linked spatial scenarios.
+
+Remaining Milestone 1 work is validation conformance: stabilize Layer A, Layer B, and coverage-map execution in CI, add any missing common-definition conformance fixtures, and perform the final Milestone 1 exit review.
