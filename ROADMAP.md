@@ -424,15 +424,18 @@ Encode the frozen domain contract into machine-verifiable schemas and reproducib
 - implemented `schemas/target-area.schema.json` with versioned Polygon/MultiPolygon geometry, canonical spatial reference, and boundary provenance;
 - implemented `schemas/spatial-assessment.schema.json` with relation/completeness invariants and CoverageUncertainty;
 - implemented `schemas/target-segment.schema.json` with revision lineage, TrackPosition endpoints, ordinal, and canonical LineString geometry;
-- added initial valid/invalid schema fixtures for CanonicalTrack, TargetArea, SpatialAssessment, and TargetSegment, with a fixture manifest distinguishing JSON-Schema and semantic validation.
+- implemented `schemas/track-source.schema.json` with Activity ownership, source namespace/native provenance, source-agnostic representation metadata, and optional content identity;
+- implemented intentionally minimal `schemas/activity.schema.json` as the stable project-local real-world event identity anchor;
+- completed all six frozen core entity schemas;
+- expanded valid/invalid fixtures to Activity and TrackSource; fixture manifest now distinguishes schema validity, semantic validity, and CanonicalTrack assessability.
 
 **Immediate Milestone 1 work:**
 
-1. implement `TrackSource` and `Activity` schemas to complete the six frozen core entity schemas;
-2. implement automated Draft 2020-12 JSON Schema validation for the fixture manifest;
-3. implement deterministic semantic validators for polygon topology, CanonicalTrack route usability, cross-revision references, TrackPosition bounds, and TargetSegment lineage regeneration;
-4. add linked scenario fixtures spanning CanonicalTrack → TargetArea → SpatialAssessment → TargetSegment;
-5. expand the fixture manifest to cover all Milestone 0 edge cases and attack cases;
-6. verify no schema introduces COROS/FIT-specific core semantics.
+1. implement automated Draft 2020-12 JSON Schema validation for the fixture manifest;
+2. implement deterministic semantic validators for polygon topology, CanonicalTrack route usability, cross-revision references, TrackPosition bounds, and TargetSegment lineage regeneration;
+3. add linked scenario fixtures spanning Activity → TrackSource → CanonicalTrack → TargetArea → SpatialAssessment → TargetSegment;
+4. expand the fixture manifest to cover all Milestone 0 edge cases and attack cases;
+5. verify all six core schemas remain source/platform independent;
+6. decide whether Milestone 1 needs schema-level conformance tests for common definitions in addition to entity fixtures.
 
 Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut.
