@@ -79,4 +79,4 @@ Current design artifacts:
 
 ## Status
 
-Early public development. **Milestone 0: Domain Contract is DONE** and the v0.1 domain contract is frozen. The project is now in **Milestone 1: Schemas and Fixtures**. Shared schema conventions and reusable common definitions are established; the next core schemas are CanonicalTrack and TargetArea. The Milestone 0 regression finished with 26 PASS, 0 REVIEW, 0 FAIL, and 3 explicitly bounded DEFERRED cases.
+Early public development. **Milestone 0: Domain Contract is DONE** and the v0.1 domain contract is frozen. The project is now in **Milestone 1: Schemas and Fixtures**. Shared schema conventions and reusable common definitions are established. SpatialAssessment and TargetSegment schemas plus initial validation fixtures are now implemented; CanonicalTrack and TargetArea remain the next schemas needed for end-to-end reference validation. The Milestone 0 regression finished with 26 PASS, 0 REVIEW, 0 FAIL, and 3 explicitly bounded DEFERRED cases.
