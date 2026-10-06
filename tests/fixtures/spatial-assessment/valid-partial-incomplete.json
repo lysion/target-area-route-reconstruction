@@ -1,0 +1,46 @@
+{
+  "schema_version": "0.1.0",
+  "id": "assessment-b",
+  "revision_id": "assessment-b-r1",
+  "canonical_track": {
+    "id": "track-b",
+    "revision_id": "track-b-r1"
+  },
+  "target_area": {
+    "id": "area-b",
+    "revision_id": "area-b-r1"
+  },
+  "relation": "partial",
+  "coverage_completeness": "incomplete",
+  "coverage_uncertainties": [
+    {
+      "affected_track_range": {
+        "start": {
+          "part_index": 0,
+          "observation_index": 100,
+          "fraction_to_next": 0
+        },
+        "end": {
+          "part_index": 1,
+          "observation_index": 0,
+          "fraction_to_next": 0
+        }
+      },
+      "relevance": "The unresolved continuity break may contain additional positive-length TargetArea coverage.",
+      "provenance": {
+        "name": "continuity-quality-analysis",
+        "version": "0.1.0"
+      }
+    }
+  ],
+  "target_segment_refs": [
+    {
+      "id": "segment-b-0",
+      "revision_id": "segment-b-0-r1"
+    }
+  ],
+  "algorithm": {
+    "name": "target-area-assessment",
+    "version": "0.1.0"
+  }
+}
