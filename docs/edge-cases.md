@@ -53,7 +53,7 @@ The edge cases below are intended to validate these cross-cutting rules:
 | ID | Category | Scenario | Expected domain behavior | Status |
 |---|---|---|---|---|
 | EC-01 | Activity | Metadata exists, no track source | Activity remains representable without a track | PASS |
-| EC-02 | Activity | Same activity appears from two sources | Duplicate identity must not be assumed solely from matching metadata | REVIEW |
+| EC-02 | Activity | Same activity appears from two sources | Cross-source identity is explicit; similarity alone never merges Activities | PASS |
 | EC-03 | Activity | Same source activity is imported repeatedly | Re-import must not create a new real-world activity fact | PASS |
 | EC-04 | Source | One activity has FIT and GPX sources | One Activity may own multiple TrackSource objects | PASS |
 | EC-05 | Source | Source file exists but is corrupted | TrackSource remains evidence; parse failure is explicit | PASS |
@@ -75,7 +75,7 @@ The edge cases below are intended to validate these cross-cutting rules:
 | EC-21 | Spatial | Sparse points skip over the area between samples | No geometry is inferred across a continuity break; relevant uncertainty may yield unknown | PASS |
 | EC-22 | Segment | Multiple disjoint inside portions | 1 SpatialAssessment : N TargetSegment | PASS |
 | EC-23 | Segment | Segment must trace back to source points | TargetSegment retains parent TrackPosition lineage including interpolated endpoints | PASS |
-| EC-24 | Decision | Human override disagrees with algorithm | Preserve algorithmic result and separate manual decision | FAIL |
+| EC-24 | Decision | Human override disagrees with algorithm | Preserve immutable algorithmic result and apply auditable ManualDecision overlay | PASS |
 | EC-25 | Runtime | Same source file imported twice | Content identity should support deduplication/idempotency | DEFERRED |
 | EC-26 | Runtime | Acquisition returns URL but file is not durably saved | Must not record source as saved/available | DEFERRED |
 | EC-27 | Runtime | Parser version changes | New canonical output must remain traceable to parser version | PASS |
@@ -144,9 +144,13 @@ The model must not assume that similar metadata proves identity. It must support
 
 Source identifiers are not globally meaningful by themselves, and cross-source deduplication is a decision process rather than a simple field comparison.
 
-**Open question**
+**Resolution**
 
-Does v0.1 need an explicit cross-source identity-link/reconciliation concept, or can this remain outside the initial contract because v0.1 is local-file only?
+Activity uses a stable project-local identity. Source-native identifiers remain source-scoped provenance. v0.1 never merges cross-source Activities from approximate similarity alone.
+
+If two TrackSources are explicitly known to describe the same real-world event, they may belong to one Activity. Otherwise they remain separate Activities until a future explicit reconciliation process links them.
+
+Cross-source reconciliation is deferred to the adapter/runtime layer and must be auditable. No reconciliation entity is added to the v0.1 spatial core.
 
 **Model impact**
 
@@ -154,7 +158,7 @@ Potentially none for v0.1, but future adapter compatibility may require an ident
 
 **Status**
 
-REVIEW
+PASS
 
 ---
 
@@ -858,20 +862,21 @@ The human decision must not overwrite or destroy the algorithmic assessment.
 
 Manual interpretation and algorithmic evidence are separate layers.
 
-**Current model gap**
+**Resolution**
 
-The six candidate entities do not yet cleanly represent a first-class manual decision.
+SpatialAssessment remains immutable algorithmic evidence.
+
+Manual review is represented by a first-class `ManualDecision` audit-layer record that references an exact SpatialAssessment version and preserves decision scope, task-facing relation, reason, actor/source provenance, time, and lifecycle provenance.
+
+ManualDecision is outside the six spatial-core entities. The effective task-facing classification is a derived projection of the algorithmic assessment plus an applicable ManualDecision. Manual decisions never rewrite SpatialAssessment, coverage completeness, TargetSegments, CanonicalTrack, or source evidence.
 
 **Model impact**
 
-A decision is required before domain-contract freeze:
-
-- add a separate `Decision` / `Override` entity; or
-- explicitly declare manual decisions outside the v0.1 core while preserving a compatible extension point.
+The deterministic spatial core is unchanged. ManualDecision persistence and precedence belong to the runtime/review extension layer.
 
 **Status**
 
-FAIL
+PASS
 
 ---
 
@@ -1028,7 +1033,7 @@ Edge cases are resolved through `docs/evidence-plan.md`, `docs/domain-model.md`,
 
 EC-29 is a cross-cutting consequence of EP-02, EP-05, and EP-07 and is resolved by ADR-0007. It does not require a separate evidence campaign.
 
-EC-02 remains an architectural compatibility question. EC-06 is resolved: TrackSource is not restricted to filesystem files.
+EC-02 is resolved by ADR-0008: cross-source identity is explicit and similarity never mutates Activity identity. EC-06 is resolved: TrackSource is not restricted to filesystem files.
 
 Evidence relevant to speed/pace derivation, especially GPS discontinuities and outliers, should be captured during EP-02 and EP-03 and reused later under `docs/track-metric-overlays.md`. This does not change the Milestone 0 core contract.
 
@@ -1036,14 +1041,19 @@ Evidence relevant to speed/pace derivation, especially GPS discontinuities and o
 
 # Review queue
 
-The current draft has two remaining Milestone 0 questions that require closure or explicit deferral before the contract can be frozen:
+No blocking domain-design question remains.
 
-1. **Cross-source Activity identity** — v0.1 does not perform implicit approximate merging; decide whether an explicit reconciliation concept is required in the core or deferred as a future extension.
-2. **Manual decisions** — EC-24 / EP-08 remains a blocking FAIL until algorithmic assessment and human override can be preserved separately.
+The next Milestone 0 step is a full edge-case regression against `docs/domain-model.md` and ADR-0001 through ADR-0009.
 
-The following previously open questions are now resolved by accepted domain decisions: TrackSource generality, minimum CanonicalTrack spatial contract, continuity parts, raw/normalized versus cleaned geometry separation, TargetArea geometry types, fully-inside TargetSegment semantics, boundary-touch semantics, sparse-sampling uncertainty, TargetSegment lineage, and target-coverage completeness.
+The regression must verify:
 
-Quality-detection thresholds, gap-reachability algorithms, and final TrackPosition field names are implementation/schema details and are explicitly deferred rather than blocking the domain model.
+1. zero blocking `FAIL` cases;
+2. zero blocking `REVIEW` cases;
+3. every `DEFERRED` case has an explicit later-milestone boundary;
+4. no accepted edge case requires an ad-hoc field outside the documented core/supporting concepts;
+5. the six spatial-core entities remain sufficient for v0.1, with ManualDecision explicitly located in the audit/runtime extension layer.
+
+Quality-detection thresholds, gap-reachability algorithms, final TrackPosition field names, future cross-source reconciliation persistence, and ManualDecision persistence/precedence are explicitly deferred implementation details rather than domain blockers.
 
 # Promotion path
 
