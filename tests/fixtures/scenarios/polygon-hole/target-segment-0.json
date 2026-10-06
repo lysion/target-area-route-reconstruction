@@ -1,0 +1,42 @@
+{
+  "schema_version": "0.1.0",
+  "id": "polygon-hole-segment-0",
+  "revision_id": "polygon-hole-segment-0-r1",
+  "spatial_assessment": {
+    "id": "polygon-hole-assessment",
+    "revision_id": "polygon-hole-assessment-r1"
+  },
+  "canonical_track": {
+    "id": "polygon-hole-track",
+    "revision_id": "polygon-hole-track-r1"
+  },
+  "ordinal": 0,
+  "spatial_reference": "OGC:CRS84",
+  "start_position": {
+    "part_index": 0,
+    "observation_index": 0,
+    "fraction_to_next": 0.5
+  },
+  "end_position": {
+    "part_index": 0,
+    "observation_index": 1,
+    "fraction_to_next": 0.5
+  },
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [
+        112,
+        29
+      ],
+      [
+        112.5,
+        29
+      ],
+      [
+        113,
+        29
+      ]
+    ]
+  }
+}
