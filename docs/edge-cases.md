@@ -990,6 +990,27 @@ DEFERRED
 
 ---
 
+# Evidence plan mapping
+
+Open edge cases are resolved through `docs/evidence-plan.md`. Their current statuses remain unchanged until the required evidence or design decision has been completed.
+
+| Edge case(s) | Evidence question | Evidence mode |
+|---|---|---|
+| EC-07, EC-08, EC-09 | EP-01 — minimum valid CanonicalTrack | REAL PREFERRED |
+| EC-10, EC-21 | EP-02 — GPS interruption / continuity | REAL REQUIRED |
+| EC-11 | EP-03 — GPS outliers / canonical observation semantics | REAL REQUIRED |
+| EC-04, EC-10, EC-27 | EP-04 — FIT vs GPX representation | REAL REQUIRED |
+| EC-23 | EP-05 — TargetSegment lineage | REAL REQUIRED + SYNTHETIC |
+| EC-14 | EP-06 — TargetArea geometry contract | SYNTHETIC SUFFICIENT |
+| EC-15, EC-20 | EP-07 — spatial boundary semantics | SYNTHETIC SUFFICIENT |
+| EC-24 | EP-08 — manual decision lifecycle | DESIGN DECISION + workflow validation |
+
+EC-02 and EC-06 remain architectural compatibility questions. They should be resolved when the v0.1 domain model is drafted, with the smallest change consistent with future source-adapter compatibility.
+
+Evidence relevant to speed/pace derivation, especially GPS discontinuities and outliers, should be captured during EP-02 and EP-03 and reused later under `docs/track-metric-overlays.md`. This does not change the Milestone 0 core contract.
+
+---
+
 # Review queue
 
 The current draft has the following unresolved domain questions that must be resolved before Milestone 0 can be marked DONE:
