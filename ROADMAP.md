@@ -443,12 +443,20 @@ Encode the frozen domain contract into machine-verifiable schemas and reproducib
 - ran the complete contract-validation workflow green on commit `74867ba37b6b48ecd7f70a588e3a7e86c2f569b7`: Layer A 113/113, Layer B 33/33, edge-case coverage 29/29; recorded in `docs/milestone1-validation-run.md`;
 - recorded complete coverage in `docs/milestone1-edge-case-coverage.md` and linked spatial detail in `docs/milestone1-linked-scenario-coverage.md`.
 
-**Immediate Milestone 1 work:**
+**Milestone 1 exit review:** NOT READY — one blocker remains.
 
-1. verify all six core schemas and validators remain source/platform independent;
-2. confirm the 13 explicit non-file contract cases have clear later-milestone ownership and no hidden Milestone 1 blocker;
-3. perform the Milestone 1 exit review.
+Completed in the exit review:
 
-The executable validation gate is currently green: 113/113 schema fixture expectations, 33/33 semantic expectations, and 29/29 frozen edge cases mapped.
+- all six core schemas and validators passed the source/platform-independence audit;
+- all 13 explicit non-file contract cases have explicit later-milestone ownership and future test shapes;
+- the executable validation gate remains green: 113/113 schema fixture expectations, 33/33 semantic expectations, and 29/29 frozen edge cases mapped.
+
+Remaining blocker:
+
+1. add a small synthetic, privacy-safe raw FIT/GPX source-fixture baseline plus a machine-readable normalization-expectation manifest. The repository currently has no committed `.fit` or `.gpx` files, while the Milestone 1 work list explicitly requires synthetic FIT/GPX/track fixtures before the Milestone 2 parser implementation begins.
+
+See `docs/milestone1-exit-review.md`.
+
+Milestone 1 remains ACTIVE until this blocker is closed.
 
 Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut.
