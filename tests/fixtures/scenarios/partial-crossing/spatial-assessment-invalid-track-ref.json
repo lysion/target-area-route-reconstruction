@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1.0",
+  "id": "scenario-assessment",
+  "revision_id": "scenario-assessment-r1",
+  "canonical_track": {
+    "id": "wrong-track",
+    "revision_id": "wrong-track-r1"
+  },
+  "target_area": {
+    "id": "scenario-area",
+    "revision_id": "scenario-area-r1"
+  },
+  "relation": "partial",
+  "coverage_completeness": "complete",
+  "coverage_uncertainties": [],
+  "target_segment_refs": [
+    {
+      "id": "scenario-segment-0",
+      "revision_id": "scenario-segment-0-r1"
+    }
+  ],
+  "algorithm": {
+    "name": "fixture-assessment",
+    "version": "0.1.0"
+  }
+}
