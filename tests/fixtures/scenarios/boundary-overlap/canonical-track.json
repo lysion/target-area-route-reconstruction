@@ -1,0 +1,44 @@
+{
+  "schema_version": "0.1.0",
+  "id": "boundary-overlap-track",
+  "revision_id": "boundary-overlap-track-r1",
+  "track_source": {
+    "id": "boundary-overlap-source",
+    "revision_id": "boundary-overlap-source-r1"
+  },
+  "spatial_reference": "OGC:CRS84",
+  "parts": [
+    {
+      "observations": [
+        {
+          "position": [
+            111,
+            28
+          ]
+        },
+        {
+          "position": [
+            112,
+            28
+          ]
+        },
+        {
+          "position": [
+            113,
+            28
+          ]
+        },
+        {
+          "position": [
+            114,
+            28
+          ]
+        }
+      ]
+    }
+  ],
+  "normalizer": {
+    "name": "fixture-normalizer",
+    "version": "0.1.0"
+  }
+}
