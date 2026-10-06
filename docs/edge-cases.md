@@ -57,7 +57,7 @@ The edge cases below are intended to validate these cross-cutting rules:
 | EC-04 | Source | One activity has FIT and GPX sources | One Activity may own multiple TrackSource objects | PASS |
 | EC-05 | Source | Source file exists but is corrupted | TrackSource remains evidence; parse failure is explicit | PASS |
 | EC-06 | Source | API point stream exists without a file | TrackSource must not require a filesystem file | PASS |
-| EC-07 | Track | Valid geometry has no timestamps | Spatially usable CanonicalTrack may still be valid | REVIEW |
+| EC-07 | Track | Valid geometry has no timestamps | Ordered usable coordinates remain spatially valid; timestamps are optional | PASS |
 | EC-08 | Track | Valid geometry has no altitude | Track remains valid for spatial reconstruction | PASS |
 | EC-09 | Track | Source has no usable GPS | No valid spatial CanonicalTrack; must not become outside | PASS |
 | EC-10 | Track | GPS has gaps/discontinuities | CanonicalTrack preserves ordered continuity parts without inventing cross-gap geometry | PASS |
@@ -311,13 +311,9 @@ A GPX/GeoJSON-style track has ordered coordinates but no timestamps.
 
 The minimum valid CanonicalTrack for this project is spatial, not necessarily temporal.
 
-**Open question**
+**Resolution**
 
-The minimum required point contract must be frozen. Current candidate minimum:
-
-- sequence/order
-- longitude
-- latitude
+EP-01 is supported. Deterministic observation order plus usable spatial coordinates are sufficient for the v0.1 spatial core. Timestamps, altitude, distance, and telemetry are optional capabilities. A continuity part must contain enough non-coincident usable positions to produce positive-length line geometry before it can contribute route traversal or TargetSegments.
 
 **Model impact**
 
@@ -325,7 +321,7 @@ CanonicalTrack schema must make timestamps optional.
 
 **Status**
 
-REVIEW
+PASS
 
 ---
 
@@ -991,14 +987,13 @@ Evidence relevant to speed/pace derivation, especially GPS discontinuities and o
 
 # Review queue
 
-The current draft has four remaining Milestone 0 questions that require closure or explicit deferral before the contract can be frozen:
+The current draft has three remaining Milestone 0 questions that require closure or explicit deferral before the contract can be frozen:
 
 1. **Cross-source Activity identity** — v0.1 does not perform implicit approximate merging; decide whether an explicit reconciliation concept is required in the core or deferred as a future extension.
-2. **Minimum CanonicalTrack point contract** — close EP-01, especially the no-timestamp spatial-validity case.
-3. **Assessment completeness representation** — the requirement to distinguish a determined relation from unresolved/possibly incomplete TargetSegments is accepted, but its concrete contract is not frozen.
-4. **Manual decisions** — EC-24 / EP-08 remains a blocking FAIL until algorithmic assessment and human override can be preserved separately.
+2. **Assessment completeness representation** — the requirement to distinguish a determined relation from unresolved/possibly incomplete TargetSegments is accepted, but its concrete contract is not frozen.
+3. **Manual decisions** — EC-24 / EP-08 remains a blocking FAIL until algorithmic assessment and human override can be preserved separately.
 
-The following previously open questions are now resolved by accepted domain decisions: TrackSource generality, continuity parts, raw/normalized versus cleaned geometry separation, TargetArea geometry types, fully-inside TargetSegment semantics, boundary-touch semantics, sparse-sampling uncertainty, and TargetSegment lineage.
+The following previously open questions are now resolved by accepted domain decisions: TrackSource generality, minimum CanonicalTrack spatial contract, continuity parts, raw/normalized versus cleaned geometry separation, TargetArea geometry types, fully-inside TargetSegment semantics, boundary-touch semantics, sparse-sampling uncertainty, and TargetSegment lineage.
 
 Quality-detection thresholds, gap-reachability algorithms, and final TrackPosition field names are implementation/schema details and are explicitly deferred rather than blocking the domain model.
 
