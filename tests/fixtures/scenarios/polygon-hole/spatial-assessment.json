@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1.0",
+  "id": "polygon-hole-assessment",
+  "revision_id": "polygon-hole-assessment-r1",
+  "canonical_track": {
+    "id": "polygon-hole-track",
+    "revision_id": "polygon-hole-track-r1"
+  },
+  "target_area": {
+    "id": "polygon-hole-area",
+    "revision_id": "polygon-hole-area-r1"
+  },
+  "relation": "partial",
+  "coverage_completeness": "complete",
+  "coverage_uncertainties": [],
+  "target_segment_refs": [
+    {
+      "id": "polygon-hole-segment-0",
+      "revision_id": "polygon-hole-segment-0-r1"
+    },
+    {
+      "id": "polygon-hole-segment-1",
+      "revision_id": "polygon-hole-segment-1-r1"
+    }
+  ],
+  "algorithm": {
+    "name": "fixture-assessment",
+    "version": "0.1.0"
+  }
+}
