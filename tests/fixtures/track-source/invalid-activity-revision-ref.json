@@ -1,0 +1,15 @@
+{
+  "schema_version": "0.1.0",
+  "id": "source-invalid-activity-ref",
+  "revision_id": "source-invalid-activity-ref-r1",
+  "activity": {
+    "id": "activity-a",
+    "revision_id": "activity-a-r1"
+  },
+  "origin": {
+    "namespace": "local_import"
+  },
+  "representation": {
+    "media_type": "application/gpx+xml"
+  }
+}
