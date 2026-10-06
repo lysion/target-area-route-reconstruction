@@ -431,15 +431,17 @@ Encode the frozen domain contract into machine-verifiable schemas and reproducib
 - implemented `scripts/validate_schema_fixtures.py` as the executable JSON Schema Draft 2020-12 fixture runner with repository-relative `$ref` resolution, schema self-validation, format checking, manifest expectation comparison, and deterministic exit codes;
 - added `requirements-dev.txt` and `.github/workflows/schema-validation.yml` for push/PR contract validation;
 - implemented `scripts/validate_semantic_fixtures.py` as an independent semantic-validation layer using Shapely/GEOS for topology and deterministic cross-object/lineage checks;
-- added `tests/fixtures/semantic-scenarios.json` plus a linked partial-crossing scenario that exercises Activity → TrackSource → CanonicalTrack → TargetArea → SpatialAssessment → TargetSegment references;
+- added `tests/fixtures/semantic-scenarios.json` with linked Activity → TrackSource → CanonicalTrack → TargetArea → SpatialAssessment → TargetSegment scenarios;
+- converted EC-14 through EC-23 into linked semantic coverage: fully inside/outside, single/repeated entry, start-inside departure, point touch, positive-length boundary overlap, relevant continuity gap, MultiPolygon, polygon hole, multiple TargetSegments, and lineage;
 - added schema-valid negative linked scenarios for TargetSegment lineage mismatch and SpatialAssessment track-revision mismatch;
-- expanded the schema fixture manifest to 35 entries so linked scenario component files also pass Layer A validation.
+- expanded the schema fixture manifest to 89 entries so all linked scenario component files also pass Layer A validation;
+- recorded the mapping in `docs/milestone1-linked-scenario-coverage.md`.
 
 **Immediate Milestone 1 work:**
 
-1. run and stabilize both validation runners against the full fixture/scenario set in CI/local development;
-2. expand linked semantic scenarios to cover holes, MultiPolygon, repeated entry, point touch, positive-length boundary overlap, continuity gaps, unknown/incomplete coverage, and multiple TargetSegments;
-3. map every Milestone 0 edge case to a reproducible fixture/scenario or explicit non-file representation;
+1. run and stabilize both validation runners against the 89-fixture / 12-scenario set in CI/local development;
+2. map the remaining Milestone 0 edge cases outside EC-14 through EC-23 to reproducible fixtures/scenarios or explicit non-file representations;
+3. add negative semantic scenarios for out-of-bounds TrackPosition, reversed/overlapping segment order, wrong TargetArea revision, and spatial-reference mismatch;
 4. add common-definition conformance fixtures where entity fixtures do not directly exercise shared constraints;
 5. verify all six core schemas and validators remain source/platform independent;
 6. perform the Milestone 1 exit review only after valid fixtures pass and invalid fixtures fail for documented reasons.
