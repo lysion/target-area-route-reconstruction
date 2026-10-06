@@ -230,6 +230,330 @@
       "schema": "../../../../schemas/spatial-assessment.schema.json",
       "expect_schema_valid": true,
       "purpose": "schema-valid SpatialAssessment used for invalid cross-object reference scenario"
+    },
+    {
+      "path": "scenarios/fully-inside/activity.json",
+      "schema": "../../../../schemas/activity.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario fully-inside"
+    },
+    {
+      "path": "scenarios/fully-inside/track-source.json",
+      "schema": "../../../../schemas/track-source.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario fully-inside"
+    },
+    {
+      "path": "scenarios/fully-inside/canonical-track.json",
+      "schema": "../../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario fully-inside"
+    },
+    {
+      "path": "scenarios/fully-inside/target-area.json",
+      "schema": "../../../../schemas/target-area.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario fully-inside"
+    },
+    {
+      "path": "scenarios/fully-inside/spatial-assessment.json",
+      "schema": "../../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario fully-inside"
+    },
+    {
+      "path": "scenarios/fully-inside/target-segment-0.json",
+      "schema": "../../../../schemas/target-segment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid TargetSegment component 0 of linked semantic scenario fully-inside"
+    },
+    {
+      "path": "scenarios/fully-outside/activity.json",
+      "schema": "../../../../schemas/activity.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario fully-outside"
+    },
+    {
+      "path": "scenarios/fully-outside/track-source.json",
+      "schema": "../../../../schemas/track-source.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario fully-outside"
+    },
+    {
+      "path": "scenarios/fully-outside/canonical-track.json",
+      "schema": "../../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario fully-outside"
+    },
+    {
+      "path": "scenarios/fully-outside/target-area.json",
+      "schema": "../../../../schemas/target-area.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario fully-outside"
+    },
+    {
+      "path": "scenarios/fully-outside/spatial-assessment.json",
+      "schema": "../../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario fully-outside"
+    },
+    {
+      "path": "scenarios/repeated-entry/activity.json",
+      "schema": "../../../../schemas/activity.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario repeated-entry"
+    },
+    {
+      "path": "scenarios/repeated-entry/track-source.json",
+      "schema": "../../../../schemas/track-source.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario repeated-entry"
+    },
+    {
+      "path": "scenarios/repeated-entry/canonical-track.json",
+      "schema": "../../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario repeated-entry"
+    },
+    {
+      "path": "scenarios/repeated-entry/target-area.json",
+      "schema": "../../../../schemas/target-area.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario repeated-entry"
+    },
+    {
+      "path": "scenarios/repeated-entry/spatial-assessment.json",
+      "schema": "../../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario repeated-entry"
+    },
+    {
+      "path": "scenarios/repeated-entry/target-segment-0.json",
+      "schema": "../../../../schemas/target-segment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid TargetSegment component 0 of linked semantic scenario repeated-entry"
+    },
+    {
+      "path": "scenarios/repeated-entry/target-segment-1.json",
+      "schema": "../../../../schemas/target-segment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid TargetSegment component 1 of linked semantic scenario repeated-entry"
+    },
+    {
+      "path": "scenarios/starts-inside-leaves/activity.json",
+      "schema": "../../../../schemas/activity.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario starts-inside-leaves"
+    },
+    {
+      "path": "scenarios/starts-inside-leaves/track-source.json",
+      "schema": "../../../../schemas/track-source.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario starts-inside-leaves"
+    },
+    {
+      "path": "scenarios/starts-inside-leaves/canonical-track.json",
+      "schema": "../../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario starts-inside-leaves"
+    },
+    {
+      "path": "scenarios/starts-inside-leaves/target-area.json",
+      "schema": "../../../../schemas/target-area.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario starts-inside-leaves"
+    },
+    {
+      "path": "scenarios/starts-inside-leaves/spatial-assessment.json",
+      "schema": "../../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario starts-inside-leaves"
+    },
+    {
+      "path": "scenarios/starts-inside-leaves/target-segment-0.json",
+      "schema": "../../../../schemas/target-segment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid TargetSegment component 0 of linked semantic scenario starts-inside-leaves"
+    },
+    {
+      "path": "scenarios/point-touch/activity.json",
+      "schema": "../../../../schemas/activity.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario point-touch"
+    },
+    {
+      "path": "scenarios/point-touch/track-source.json",
+      "schema": "../../../../schemas/track-source.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario point-touch"
+    },
+    {
+      "path": "scenarios/point-touch/canonical-track.json",
+      "schema": "../../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario point-touch"
+    },
+    {
+      "path": "scenarios/point-touch/target-area.json",
+      "schema": "../../../../schemas/target-area.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario point-touch"
+    },
+    {
+      "path": "scenarios/point-touch/spatial-assessment.json",
+      "schema": "../../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario point-touch"
+    },
+    {
+      "path": "scenarios/boundary-overlap/activity.json",
+      "schema": "../../../../schemas/activity.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario boundary-overlap"
+    },
+    {
+      "path": "scenarios/boundary-overlap/track-source.json",
+      "schema": "../../../../schemas/track-source.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario boundary-overlap"
+    },
+    {
+      "path": "scenarios/boundary-overlap/canonical-track.json",
+      "schema": "../../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario boundary-overlap"
+    },
+    {
+      "path": "scenarios/boundary-overlap/target-area.json",
+      "schema": "../../../../schemas/target-area.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario boundary-overlap"
+    },
+    {
+      "path": "scenarios/boundary-overlap/spatial-assessment.json",
+      "schema": "../../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario boundary-overlap"
+    },
+    {
+      "path": "scenarios/boundary-overlap/target-segment-0.json",
+      "schema": "../../../../schemas/target-segment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid TargetSegment component 0 of linked semantic scenario boundary-overlap"
+    },
+    {
+      "path": "scenarios/relevant-gap-unknown/activity.json",
+      "schema": "../../../../schemas/activity.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario relevant-gap-unknown"
+    },
+    {
+      "path": "scenarios/relevant-gap-unknown/track-source.json",
+      "schema": "../../../../schemas/track-source.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario relevant-gap-unknown"
+    },
+    {
+      "path": "scenarios/relevant-gap-unknown/canonical-track.json",
+      "schema": "../../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario relevant-gap-unknown"
+    },
+    {
+      "path": "scenarios/relevant-gap-unknown/target-area.json",
+      "schema": "../../../../schemas/target-area.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario relevant-gap-unknown"
+    },
+    {
+      "path": "scenarios/relevant-gap-unknown/spatial-assessment.json",
+      "schema": "../../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario relevant-gap-unknown"
+    },
+    {
+      "path": "scenarios/multipolygon/activity.json",
+      "schema": "../../../../schemas/activity.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario multipolygon"
+    },
+    {
+      "path": "scenarios/multipolygon/track-source.json",
+      "schema": "../../../../schemas/track-source.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario multipolygon"
+    },
+    {
+      "path": "scenarios/multipolygon/canonical-track.json",
+      "schema": "../../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario multipolygon"
+    },
+    {
+      "path": "scenarios/multipolygon/target-area.json",
+      "schema": "../../../../schemas/target-area.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario multipolygon"
+    },
+    {
+      "path": "scenarios/multipolygon/spatial-assessment.json",
+      "schema": "../../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario multipolygon"
+    },
+    {
+      "path": "scenarios/multipolygon/target-segment-0.json",
+      "schema": "../../../../schemas/target-segment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid TargetSegment component 0 of linked semantic scenario multipolygon"
+    },
+    {
+      "path": "scenarios/multipolygon/target-segment-1.json",
+      "schema": "../../../../schemas/target-segment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid TargetSegment component 1 of linked semantic scenario multipolygon"
+    },
+    {
+      "path": "scenarios/polygon-hole/activity.json",
+      "schema": "../../../../schemas/activity.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario polygon-hole"
+    },
+    {
+      "path": "scenarios/polygon-hole/track-source.json",
+      "schema": "../../../../schemas/track-source.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario polygon-hole"
+    },
+    {
+      "path": "scenarios/polygon-hole/canonical-track.json",
+      "schema": "../../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario polygon-hole"
+    },
+    {
+      "path": "scenarios/polygon-hole/target-area.json",
+      "schema": "../../../../schemas/target-area.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario polygon-hole"
+    },
+    {
+      "path": "scenarios/polygon-hole/spatial-assessment.json",
+      "schema": "../../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid component of linked semantic scenario polygon-hole"
+    },
+    {
+      "path": "scenarios/polygon-hole/target-segment-0.json",
+      "schema": "../../../../schemas/target-segment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid TargetSegment component 0 of linked semantic scenario polygon-hole"
+    },
+    {
+      "path": "scenarios/polygon-hole/target-segment-1.json",
+      "schema": "../../../../schemas/target-segment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid TargetSegment component 1 of linked semantic scenario polygon-hole"
     }
   ]
 }
