@@ -44,6 +44,7 @@ The edge cases below are intended to validate these cross-cutting rules:
 12. A single assessment may produce zero, one, or multiple target segments.
 13. Manual judgment must not erase algorithmic evidence.
 14. Source-platform limitations and acquisition quotas must not alter the core domain semantics.
+15. Spatial relation certainty and target-coverage completeness must remain distinguishable.
 
 ---
 
@@ -79,6 +80,7 @@ The edge cases below are intended to validate these cross-cutting rules:
 | EC-26 | Runtime | Acquisition returns URL but file is not durably saved | Must not record source as saved/available | DEFERRED |
 | EC-27 | Runtime | Parser version changes | New canonical output must remain traceable to parser version | PASS |
 | EC-28 | Objective | Classification complete before all remote tracks acquired | Completion depends on task objective, not total exhaustion | DEFERRED |
+| EC-29 | Spatial | Relation is determined but target coverage may be incomplete | Preserve relation while marking target-coverage reconstruction incomplete | PASS |
 
 ---
 
@@ -964,6 +966,51 @@ DEFERRED
 
 ---
 
+
+### EC-29 — Relation is determined but target coverage may be incomplete
+
+**Scenario**
+
+Reliable observed geometry already proves that a CanonicalTrack has positive-length coverage both inside and outside a TargetArea, so `relation = partial`.
+
+Elsewhere in the same track, an unresolved continuity break could contain additional TargetArea coverage.
+
+**Objects involved**
+
+- CanonicalTrack
+- SpatialAssessment
+- TargetSegment
+
+**Expected domain behavior**
+
+- keep `relation = partial`;
+- set target-coverage completeness to `incomplete`;
+- retain all known evidence-backed TargetSegments;
+- do not present the known TargetSegments as exhaustive;
+- retain or reference the unresolved target-relevant uncertainty that prevents completeness.
+
+A clean equivalent track with no target-relevant uncertainty is `partial + complete`.
+
+**Invariant under test**
+
+Relation certainty and completeness of reconstructed target coverage are separate domain dimensions.
+
+**Resolution**
+
+SpatialAssessment uses a two-state target-coverage completeness contract: `complete` or `incomplete`.
+
+Completeness is TargetArea-relative, not a global track-quality flag. Under current v0.1 semantics, `unknown` implies incomplete and `outside` implies complete, while `inside` and `partial` may be either complete or incomplete.
+
+**Model impact**
+
+No new core entity is required. Incomplete assessments require auditable unresolved uncertainty information. See ADR-0007.
+
+**Status**
+
+PASS
+
+---
+
 # Evidence plan mapping
 
 Edge cases are resolved through `docs/evidence-plan.md`, `docs/domain-model.md`, and the accepted ADRs. Statuses below reflect completed evidence and domain decisions.
@@ -979,7 +1026,9 @@ Edge cases are resolved through `docs/evidence-plan.md`, `docs/domain-model.md`,
 | EC-15, EC-20 | EP-07 — spatial boundary semantics | SYNTHETIC SUFFICIENT |
 | EC-24 | EP-08 — manual decision lifecycle | DESIGN DECISION + workflow validation |
 
-EC-02 and EC-06 remain architectural compatibility questions. They should be resolved when the v0.1 domain model is drafted, with the smallest change consistent with future source-adapter compatibility.
+EC-29 is a cross-cutting consequence of EP-02, EP-05, and EP-07 and is resolved by ADR-0007. It does not require a separate evidence campaign.
+
+EC-02 remains an architectural compatibility question. EC-06 is resolved: TrackSource is not restricted to filesystem files.
 
 Evidence relevant to speed/pace derivation, especially GPS discontinuities and outliers, should be captured during EP-02 and EP-03 and reused later under `docs/track-metric-overlays.md`. This does not change the Milestone 0 core contract.
 
@@ -987,13 +1036,12 @@ Evidence relevant to speed/pace derivation, especially GPS discontinuities and o
 
 # Review queue
 
-The current draft has three remaining Milestone 0 questions that require closure or explicit deferral before the contract can be frozen:
+The current draft has two remaining Milestone 0 questions that require closure or explicit deferral before the contract can be frozen:
 
 1. **Cross-source Activity identity** — v0.1 does not perform implicit approximate merging; decide whether an explicit reconciliation concept is required in the core or deferred as a future extension.
-2. **Assessment completeness representation** — the requirement to distinguish a determined relation from unresolved/possibly incomplete TargetSegments is accepted, but its concrete contract is not frozen.
-3. **Manual decisions** — EC-24 / EP-08 remains a blocking FAIL until algorithmic assessment and human override can be preserved separately.
+2. **Manual decisions** — EC-24 / EP-08 remains a blocking FAIL until algorithmic assessment and human override can be preserved separately.
 
-The following previously open questions are now resolved by accepted domain decisions: TrackSource generality, minimum CanonicalTrack spatial contract, continuity parts, raw/normalized versus cleaned geometry separation, TargetArea geometry types, fully-inside TargetSegment semantics, boundary-touch semantics, sparse-sampling uncertainty, and TargetSegment lineage.
+The following previously open questions are now resolved by accepted domain decisions: TrackSource generality, minimum CanonicalTrack spatial contract, continuity parts, raw/normalized versus cleaned geometry separation, TargetArea geometry types, fully-inside TargetSegment semantics, boundary-touch semantics, sparse-sampling uncertainty, TargetSegment lineage, and target-coverage completeness.
 
 Quality-detection thresholds, gap-reachability algorithms, and final TrackPosition field names are implementation/schema details and are explicitly deferred rather than blocking the domain model.
 
