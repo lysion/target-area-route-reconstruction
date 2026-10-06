@@ -31,3 +31,6 @@ jobs:
 
       - name: Validate semantic fixtures
         run: python scripts/validate_semantic_fixtures.py --verbose
+
+      - name: Validate edge-case coverage map
+        run: python scripts/validate_edge_case_coverage.py
