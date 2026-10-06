@@ -680,6 +680,18 @@ def validate_linked_scenario(
             "linked TargetSegment revisions in ordinal order"
         )
 
+    for previous, current in zip(sorted_segments, sorted_segments[1:]):
+        if not track_position_ordered(
+            previous["end_position"],
+            current["start_position"],
+            allow_equal=False,
+        ):
+            errors.append(
+                "TargetSegments are not strictly ordered and non-overlapping "
+                "by parent CanonicalTrack position"
+            )
+            break
+
     segment_geometries: list[Any] = []
     for index, segment in enumerate(sorted_segments):
         prefix = f"target_segments[{index}]"
