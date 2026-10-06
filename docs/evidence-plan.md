@@ -77,7 +77,25 @@ Only after observations are recorded should the case compare candidate models an
 
 Do not edit the domain model while recording observations.
 
+
 ---
+
+## Current evidence outcomes
+
+The following outcomes reflect the evidence and controlled attacks completed during Milestone 0. Accepted semantics are formalized in [domain-model.md](domain-model.md) and the ADRs under [decisions/](decisions/).
+
+| Evidence question | Current outcome | Domain impact |
+|---|---|---|
+| EP-01 — minimum valid CanonicalTrack | REVIEW | no-timestamp minimum contract still requires explicit closure |
+| EP-02 — GPS interruption / continuity | SUPPORTED | CanonicalTrack uses ordered continuity parts; no geometry is inferred across breaks |
+| EP-03 — GPS outliers / observation semantics | SUPPORTED, scope-limited | normalized observations must remain distinct from judgment-based cleaned/usable geometry; anomaly taxonomy remains open |
+| EP-04 — FIT vs GPX representation | SUPPORTED | TrackSource and CanonicalTrack remain separate provenance layers |
+| EP-05 — TargetSegment lineage | SUPPORTED | TargetSegment requires parent-track lineage with interpolated TrackPosition semantics |
+| EP-06 — TargetArea geometry | SUPPORTED | v0.1 supports valid Polygon/MultiPolygon and rejects arbitrary/invalid target geometry |
+| EP-07 — spatial boundary semantics | SUPPORTED | four-state relation retained; zero-length point touch is not traversal; positive-length boundary overlap is coverage |
+| EP-08 — manual decision lifecycle | REVIEW | algorithmic assessment must remain immutable, but override representation is not yet frozen |
+
+EP-02, EP-05, EP-06, and EP-07 have completed their required synthetic attacks. EP-03 has enough evidence to fix the provenance boundary but not to claim an exhaustive GPS anomaly model.
 
 # Evidence questions
 
