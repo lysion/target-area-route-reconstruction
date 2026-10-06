@@ -1,0 +1,21 @@
+{
+  "schema_version": "0.1.0",
+  "id": "fully-outside-assessment",
+  "revision_id": "fully-outside-assessment-r1",
+  "canonical_track": {
+    "id": "fully-outside-track",
+    "revision_id": "fully-outside-track-r1"
+  },
+  "target_area": {
+    "id": "fully-outside-area",
+    "revision_id": "fully-outside-area-r1"
+  },
+  "relation": "outside",
+  "coverage_completeness": "complete",
+  "coverage_uncertainties": [],
+  "target_segment_refs": [],
+  "algorithm": {
+    "name": "fixture-assessment",
+    "version": "0.1.0"
+  }
+}
