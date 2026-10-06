@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.1.0",
+  "id": "source-stream-a",
+  "revision_id": "source-stream-a-r1",
+  "activity": {
+    "id": "activity-b"
+  },
+  "origin": {
+    "namespace": "example_provider",
+    "native_id": "activity-98765",
+    "locator": "provider-record:activity-98765"
+  },
+  "representation": {
+    "media_type": "application/json"
+  }
+}
