@@ -86,7 +86,7 @@ The following outcomes reflect the evidence and controlled attacks completed dur
 
 | Evidence question | Current outcome | Domain impact |
 |---|---|---|
-| EP-01 — minimum valid CanonicalTrack | REVIEW | no-timestamp minimum contract still requires explicit closure |
+| EP-01 — minimum valid CanonicalTrack | SUPPORTED | ordered usable coordinates are sufficient for spatial reconstruction; time and telemetry are optional capabilities |
 | EP-02 — GPS interruption / continuity | SUPPORTED | CanonicalTrack uses ordered continuity parts; no geometry is inferred across breaks |
 | EP-03 — GPS outliers / observation semantics | SUPPORTED, scope-limited | normalized observations must remain distinct from judgment-based cleaned/usable geometry; anomaly taxonomy remains open |
 | EP-04 — FIT vs GPX representation | SUPPORTED | TrackSource and CanonicalTrack remain separate provenance layers |
@@ -147,6 +147,16 @@ If spatial classification and clipping remain well-defined without timestamps or
 ### Stop condition
 
 One representative FIT and one representative GPX have been inspected, and the synthetic no-timestamp case does not expose an ambiguity in spatial reconstruction.
+
+### Outcome
+
+**SUPPORTED.**
+
+The clean paired baseline was reduced to ordered coordinates only by removing timestamps, altitude, distance, speed, and other telemetry. The resulting route geometry, `inside / partial / outside` relations, and clipped segment geometry were unchanged.
+
+A separate two-point coordinate-only route also produced an unambiguous positive-length clip. A single observation, or observations that only produce zero-length geometry, may remain evidence but are insufficient by themselves for positive-length route reconstruction.
+
+Accepted decision: deterministic observation order plus usable spatial coordinates are the minimum spatial contract. Time and other telemetry are optional capabilities. See ADR-0006.
 
 ---
 
