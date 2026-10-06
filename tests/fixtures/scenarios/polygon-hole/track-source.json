@@ -1,0 +1,14 @@
+{
+  "schema_version": "0.1.0",
+  "id": "polygon-hole-source",
+  "revision_id": "polygon-hole-source-r1",
+  "activity": {
+    "id": "polygon-hole-activity"
+  },
+  "origin": {
+    "namespace": "synthetic_fixture"
+  },
+  "representation": {
+    "media_type": "application/json"
+  }
+}
