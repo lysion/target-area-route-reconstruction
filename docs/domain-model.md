@@ -10,7 +10,7 @@ It records evidence-backed domain semantics. It intentionally does not freeze JS
 **Contract status:** draft with accepted spatial decisions  
 **Evidence basis:** EP-01, EP-02, EP-04, EP-05, EP-06, and EP-07 are supported; EP-03 supports source-observation preservation and separation from cleaned/usable geometry, while anomaly taxonomy remains open.
 
-No blocking domain-design question remains. Milestone 0 still requires a full edge-case regression and contract-freeze review before it can be marked DONE.
+No blocking domain-design question remains. The full edge-case regression is being completed against this contract; Milestone 0 remains pending final contract freeze.
 
 ## Core principles
 
@@ -122,6 +122,10 @@ Between two continuity parts:
 
 A break means only that spatial observation continuity is unavailable. It does not encode a mandatory cause such as timer pause, GNSS loss, low-speed filtering, or user behavior.
 
+Within one continuity part, adjacent observations may form canonical line geometry according to the accepted interpolation rule. Missing intermediate samples do not automatically create a break.
+
+If a sampling interval is judged too sparse or otherwise too uncertain to support interpolation, that uncertainty must be represented before spatial assessment by a continuity break or equivalent unresolved quality interval. The detection threshold belongs to the quality/implementation layer and is not frozen in Milestone 0.
+
 ### Identity and continuity are separate
 
 A position gap does not create a new Activity and does not automatically create a new CanonicalTrack.
@@ -211,6 +215,14 @@ CanonicalTrack × TargetArea@version
 ~~~
 
 Multiple entries, MultiPolygon components, and holes do not create multiple assessments for the same track-area-version pair.
+
+### Assessment availability
+
+SpatialAssessment is only produced when a CanonicalTrack contains usable positive-length route geometry that can be assessed.
+
+If acquisition/parsing produces no usable CanonicalTrack, or a canonical derivation contains only singleton/zero-length evidence, no SpatialAssessment is created. The workflow remains unresolved and must not synthesize an `outside` result.
+
+The `unknown` relation applies to an existing assessable CanonicalTrack whose unresolved spatial evidence can still change the track-area relation. It is not a replacement for acquisition failure, parse failure, or total absence of route geometry.
 
 ### Relation
 
@@ -537,6 +549,7 @@ Current evidence rejects the following shortcuts:
 14. Use a numeric confidence score as a substitute for deterministic completeness semantics.
 15. Merge cross-source Activities solely from approximate similarity.
 16. Overwrite algorithmic SpatialAssessment fields with a manual decision.
+17. Create an `outside` SpatialAssessment when no usable CanonicalTrack exists.
 
 ---
 
