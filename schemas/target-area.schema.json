@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TargetArea",
+  "description": "Versioned geographic assessment target using valid Polygon or MultiPolygon area geometry under the frozen v0.1 domain contract.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "revision_id",
+    "spatial_reference",
+    "geometry",
+    "definition_provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "common.schema.json#/$defs/schemaVersion"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/entityId"
+    },
+    "revision_id": {
+      "$ref": "common.schema.json#/$defs/revisionId"
+    },
+    "spatial_reference": {
+      "$ref": "common.schema.json#/$defs/spatialReference"
+    },
+    "geometry": {
+      "$ref": "common.schema.json#/$defs/targetAreaGeometry"
+    },
+    "definition_provenance": {
+      "$ref": "#/$defs/definitionProvenance",
+      "description": "Provenance for this exact TargetArea revision."
+    },
+    "extensions": {
+      "$ref": "common.schema.json#/$defs/extensions"
+    }
+  },
+  "$defs": {
+    "definitionProvenance": {
+      "type": "object",
+      "required": [
+        "description"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "description": "Human-readable description of where this exact boundary revision came from."
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "Optional source locator, file reference, dataset identifier, or other origin reference."
+        },
+        "content_hash": {
+          "$ref": "common.schema.json#/$defs/sha256Hash"
+        },
+        "software": {
+          "$ref": "common.schema.json#/$defs/softwareProvenance",
+          "description": "Optional transformation/generation provenance when software produced this boundary revision."
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
