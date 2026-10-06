@@ -1,0 +1,262 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Target Area Route Reconstruction — Shared v0.1 Schema Definitions",
+  "description": "Reusable representation definitions for the frozen v0.1 domain contract.",
+  "$defs": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "0.1.0",
+      "description": "Serialized v0.1 schema-family version."
+    },
+    "entityId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Opaque, case-sensitive project-local entity identifier."
+    },
+    "revisionId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Opaque identifier for one immutable revision of a versioned or derived entity."
+    },
+    "entityRef": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/entityId"
+        }
+      },
+      "additionalProperties": false
+    },
+    "revisionRef": {
+      "type": "object",
+      "required": [
+        "id",
+        "revision_id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/entityId"
+        },
+        "revision_id": {
+          "$ref": "#/$defs/revisionId"
+        }
+      },
+      "additionalProperties": false
+    },
+    "spatialReference": {
+      "type": "string",
+      "const": "OGC:CRS84",
+      "description": "Canonical v0.1 spatial reference: longitude first, latitude second, decimal degrees."
+    },
+    "longitude": {
+      "type": "number",
+      "minimum": -180,
+      "maximum": 180
+    },
+    "latitude": {
+      "type": "number",
+      "minimum": -90,
+      "maximum": 90
+    },
+    "position2d": {
+      "type": "array",
+      "description": "Canonical [longitude, latitude] position in OGC:CRS84.",
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/longitude"
+        },
+        {
+          "$ref": "#/$defs/latitude"
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "lineStringCoordinates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/position2d"
+      },
+      "minItems": 2
+    },
+    "linearRing": {
+      "type": "array",
+      "description": "Structurally valid GeoJSON-style ring. Ring closure and topology require semantic validation.",
+      "items": {
+        "$ref": "#/$defs/position2d"
+      },
+      "minItems": 4
+    },
+    "polygonCoordinates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/linearRing"
+      },
+      "minItems": 1
+    },
+    "multiPolygonCoordinates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/polygonCoordinates"
+      },
+      "minItems": 1
+    },
+    "polygonGeometry": {
+      "type": "object",
+      "required": [
+        "type",
+        "coordinates"
+      ],
+      "properties": {
+        "type": {
+          "const": "Polygon"
+        },
+        "coordinates": {
+          "$ref": "#/$defs/polygonCoordinates"
+        }
+      },
+      "additionalProperties": false
+    },
+    "multiPolygonGeometry": {
+      "type": "object",
+      "required": [
+        "type",
+        "coordinates"
+      ],
+      "properties": {
+        "type": {
+          "const": "MultiPolygon"
+        },
+        "coordinates": {
+          "$ref": "#/$defs/multiPolygonCoordinates"
+        }
+      },
+      "additionalProperties": false
+    },
+    "targetAreaGeometry": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/polygonGeometry"
+        },
+        {
+          "$ref": "#/$defs/multiPolygonGeometry"
+        }
+      ]
+    },
+    "lineStringGeometry": {
+      "type": "object",
+      "required": [
+        "type",
+        "coordinates"
+      ],
+      "properties": {
+        "type": {
+          "const": "LineString"
+        },
+        "coordinates": {
+          "$ref": "#/$defs/lineStringCoordinates"
+        }
+      },
+      "additionalProperties": false
+    },
+    "timestampUtc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$",
+      "description": "RFC 3339 absolute instant normalized to UTC."
+    },
+    "nonNegativeNumber": {
+      "type": "number",
+      "minimum": 0
+    },
+    "nonNegativeInteger": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "trackPosition": {
+      "type": "object",
+      "description": "Reproducible position on a parent CanonicalTrack continuity part.",
+      "required": [
+        "part_index",
+        "observation_index",
+        "fraction_to_next"
+      ],
+      "properties": {
+        "part_index": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "observation_index": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "fraction_to_next": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "softwareProvenance": {
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "parameters": {
+          "type": "object",
+          "description": "Exact serializable parameters when they are required for reproducibility.",
+          "additionalProperties": true
+        },
+        "parameters_fingerprint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Stable identifier/fingerprint for an externally defined parameter set."
+        }
+      },
+      "additionalProperties": false
+    },
+    "sha256Hash": {
+      "type": "object",
+      "required": [
+        "algorithm",
+        "digest"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "sha256"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Explicitly opted-in non-core extension data. Frozen core semantics must not depend on this object.",
+      "propertyNames": {
+        "minLength": 3
+      },
+      "additionalProperties": true
+    }
+  }
+}
