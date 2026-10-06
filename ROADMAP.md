@@ -438,16 +438,16 @@ Encode the frozen domain contract into machine-verifiable schemas and reproducib
 - added `tests/nonfile-contract-cases.json` for lifecycle/runtime/reconciliation cases that cannot honestly be represented as standalone core entity fixtures in Milestone 1;
 - added `tests/edge-case-coverage.json` mapping all EC-01 through EC-29 to fixtures, linked semantic scenarios, or explicit non-file contract cases;
 - added `scripts/validate_edge_case_coverage.py` and CI coverage-map validation;
-- expanded the schema fixture manifest to 99 entries and linked semantic scenarios to 16;
+- expanded the schema fixture manifest to 113 entries and linked semantic scenarios to 16;
+- added `schemas/common-conformance.schema.json` plus 14 independent valid/invalid probes for shared ID/reference/CRS/coordinate/time/TrackPosition/hash definitions;
 - recorded complete coverage in `docs/milestone1-edge-case-coverage.md` and linked spatial detail in `docs/milestone1-linked-scenario-coverage.md`.
 
 **Immediate Milestone 1 work:**
 
-1. run and stabilize the Layer A schema runner, Layer B semantic runner, and edge-case coverage runner against the 99-fixture / 16-scenario set in CI/local development;
-2. add common-definition conformance fixtures where entity fixtures do not directly exercise shared constraints;
-3. verify every expected-valid fixture/scenario passes and every expected-invalid case fails for its documented reason;
-4. verify all six core schemas and validators remain source/platform independent;
-5. confirm the 13 explicit non-file contract cases have clear later-milestone ownership and no hidden Milestone 1 blocker;
-6. perform the Milestone 1 exit review.
+1. run and stabilize the Layer A schema runner, Layer B semantic runner, and edge-case coverage runner against the 113-fixture / 16-scenario set in CI/local development;
+2. verify every expected-valid fixture/scenario passes and every expected-invalid case fails for its documented reason;
+3. verify all six core schemas and validators remain source/platform independent;
+4. confirm the 13 explicit non-file contract cases have clear later-milestone ownership and no hidden Milestone 1 blocker;
+5. perform the Milestone 1 exit review.
 
 Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut.
