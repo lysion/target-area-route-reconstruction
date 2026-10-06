@@ -231,9 +231,13 @@ Positive length, parent-position bounds, geometry/lineage regeneration, and orde
 
 All six frozen v0.1 core entity schemas are now present.
 
-The schema and semantic runners are now both executable. The next Milestone 1 focus is coverage and conformance:
+The schema and semantic runners are now both executable. Linked semantic coverage now includes EC-14 through EC-23, including fully inside/outside, repeated entry, start-inside departure, point touch, boundary overlap, target-relevant continuity gaps, MultiPolygon components, polygon holes, multiple TargetSegments, and interpolated lineage.
 
-1. expand linked semantic scenarios beyond the initial partial-crossing case;
-2. map every Milestone 0 edge case to a fixture, semantic scenario, or explicit non-file test representation;
-3. add semantic cases for holes, MultiPolygon components, point touch, boundary overlap, relevant gaps, and multiple TargetSegments;
-4. stabilize both runners in CI before declaring Milestone 1 complete.
+See `../docs/milestone1-linked-scenario-coverage.md`.
+
+The next Milestone 1 focus is coverage and conformance:
+
+1. map the remaining Milestone 0 edge cases outside EC-14 through EC-23 to fixtures, semantic scenarios, or explicit non-file test representations;
+2. add negative cross-object cases for out-of-bounds TrackPosition, reversed TargetSegment order, wrong TargetArea revision, and spatial-reference mismatch;
+3. stabilize both validation runners in CI;
+4. perform the Milestone 1 exit review only after every intended valid fixture passes and every invalid fixture fails for its documented reason.
