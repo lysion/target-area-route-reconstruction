@@ -40,16 +40,16 @@ The following are deferred until the deterministic core is stable:
 
 ## Draft domain model
 
-The current design centers on six entities:
+The current evidence-backed model centers on six entities:
 
 - **Activity** — a real-world activity event.
-- **TrackSource** — an original source of track evidence.
-- **CanonicalTrack** — the normalized track representation used by the core.
-- **TargetArea** — the geographic reference used for spatial assessment.
-- **SpatialAssessment** — the result of assessing a track against a target area.
-- **TargetSegment** — a traceable segment derived from a canonical track.
+- **TrackSource** — original source evidence and provenance.
+- **CanonicalTrack** — normalized observations with explicit spatial continuity.
+- **TargetArea** — a versioned Polygon/MultiPolygon assessment target.
+- **SpatialAssessment** — the evidence-aware relation between a canonical track and target-area version.
+- **TargetSegment** — an ordered, traceable maximal covered portion of a canonical track.
 
-The domain contract is still in the design phase and is not yet stable.
+The core spatial decisions are documented in [docs/domain-model.md](docs/domain-model.md) and the ADRs under [docs/decisions/](docs/decisions/). Milestone 0 is still active because a small number of non-spatial contract questions remain open.
 
 ## Development approach
 
@@ -66,6 +66,8 @@ See [ROADMAP.md](ROADMAP.md) for milestone gates, exit criteria, and change-cont
 
 Current design artifacts:
 
+- [Domain model](docs/domain-model.md)
+- [Architecture decisions](docs/decisions/)
 - [Edge cases](docs/edge-cases.md)
 - [Evidence plan](docs/evidence-plan.md)
 - [Real-world evidence record](docs/real-world-cases.md)
@@ -73,4 +75,4 @@ Current design artifacts:
 
 ## Status
 
-Early public development. The repository is currently in **Milestone 0: Domain Contract**, with the edge-case matrix and evidence plan defined and real-world evidence collection next.
+Early public development. The repository is currently in **Milestone 0: Domain Contract**. Representative real-world evidence and controlled spatial attacks have been incorporated into the domain model and initial ADRs. Remaining work is to close the minimum-track contract, cross-source identity policy, assessment-completeness representation, and manual-decision lifecycle, then run the full edge-case regression before freezing v0.1.
