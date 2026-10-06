@@ -1,0 +1,38 @@
+{
+  "schema_version": "0.1.0",
+  "id": "starts-inside-leaves-track",
+  "revision_id": "starts-inside-leaves-track-r1",
+  "track_source": {
+    "id": "starts-inside-leaves-source",
+    "revision_id": "starts-inside-leaves-source-r1"
+  },
+  "spatial_reference": "OGC:CRS84",
+  "parts": [
+    {
+      "observations": [
+        {
+          "position": [
+            112.5,
+            28.5
+          ]
+        },
+        {
+          "position": [
+            113.5,
+            28.5
+          ]
+        },
+        {
+          "position": [
+            114,
+            28.5
+          ]
+        }
+      ]
+    }
+  ],
+  "normalizer": {
+    "name": "fixture-normalizer",
+    "version": "0.1.0"
+  }
+}
