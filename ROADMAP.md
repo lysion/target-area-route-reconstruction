@@ -427,15 +427,17 @@ Encode the frozen domain contract into machine-verifiable schemas and reproducib
 - implemented `schemas/track-source.schema.json` with Activity ownership, source namespace/native provenance, source-agnostic representation metadata, and optional content identity;
 - implemented intentionally minimal `schemas/activity.schema.json` as the stable project-local real-world event identity anchor;
 - completed all six frozen core entity schemas;
-- expanded valid/invalid fixtures to Activity and TrackSource; fixture manifest now distinguishes schema validity, semantic validity, and CanonicalTrack assessability.
+- expanded valid/invalid fixtures to Activity and TrackSource; fixture manifest now distinguishes schema validity, semantic validity, and CanonicalTrack assessability;
+- implemented `scripts/validate_schema_fixtures.py` as the executable JSON Schema Draft 2020-12 fixture runner with repository-relative `$ref` resolution, schema self-validation, format checking, manifest expectation comparison, and deterministic exit codes;
+- added `requirements-dev.txt` for schema-validation dependencies and `.github/workflows/schema-validation.yml` for push/PR CI execution.
 
 **Immediate Milestone 1 work:**
 
-1. implement automated Draft 2020-12 JSON Schema validation for the fixture manifest;
+1. run and stabilize the Draft 2020-12 fixture runner against the full manifest in CI/local development, treating any expectation mismatch as a schema defect or fixture defect to resolve explicitly;
 2. implement deterministic semantic validators for polygon topology, CanonicalTrack route usability, cross-revision references, TrackPosition bounds, and TargetSegment lineage regeneration;
 3. add linked scenario fixtures spanning Activity → TrackSource → CanonicalTrack → TargetArea → SpatialAssessment → TargetSegment;
 4. expand the fixture manifest to cover all Milestone 0 edge cases and attack cases;
 5. verify all six core schemas remain source/platform independent;
-6. decide whether Milestone 1 needs schema-level conformance tests for common definitions in addition to entity fixtures.
+6. decide whether Milestone 1 needs additional conformance fixtures for shared common definitions.
 
 Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut.
