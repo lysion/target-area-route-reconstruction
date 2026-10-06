@@ -1,0 +1,42 @@
+{
+  "schema_version": "0.1.0",
+  "id": "multipolygon-segment-0",
+  "revision_id": "multipolygon-segment-0-r1",
+  "spatial_assessment": {
+    "id": "multipolygon-assessment",
+    "revision_id": "multipolygon-assessment-r1"
+  },
+  "canonical_track": {
+    "id": "multipolygon-track",
+    "revision_id": "multipolygon-track-r1"
+  },
+  "ordinal": 0,
+  "spatial_reference": "OGC:CRS84",
+  "start_position": {
+    "part_index": 0,
+    "observation_index": 0,
+    "fraction_to_next": 0.5
+  },
+  "end_position": {
+    "part_index": 0,
+    "observation_index": 1,
+    "fraction_to_next": 0.5
+  },
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [
+        112,
+        28.5
+      ],
+      [
+        112.5,
+        28.5
+      ],
+      [
+        113,
+        28.5
+      ]
+    ]
+  }
+}
