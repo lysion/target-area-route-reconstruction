@@ -1,0 +1,14 @@
+{
+  "schema_version": "0.1.0",
+  "id": "multipolygon-source",
+  "revision_id": "multipolygon-source-r1",
+  "activity": {
+    "id": "multipolygon-activity"
+  },
+  "origin": {
+    "namespace": "synthetic_fixture"
+  },
+  "representation": {
+    "media_type": "application/json"
+  }
+}
