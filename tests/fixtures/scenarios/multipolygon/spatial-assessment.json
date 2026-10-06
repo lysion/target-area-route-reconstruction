@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1.0",
+  "id": "multipolygon-assessment",
+  "revision_id": "multipolygon-assessment-r1",
+  "canonical_track": {
+    "id": "multipolygon-track",
+    "revision_id": "multipolygon-track-r1"
+  },
+  "target_area": {
+    "id": "multipolygon-area",
+    "revision_id": "multipolygon-area-r1"
+  },
+  "relation": "partial",
+  "coverage_completeness": "complete",
+  "coverage_uncertainties": [],
+  "target_segment_refs": [
+    {
+      "id": "multipolygon-segment-0",
+      "revision_id": "multipolygon-segment-0-r1"
+    },
+    {
+      "id": "multipolygon-segment-1",
+      "revision_id": "multipolygon-segment-1-r1"
+    }
+  ],
+  "algorithm": {
+    "name": "fixture-assessment",
+    "version": "0.1.0"
+  }
+}
