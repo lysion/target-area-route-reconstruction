@@ -1,0 +1,48 @@
+{
+  "schema_version": "0.1.0",
+  "id": "relevant-gap-unknown-track",
+  "revision_id": "relevant-gap-unknown-track-r1",
+  "track_source": {
+    "id": "relevant-gap-unknown-source",
+    "revision_id": "relevant-gap-unknown-source-r1"
+  },
+  "spatial_reference": "OGC:CRS84",
+  "parts": [
+    {
+      "observations": [
+        {
+          "position": [
+            110.5,
+            28.5
+          ]
+        },
+        {
+          "position": [
+            111.5,
+            28.5
+          ]
+        }
+      ]
+    },
+    {
+      "observations": [
+        {
+          "position": [
+            113.5,
+            28.5
+          ]
+        },
+        {
+          "position": [
+            114.5,
+            28.5
+          ]
+        }
+      ]
+    }
+  ],
+  "normalizer": {
+    "name": "fixture-normalizer",
+    "version": "0.1.0"
+  }
+}
