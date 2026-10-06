@@ -196,6 +196,74 @@
         "scenarios/polygon-hole/target-segment-0.json",
         "scenarios/polygon-hole/target-segment-1.json"
       ]
+    },
+    {
+      "name": "partial-incomplete-gap",
+      "edge_cases": [
+        "EC-29"
+      ],
+      "purpose": "partial relation is already proven while an unresolved continuity break may hide additional target coverage",
+      "expect_semantic_valid": true,
+      "activity": "scenarios/partial-incomplete-gap/activity.json",
+      "track_source": "scenarios/partial-incomplete-gap/track-source.json",
+      "canonical_track": "scenarios/partial-incomplete-gap/canonical-track.json",
+      "target_area": "scenarios/partial-incomplete-gap/target-area.json",
+      "spatial_assessment": "scenarios/partial-incomplete-gap/spatial-assessment.json",
+      "target_segments": [
+        "scenarios/partial-incomplete-gap/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "invalid-target-segment-out-of-bounds",
+      "edge_cases": [
+        "EC-23"
+      ],
+      "purpose": "schema-valid TrackPosition index outside the parent CanonicalTrack must fail semantic validation",
+      "expect_semantic_valid": false,
+      "activity": "scenarios/partial-crossing/activity.json",
+      "track_source": "scenarios/partial-crossing/track-source.json",
+      "canonical_track": "scenarios/partial-crossing/canonical-track.json",
+      "target_area": "scenarios/partial-crossing/target-area.json",
+      "spatial_assessment": "scenarios/partial-crossing/spatial-assessment.json",
+      "target_segments": [
+        "scenarios/partial-crossing/target-segment-invalid-out-of-bounds.json"
+      ]
+    },
+    {
+      "name": "invalid-assessment-area-reference",
+      "edge_cases": [
+        "EC-12",
+        "EC-13"
+      ],
+      "purpose": "schema-valid SpatialAssessment pointing at the wrong TargetArea revision must fail semantic validation",
+      "expect_semantic_valid": false,
+      "activity": "scenarios/partial-crossing/activity.json",
+      "track_source": "scenarios/partial-crossing/track-source.json",
+      "canonical_track": "scenarios/partial-crossing/canonical-track.json",
+      "target_area": "scenarios/partial-crossing/target-area.json",
+      "spatial_assessment": "scenarios/partial-crossing/spatial-assessment-invalid-area-ref.json",
+      "target_segments": [
+        "scenarios/partial-crossing/target-segment.json"
+      ]
+    },
+    {
+      "name": "invalid-target-segment-reference-order",
+      "edge_cases": [
+        "EC-18",
+        "EC-22",
+        "EC-23"
+      ],
+      "purpose": "schema-valid reversed TargetSegment references must fail parent-track ordering/reference consistency",
+      "expect_semantic_valid": false,
+      "activity": "scenarios/repeated-entry/activity.json",
+      "track_source": "scenarios/repeated-entry/track-source.json",
+      "canonical_track": "scenarios/repeated-entry/canonical-track.json",
+      "target_area": "scenarios/repeated-entry/target-area.json",
+      "spatial_assessment": "scenarios/repeated-entry/spatial-assessment-invalid-segment-order.json",
+      "target_segments": [
+        "scenarios/repeated-entry/target-segment-0.json",
+        "scenarios/repeated-entry/target-segment-1.json"
+      ]
     }
   ]
 }
