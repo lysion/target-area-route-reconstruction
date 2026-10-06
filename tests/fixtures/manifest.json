@@ -182,6 +182,54 @@
       "schema": "../../../schemas/track-source.schema.json",
       "expect_schema_valid": false,
       "purpose": "TrackSource must identify the representation type of preserved source evidence"
+    },
+    {
+      "path": "scenarios/partial-crossing/activity.json",
+      "schema": "../../../../schemas/activity.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "linked scenario Activity"
+    },
+    {
+      "path": "scenarios/partial-crossing/track-source.json",
+      "schema": "../../../../schemas/track-source.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "linked scenario TrackSource"
+    },
+    {
+      "path": "scenarios/partial-crossing/canonical-track.json",
+      "schema": "../../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "linked scenario CanonicalTrack"
+    },
+    {
+      "path": "scenarios/partial-crossing/target-area.json",
+      "schema": "../../../../schemas/target-area.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "linked scenario TargetArea"
+    },
+    {
+      "path": "scenarios/partial-crossing/spatial-assessment.json",
+      "schema": "../../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "linked scenario SpatialAssessment"
+    },
+    {
+      "path": "scenarios/partial-crossing/target-segment.json",
+      "schema": "../../../../schemas/target-segment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "linked scenario TargetSegment"
+    },
+    {
+      "path": "scenarios/partial-crossing/target-segment-invalid-lineage.json",
+      "schema": "../../../../schemas/target-segment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid TargetSegment used for invalid cross-object lineage scenario"
+    },
+    {
+      "path": "scenarios/partial-crossing/spatial-assessment-invalid-track-ref.json",
+      "schema": "../../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "schema-valid SpatialAssessment used for invalid cross-object reference scenario"
     }
   ]
 }
