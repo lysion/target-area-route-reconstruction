@@ -13,7 +13,6 @@ It records evidence-backed domain semantics. It intentionally does not freeze JS
 The following remain unresolved before Milestone 0 can be marked DONE:
 
 - cross-source Activity reconciliation policy;
-- final representation of assessment completeness / unresolved uncertainty;
 - EP-08 manual-decision lifecycle;
 - full edge-case regression after the decisions in this document are applied.
 
@@ -27,6 +26,7 @@ The following remain unresolved before Milestone 0 can be marked DONE:
 6. Target-derived data remains traceable to its parent CanonicalTrack.
 7. TargetArea version changes never mutate source or canonical track evidence.
 8. Source platform, source format, acquisition quota, and task-completion policy do not define core domain identity.
+9. Spatial relation certainty and target-coverage completeness are distinct dimensions.
 
 ## Core entities
 
@@ -267,13 +267,59 @@ A continuity break affects a SpatialAssessment only when it is relevant to that 
 
 Reliable constraints may prove that a gap cannot affect an area, but the specific reachability algorithm, telemetry fields, and thresholds are not frozen in Milestone 0.
 
-### Relation versus completeness
+### Target-coverage completeness
 
-A determined relation does not necessarily mean every TargetSegment is known.
+A determined relation does not necessarily mean the target-area route reconstruction is exhaustive.
 
-Example: reliable evidence may already prove partial while another unresolved gap could hide an additional entry.
+SpatialAssessment therefore has a second first-class domain dimension: **target-coverage completeness**.
 
-The domain therefore requires a second dimension describing unresolved assessment / segment completeness. Its final schema representation is not yet frozen.
+The semantic values are:
+
+- `complete`
+- `incomplete`
+
+A representative schema field name is `coverage_completeness`; exact serialization is deferred to Milestone 1.
+
+#### complete
+
+Target-area reconstruction is complete when no unresolved target-relevant uncertainty could change the existence, number, extent, continuity, geometry, or lineage of positive-length TargetArea-covered route portions.
+
+Completeness is target-relative. A CanonicalTrack may contain uncertainty elsewhere and still be complete for a specific TargetArea when that uncertainty cannot affect target coverage.
+
+#### incomplete
+
+Target-area reconstruction is incomplete when at least one unresolved target-relevant uncertainty could change the reconstructed TargetArea coverage, even if the relation itself is already determined.
+
+Known TargetSegments remain valid evidence-backed results, but they must not be presented as an exhaustive set.
+
+#### Relation/completeness invariants
+
+Under the current v0.1 semantics:
+
+- `unknown` implies `incomplete`;
+- `outside` implies `complete`;
+- `inside` may be `complete` or `incomplete`;
+- `partial` may be `complete` or `incomplete`.
+
+Examples:
+
+- clean observed entry/exit with no relevant uncertainty → `partial + complete`;
+- observed inside/outside already proves partial, but another relevant gap could hide additional target coverage → `partial + incomplete`;
+- all route evidence is guaranteed to remain inside, but an internal unobserved interval prevents exact route reconstruction → `inside + incomplete`;
+- observed outside plus all gaps proven unable to reach the area → `outside + complete`;
+- observed outside plus a gap that could enter the area → `unknown + incomplete`.
+
+#### Uncertainty auditability
+
+Every incomplete assessment must retain or reference enough structured unresolved uncertainty information to explain why completeness is not established.
+
+At minimum the information must be traceable to:
+
+- the affected CanonicalTrack interval, continuity break, or quality issue;
+- why that uncertainty is relevant to the TargetArea;
+- the provenance of the evidence/algorithm that left it unresolved.
+
+This supporting uncertainty record is not a new core entity. Its exact Milestone 1 schema remains open.
 
 ### Provenance
 
@@ -448,6 +494,8 @@ Current evidence rejects the following shortcuts:
 10. Store TargetSegment geometry without parent-track lineage.
 11. Treat any gap anywhere in a track as making every area assessment unknown.
 12. Mutate canonical track evidence when TargetArea changes.
+13. Treat a determined relation as proof that all TargetSegments are known.
+14. Use a numeric confidence score as a substitute for deterministic completeness semantics.
 
 ---
 
@@ -459,6 +507,7 @@ Current evidence rejects the following shortcuts:
 - ADR-0004 — Four-state spatial relation with evidence-aware uncertainty
 - ADR-0005 — TargetSegment multiplicity, maximality, ordering, and lineage
 - ADR-0006 — Minimum spatial CanonicalTrack contract
+- ADR-0007 — SpatialAssessment target-coverage completeness
 
 ---
 
@@ -467,12 +516,6 @@ Current evidence rejects the following shortcuts:
 ### Cross-source Activity reconciliation
 
 v0.1 will not perform implicit approximate merging. Whether a future explicit reconciliation entity belongs in the core remains open.
-
-### Assessment completeness representation
-
-The requirement is accepted, but representation is not frozen.
-
-Candidates may include a completeness flag, structured unresolved uncertainties, or another auditable form.
 
 ### Manual decisions — EP-08
 
