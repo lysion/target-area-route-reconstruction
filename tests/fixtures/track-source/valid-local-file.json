@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1.0",
+  "id": "source-file-a",
+  "revision_id": "source-file-a-r1",
+  "activity": {
+    "id": "activity-a"
+  },
+  "origin": {
+    "namespace": "local_import"
+  },
+  "representation": {
+    "media_type": "application/gpx+xml",
+    "original_name": "activity.gpx",
+    "content_hash": {
+      "algorithm": "sha256",
+      "digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    }
+  }
+}
