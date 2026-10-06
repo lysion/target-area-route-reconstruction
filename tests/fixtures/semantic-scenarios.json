@@ -1,0 +1,41 @@
+{
+  "schema_version": "0.1.0",
+  "scenarios": [
+    {
+      "name": "valid-partial-crossing",
+      "expect_semantic_valid": true,
+      "activity": "scenarios/partial-crossing/activity.json",
+      "track_source": "scenarios/partial-crossing/track-source.json",
+      "canonical_track": "scenarios/partial-crossing/canonical-track.json",
+      "target_area": "scenarios/partial-crossing/target-area.json",
+      "spatial_assessment": "scenarios/partial-crossing/spatial-assessment.json",
+      "target_segments": [
+        "scenarios/partial-crossing/target-segment.json"
+      ]
+    },
+    {
+      "name": "invalid-target-segment-lineage",
+      "expect_semantic_valid": false,
+      "activity": "scenarios/partial-crossing/activity.json",
+      "track_source": "scenarios/partial-crossing/track-source.json",
+      "canonical_track": "scenarios/partial-crossing/canonical-track.json",
+      "target_area": "scenarios/partial-crossing/target-area.json",
+      "spatial_assessment": "scenarios/partial-crossing/spatial-assessment.json",
+      "target_segments": [
+        "scenarios/partial-crossing/target-segment-invalid-lineage.json"
+      ]
+    },
+    {
+      "name": "invalid-assessment-track-reference",
+      "expect_semantic_valid": false,
+      "activity": "scenarios/partial-crossing/activity.json",
+      "track_source": "scenarios/partial-crossing/track-source.json",
+      "canonical_track": "scenarios/partial-crossing/canonical-track.json",
+      "target_area": "scenarios/partial-crossing/target-area.json",
+      "spatial_assessment": "scenarios/partial-crossing/spatial-assessment-invalid-track-ref.json",
+      "target_segments": [
+        "scenarios/partial-crossing/target-segment.json"
+      ]
+    }
+  ]
+}
