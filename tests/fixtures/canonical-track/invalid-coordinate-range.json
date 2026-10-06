@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.1.0",
+  "id": "track-invalid-coordinate",
+  "revision_id": "track-invalid-coordinate-r1",
+  "track_source": {
+    "id": "source-invalid-coordinate",
+    "revision_id": "source-invalid-coordinate-r1"
+  },
+  "spatial_reference": "OGC:CRS84",
+  "parts": [
+    {
+      "observations": [
+        {"position": [181.0, 28.2000]},
+        {"position": [112.9010, 28.2010]}
+      ]
+    }
+  ],
+  "normalizer": {
+    "name": "fixture-normalizer",
+    "version": "0.1.0"
+  }
+}
