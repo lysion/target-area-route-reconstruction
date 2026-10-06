@@ -60,7 +60,7 @@ The edge cases below are intended to validate these cross-cutting rules:
 | EC-06 | Source | API point stream exists without a file | TrackSource must not require a filesystem file | PASS |
 | EC-07 | Track | Valid geometry has no timestamps | Ordered usable coordinates remain spatially valid; timestamps are optional | PASS |
 | EC-08 | Track | Valid geometry has no altitude | Track remains valid for spatial reconstruction | PASS |
-| EC-09 | Track | Source has no usable GPS | No valid spatial CanonicalTrack; must not become outside | PASS |
+| EC-09 | Track | Source has no usable GPS | No assessable CanonicalTrack; no SpatialAssessment is created and outside must not be synthesized | PASS |
 | EC-10 | Track | GPS has gaps/discontinuities | CanonicalTrack preserves ordered continuity parts without inventing cross-gap geometry | PASS |
 | EC-11 | Track | GPS contains extreme jumps/outliers | Raw/normalized observations remain auditable; cleaned/usable geometry is derived | PASS |
 | EC-12 | Area | Same track assessed against two areas | Two independent SpatialAssessment objects | PASS |
@@ -374,8 +374,9 @@ A valid activity file contains workout metadata but no usable position records.
 **Expected domain behavior**
 
 - TrackSource may still be valid evidence.
-- No spatially valid CanonicalTrack is available.
-- Spatial outcome is unresolved/unknown, not outside.
+- No spatially usable CanonicalTrack is available.
+- No SpatialAssessment is created.
+- Workflow/task state remains unresolved; `outside` must not be synthesized.
 
 **Invariant under test**
 
@@ -603,8 +604,13 @@ The usable track geometry does not intersect the target area.
 
 **Expected domain behavior**
 
+When usable track geometry has no positive-length TargetArea coverage **and no target-relevant unresolved uncertainty remains**:
+
 - `relation = outside`
+- `coverage_completeness = complete`
 - zero TargetSegment objects
+
+If an unresolved interval could still enter the area, the relation is not outside; it remains `unknown`.
 
 **Invariant under test**
 
@@ -662,8 +668,8 @@ The track enters, exits, and later re-enters the same target area.
 
 - one SpatialAssessment for the Track × TargetArea pair
 - `relation = partial`
-- `entry_count > 1`
-- multiple TargetSegment objects
+- multiple ordered TargetSegment objects
+- an entry count, if needed by a consumer, is derived from the ordered target-coverage intervals rather than required as a core stored field
 
 **Invariant under test**
 
@@ -741,9 +747,9 @@ PASS
 
 **Scenario**
 
-Two consecutive GPS points lie on opposite sides of a target area, but no observations exist between them.
+Two consecutive usable observations lie on opposite sides of a target area, but the interval between them has been judged too sparse or otherwise too uncertain to support canonical interpolation.
 
-A straight line interpolation would intersect the area, but the actual path is unknown.
+A straight line interpolation would intersect the area, but the actual path is unresolved.
 
 **Objects involved**
 
@@ -760,7 +766,9 @@ Spatial certainty must not exceed evidence quality.
 
 **Resolution**
 
-A continuity break never gains a straight-line evidence edge. If an unresolved interval could materially change the TargetArea relation, the assessment may be unknown; an irrelevant break does not automatically make the whole assessment unknown.
+Absence of intermediate samples alone does not automatically create a continuity break. Within a continuity part, adjacent observations may form canonical geometry according to the accepted interpolation rule.
+
+When the quality/continuity layer judges an interval too sparse or uncertain to support that interpolation, the interval must be represented as a continuity break or equivalent unresolved quality interval before spatial assessment. Such an interval never gains a straight-line evidence edge. If it could materially change the TargetArea relation, the assessment may be unknown; if it is target-irrelevant, it does not make the whole assessment unknown. Exact detection thresholds are deferred to implementation.
 
 **Model impact**
 
@@ -896,6 +904,10 @@ Persistent runtime should use content identity/hash and provenance to avoid dupl
 
 The future runtime requirement constrains TrackSource identity semantics.
 
+**Deferred boundary**
+
+Primary implementation belongs to **Milestone 3 — Persistent Runtime**, where content hashing, idempotency, and duplicate prevention are introduced.
+
 **Status**
 
 DEFERRED
@@ -915,6 +927,10 @@ The system must not represent the TrackSource as durably available/saved.
 **Why retained in Milestone 0**
 
 This constrains TrackSource lifecycle semantics even though remote acquisition is deferred.
+
+**Deferred boundary**
+
+Remote source acquisition belongs to **Milestone 5 — Source Adapter Layer**. Durable saved-state/idempotency semantics are enforced by the persistent runtime introduced in Milestone 3. A returned URL or temporary locator alone is never durable TrackSource availability.
 
 **Status**
 
@@ -964,6 +980,10 @@ Completion belongs to task/runtime policy, not to Activity, TrackSource, or Cano
 **Why retained in Milestone 0**
 
 This prevents resource-policy concepts from leaking into the core domain model.
+
+**Deferred boundary**
+
+Objective-aware stopping and constrained acquisition policy belong to **Milestone 6 — Resource-Aware Acquisition**.
 
 **Status**
 
@@ -1039,21 +1059,27 @@ Evidence relevant to speed/pace derivation, especially GPS discontinuities and o
 
 ---
 
-# Review queue
+# Regression status
 
-No blocking domain-design question remains.
+A complete Milestone 0 edge-case regression has been run against `docs/domain-model.md` and ADR-0001 through ADR-0009.
 
-The next Milestone 0 step is a full edge-case regression against `docs/domain-model.md` and ADR-0001 through ADR-0009.
+Final status:
 
-The regression must verify:
+- `PASS`: 26
+- `REVIEW`: 0
+- `FAIL`: 0
+- `DEFERRED`: 3
 
-1. zero blocking `FAIL` cases;
-2. zero blocking `REVIEW` cases;
-3. every `DEFERRED` case has an explicit later-milestone boundary;
-4. no accepted edge case requires an ad-hoc field outside the documented core/supporting concepts;
-5. the six spatial-core entities remain sufficient for v0.1, with ManualDecision explicitly located in the audit/runtime extension layer.
+The regression identified four wording/contract clarifications, all applied without adding a new core entity:
 
-Quality-detection thresholds, gap-reachability algorithms, final TrackPosition field names, future cross-source reconciliation persistence, and ManualDecision persistence/precedence are explicitly deferred implementation details rather than domain blockers.
+1. EC-09 — no usable CanonicalTrack means no SpatialAssessment; workflow remains unresolved rather than synthesizing `unknown` or `outside`.
+2. EC-16 — `outside` requires absence of target-relevant unresolved uncertainty.
+3. EC-18 — entry count is derivable and is not a required stored core field.
+4. EC-21 — sparse sampling only blocks interpolation when the quality/continuity layer marks the interval unresolved; absence of intermediate samples alone is not a continuity break.
+
+Every DEFERRED case now has an explicit later-milestone boundary.
+
+See `docs/edge-case-regression.md` for the case-by-case audit.
 
 # Promotion path
 
