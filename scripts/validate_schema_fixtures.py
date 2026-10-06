@@ -23,6 +23,7 @@ from typing import Any, Iterable
 from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import SchemaError, ValidationError
 from referencing import Registry, Resource
+from referencing.exceptions import NoSuchResource, Unresolvable
 
 
 @dataclass(frozen=True)
@@ -176,7 +177,12 @@ def validate_fixture(
         registry=registry,
         format_checker=format_checker,
     )
-    errors = sort_errors(validator.iter_errors(instance))
+    try:
+        errors = sort_errors(validator.iter_errors(instance))
+    except (NoSuchResource, Unresolvable) as exc:
+        raise RunnerError(
+            f"failed to resolve schema reference while validating {fixture_path}: {exc}"
+        ) from exc
 
     return FixtureResult(
         path=fixture_path,
