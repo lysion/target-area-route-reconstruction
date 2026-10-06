@@ -440,14 +440,15 @@ Encode the frozen domain contract into machine-verifiable schemas and reproducib
 - added `scripts/validate_edge_case_coverage.py` and CI coverage-map validation;
 - expanded the schema fixture manifest to 113 entries and linked semantic scenarios to 16;
 - added `schemas/common-conformance.schema.json` plus 14 independent valid/invalid probes for shared ID/reference/CRS/coordinate/time/TrackPosition/hash definitions;
+- ran the complete contract-validation workflow green on commit `74867ba37b6b48ecd7f70a588e3a7e86c2f569b7`: Layer A 113/113, Layer B 33/33, edge-case coverage 29/29; recorded in `docs/milestone1-validation-run.md`;
 - recorded complete coverage in `docs/milestone1-edge-case-coverage.md` and linked spatial detail in `docs/milestone1-linked-scenario-coverage.md`.
 
 **Immediate Milestone 1 work:**
 
-1. run and stabilize the Layer A schema runner, Layer B semantic runner, and edge-case coverage runner against the 113-fixture / 16-scenario set in CI/local development;
-2. verify every expected-valid fixture/scenario passes and every expected-invalid case fails for its documented reason;
-3. verify all six core schemas and validators remain source/platform independent;
-4. confirm the 13 explicit non-file contract cases have clear later-milestone ownership and no hidden Milestone 1 blocker;
-5. perform the Milestone 1 exit review.
+1. verify all six core schemas and validators remain source/platform independent;
+2. confirm the 13 explicit non-file contract cases have clear later-milestone ownership and no hidden Milestone 1 blocker;
+3. perform the Milestone 1 exit review.
+
+The executable validation gate is currently green: 113/113 schema fixture expectations, 33/33 semantic expectations, and 29/29 frozen edge cases mapped.
 
 Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut.
