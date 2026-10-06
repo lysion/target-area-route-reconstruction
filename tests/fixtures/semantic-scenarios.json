@@ -36,6 +36,155 @@
       "target_segments": [
         "scenarios/partial-crossing/target-segment.json"
       ]
+    },
+    {
+      "name": "fully-inside",
+      "edge_cases": [
+        "EC-15"
+      ],
+      "purpose": "fully covered route yields inside and one full-length TargetSegment",
+      "expect_semantic_valid": true,
+      "activity": "scenarios/fully-inside/activity.json",
+      "track_source": "scenarios/fully-inside/track-source.json",
+      "canonical_track": "scenarios/fully-inside/canonical-track.json",
+      "target_area": "scenarios/fully-inside/target-area.json",
+      "spatial_assessment": "scenarios/fully-inside/spatial-assessment.json",
+      "target_segments": [
+        "scenarios/fully-inside/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "fully-outside",
+      "edge_cases": [
+        "EC-16"
+      ],
+      "purpose": "fully observed outside route yields outside + complete with zero TargetSegments",
+      "expect_semantic_valid": true,
+      "activity": "scenarios/fully-outside/activity.json",
+      "track_source": "scenarios/fully-outside/track-source.json",
+      "canonical_track": "scenarios/fully-outside/canonical-track.json",
+      "target_area": "scenarios/fully-outside/target-area.json",
+      "spatial_assessment": "scenarios/fully-outside/spatial-assessment.json",
+      "target_segments": []
+    },
+    {
+      "name": "repeated-entry",
+      "edge_cases": [
+        "EC-18",
+        "EC-22",
+        "EC-23"
+      ],
+      "purpose": "repeated entry yields multiple ordered, traceable TargetSegments under one assessment",
+      "expect_semantic_valid": true,
+      "activity": "scenarios/repeated-entry/activity.json",
+      "track_source": "scenarios/repeated-entry/track-source.json",
+      "canonical_track": "scenarios/repeated-entry/canonical-track.json",
+      "target_area": "scenarios/repeated-entry/target-area.json",
+      "spatial_assessment": "scenarios/repeated-entry/spatial-assessment.json",
+      "target_segments": [
+        "scenarios/repeated-entry/target-segment-0.json",
+        "scenarios/repeated-entry/target-segment-1.json"
+      ]
+    },
+    {
+      "name": "starts-inside-leaves",
+      "edge_cases": [
+        "EC-19",
+        "EC-23"
+      ],
+      "purpose": "start point inside does not override full-route evidence; result is partial",
+      "expect_semantic_valid": true,
+      "activity": "scenarios/starts-inside-leaves/activity.json",
+      "track_source": "scenarios/starts-inside-leaves/track-source.json",
+      "canonical_track": "scenarios/starts-inside-leaves/canonical-track.json",
+      "target_area": "scenarios/starts-inside-leaves/target-area.json",
+      "spatial_assessment": "scenarios/starts-inside-leaves/spatial-assessment.json",
+      "target_segments": [
+        "scenarios/starts-inside-leaves/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "point-touch",
+      "edge_cases": [
+        "EC-20"
+      ],
+      "purpose": "zero-length boundary contact remains outside and creates no TargetSegment",
+      "expect_semantic_valid": true,
+      "activity": "scenarios/point-touch/activity.json",
+      "track_source": "scenarios/point-touch/track-source.json",
+      "canonical_track": "scenarios/point-touch/canonical-track.json",
+      "target_area": "scenarios/point-touch/target-area.json",
+      "spatial_assessment": "scenarios/point-touch/spatial-assessment.json",
+      "target_segments": []
+    },
+    {
+      "name": "boundary-overlap",
+      "edge_cases": [
+        "EC-20",
+        "EC-23"
+      ],
+      "purpose": "positive-length boundary overlap is target coverage and yields a traceable TargetSegment",
+      "expect_semantic_valid": true,
+      "activity": "scenarios/boundary-overlap/activity.json",
+      "track_source": "scenarios/boundary-overlap/track-source.json",
+      "canonical_track": "scenarios/boundary-overlap/canonical-track.json",
+      "target_area": "scenarios/boundary-overlap/target-area.json",
+      "spatial_assessment": "scenarios/boundary-overlap/spatial-assessment.json",
+      "target_segments": [
+        "scenarios/boundary-overlap/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "relevant-gap-unknown",
+      "edge_cases": [
+        "EC-21"
+      ],
+      "purpose": "target-relevant continuity break is never bridged and preserves unknown + incomplete",
+      "expect_semantic_valid": true,
+      "activity": "scenarios/relevant-gap-unknown/activity.json",
+      "track_source": "scenarios/relevant-gap-unknown/track-source.json",
+      "canonical_track": "scenarios/relevant-gap-unknown/canonical-track.json",
+      "target_area": "scenarios/relevant-gap-unknown/target-area.json",
+      "spatial_assessment": "scenarios/relevant-gap-unknown/spatial-assessment.json",
+      "target_segments": []
+    },
+    {
+      "name": "multipolygon",
+      "edge_cases": [
+        "EC-14",
+        "EC-22",
+        "EC-23"
+      ],
+      "purpose": "one disconnected MultiPolygon target produces multiple ordered TargetSegments",
+      "expect_semantic_valid": true,
+      "activity": "scenarios/multipolygon/activity.json",
+      "track_source": "scenarios/multipolygon/track-source.json",
+      "canonical_track": "scenarios/multipolygon/canonical-track.json",
+      "target_area": "scenarios/multipolygon/target-area.json",
+      "spatial_assessment": "scenarios/multipolygon/spatial-assessment.json",
+      "target_segments": [
+        "scenarios/multipolygon/target-segment-0.json",
+        "scenarios/multipolygon/target-segment-1.json"
+      ]
+    },
+    {
+      "name": "polygon-hole",
+      "edge_cases": [
+        "EC-14",
+        "EC-22",
+        "EC-23"
+      ],
+      "purpose": "an interior polygon hole splits target coverage into multiple maximal segments",
+      "expect_semantic_valid": true,
+      "activity": "scenarios/polygon-hole/activity.json",
+      "track_source": "scenarios/polygon-hole/track-source.json",
+      "canonical_track": "scenarios/polygon-hole/canonical-track.json",
+      "target_area": "scenarios/polygon-hole/target-area.json",
+      "spatial_assessment": "scenarios/polygon-hole/spatial-assessment.json",
+      "target_segments": [
+        "scenarios/polygon-hole/target-segment-0.json",
+        "scenarios/polygon-hole/target-segment-1.json"
+      ]
     }
   ]
 }
