@@ -49,10 +49,42 @@ Shared schema conventions and `common.schema.json` are complete.
 
 Implemented core schemas:
 
+- `canonical-track.schema.json`
+- `target-area.schema.json`
 - `spatial-assessment.schema.json`
 - `target-segment.schema.json`
 
 Initial fixtures and expected validation layers are recorded in `../tests/fixtures/manifest.json`.
+
+### CanonicalTrack representation
+
+The schema freezes:
+
+- exact TrackSource revision provenance;
+- canonical OGC:CRS84 spatial reference;
+- one or more ordered ContinuityPart objects;
+- one or more ordered observations per part;
+- required 2D position for every canonical observation;
+- optional timestamp, altitude, cumulative distance, and observed/device speed;
+- parser/normalizer software provenance.
+
+The schema deliberately does not serialize one unconditional LineString. Array boundaries are the explicit no-edge boundaries between continuity parts.
+
+A singleton part is valid canonical evidence. Whether the overall track has usable positive-length route geometry is a semantic-validation question and controls whether SpatialAssessment may be created.
+
+Observed/device speed is represented as `observed_speed_mps`; derived geometric speed remains a later derived metric and must not silently reuse the same semantic field.
+
+### TargetArea representation
+
+The schema freezes:
+
+- stable identity plus immutable revision identity;
+- OGC:CRS84 canonical spatial reference;
+- Polygon or MultiPolygon geometry only;
+- standard hole nesting through GeoJSON-compatible coordinates;
+- explicit provenance for the exact boundary revision.
+
+JSON Schema rejects unsupported geometry types and empty coordinate containers structurally. Ring closure, self-intersection, hole validity, and full polygon topology remain semantic-validator responsibilities.
 
 ### SpatialAssessment representation
 
@@ -91,7 +123,7 @@ Positive length, parent-position bounds, geometry/lineage regeneration, and orde
 
 ### Remaining core schema order
 
-1. CanonicalTrack
-2. TargetArea
-3. TrackSource
-4. Activity
+1. TrackSource
+2. Activity
+
+The four spatially coupled schemas are now present. The next validation step is cross-object semantic validation across CanonicalTrack, TargetArea, SpatialAssessment, and TargetSegment revisions.
