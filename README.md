@@ -75,10 +75,11 @@ Current design artifacts:
 - [Schema workspace](schemas/README.md)
 - Executable schema validation: `python scripts/validate_schema_fixtures.py`
 - Executable semantic validation: `python scripts/validate_semantic_fixtures.py`
+- [Milestone 1 linked semantic scenario coverage](docs/milestone1-linked-scenario-coverage.md)
 - [Evidence plan](docs/evidence-plan.md)
 - [Real-world evidence record](docs/real-world-cases.md)
 - [Track metric overlays](docs/track-metric-overlays.md)
 
 ## Status
 
-Early public development. **Milestone 0: Domain Contract is DONE** and the v0.1 domain contract is frozen. The project is now in **Milestone 1: Schemas and Fixtures**. Shared schema conventions and reusable common definitions are established. All six frozen v0.1 core entity schemas are implemented, with valid/invalid fixtures across Activity, TrackSource, CanonicalTrack, TargetArea, SpatialAssessment, and TargetSegment. Formal Draft 2020-12 and independent semantic-validation runners are now in place and executed sequentially by GitHub Actions. An initial linked end-to-end partial-crossing scenario plus negative lineage/reference scenarios are included; Milestone 1 next focuses on expanding edge-case coverage and validation conformance. The Milestone 0 regression finished with 26 PASS, 0 REVIEW, 0 FAIL, and 3 explicitly bounded DEFERRED cases.
+Early public development. **Milestone 0: Domain Contract is DONE** and the v0.1 domain contract is frozen. The project is now in **Milestone 1: Schemas and Fixtures**. Shared schema conventions and reusable common definitions are established. All six frozen v0.1 core entity schemas are implemented, with valid/invalid fixtures across Activity, TrackSource, CanonicalTrack, TargetArea, SpatialAssessment, and TargetSegment. Formal Draft 2020-12 and independent semantic-validation runners are in place and executed sequentially by GitHub Actions. Linked semantic scenarios now cover EC-14 through EC-23, including boundary semantics, continuity-gap uncertainty, holes, MultiPolygon geometry, repeated entry, multiple TargetSegments, and lineage. Milestone 1 next focuses on mapping the remaining edge cases and stabilizing full validation conformance. The Milestone 0 regression finished with 26 PASS, 0 REVIEW, 0 FAIL, and 3 explicitly bounded DEFERRED cases.
