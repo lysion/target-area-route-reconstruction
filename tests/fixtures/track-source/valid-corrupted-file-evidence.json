@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1.0",
+  "id": "source-corrupted-a",
+  "revision_id": "source-corrupted-a-r1",
+  "activity": {
+    "id": "activity-a"
+  },
+  "origin": {
+    "namespace": "local_import"
+  },
+  "representation": {
+    "media_type": "application/octet-stream",
+    "original_name": "corrupted.fit",
+    "content_hash": {
+      "algorithm": "sha256",
+      "digest": "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd"
+    }
+  }
+}
