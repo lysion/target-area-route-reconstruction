@@ -705,6 +705,20 @@ def validate_linked_scenario(
 
     area_geometry = shape(target_area["geometry"])
 
+    # A partial relation is already proven by reliable observed geometry:
+    # there must be positive-length observed coverage both inside and outside.
+    # This remains true even when completeness is incomplete because another
+    # unresolved interval may hide additional target coverage.
+    if spatial_assessment["relation"] == "partial":
+        observed_relation = derive_relation_for_complete_track(
+            canonical_track, area_geometry
+        )
+        if observed_relation != "partial":
+            errors.append(
+                "spatial_assessment.relation='partial' is not proven by "
+                "observed within-part geometry"
+            )
+
     sorted_segments = sorted(target_segments, key=lambda item: item["ordinal"])
     expected_ordinals = list(range(len(sorted_segments)))
     actual_ordinals = [item["ordinal"] for item in sorted_segments]
