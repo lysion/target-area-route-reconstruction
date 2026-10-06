@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TargetSegment",
+  "description": "One maximal continuous positive-length portion of a parent CanonicalTrack covered by the TargetArea of its SpatialAssessment.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "revision_id",
+    "spatial_assessment",
+    "canonical_track",
+    "ordinal",
+    "spatial_reference",
+    "start_position",
+    "end_position",
+    "geometry"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "common.schema.json#/$defs/schemaVersion"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/entityId"
+    },
+    "revision_id": {
+      "$ref": "common.schema.json#/$defs/revisionId"
+    },
+    "spatial_assessment": {
+      "$ref": "common.schema.json#/$defs/revisionRef",
+      "description": "Exact parent SpatialAssessment revision."
+    },
+    "canonical_track": {
+      "$ref": "common.schema.json#/$defs/revisionRef",
+      "description": "Exact parent CanonicalTrack revision used for lineage."
+    },
+    "ordinal": {
+      "$ref": "common.schema.json#/$defs/nonNegativeInteger",
+      "description": "Zero-based ordering of this segment within its SpatialAssessment by parent-track position."
+    },
+    "spatial_reference": {
+      "$ref": "common.schema.json#/$defs/spatialReference"
+    },
+    "start_position": {
+      "$ref": "common.schema.json#/$defs/trackPosition"
+    },
+    "end_position": {
+      "$ref": "common.schema.json#/$defs/trackPosition"
+    },
+    "geometry": {
+      "$ref": "common.schema.json#/$defs/lineStringGeometry",
+      "description": "Derived target-covered geometry. Positive length and exact regeneration from lineage require semantic validation."
+    },
+    "extensions": {
+      "$ref": "common.schema.json#/$defs/extensions"
+    }
+  },
+  "additionalProperties": false
+}
