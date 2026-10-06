@@ -420,17 +420,19 @@ Encode the frozen domain contract into machine-verifiable schemas and reproducib
 - fixed zero-based TrackPosition serialization as `part_index / observation_index / fraction_to_next`;
 - added reusable definitions in `schemas/common.schema.json`;
 - added `schemas/README.md` as the schema workspace guide;
+- implemented `schemas/canonical-track.schema.json` with ordered ContinuityParts, canonical observations, source revision provenance, optional temporal/telemetry capabilities, and explicit no-edge part boundaries;
+- implemented `schemas/target-area.schema.json` with versioned Polygon/MultiPolygon geometry, canonical spatial reference, and boundary provenance;
 - implemented `schemas/spatial-assessment.schema.json` with relation/completeness invariants and CoverageUncertainty;
 - implemented `schemas/target-segment.schema.json` with revision lineage, TrackPosition endpoints, ordinal, and canonical LineString geometry;
-- added initial valid/invalid schema fixtures and a fixture manifest distinguishing JSON-Schema and semantic validation.
+- added initial valid/invalid schema fixtures for CanonicalTrack, TargetArea, SpatialAssessment, and TargetSegment, with a fixture manifest distinguishing JSON-Schema and semantic validation.
 
 **Immediate Milestone 1 work:**
 
-1. implement `CanonicalTrack` and `TargetArea` schemas so the existing SpatialAssessment / TargetSegment references can be validated end-to-end;
-2. implement `TrackSource` and `Activity` schemas;
-3. expand the fixture manifest to cover all Milestone 0 edge cases and attack cases;
-4. implement automated JSON Schema validation and deterministic semantic validators for cross-object/geometry invariants;
-5. validate lineage regeneration, relation/completeness combinations, and target-segment ordering;
+1. implement `TrackSource` and `Activity` schemas to complete the six frozen core entity schemas;
+2. implement automated Draft 2020-12 JSON Schema validation for the fixture manifest;
+3. implement deterministic semantic validators for polygon topology, CanonicalTrack route usability, cross-revision references, TrackPosition bounds, and TargetSegment lineage regeneration;
+4. add linked scenario fixtures spanning CanonicalTrack → TargetArea → SpatialAssessment → TargetSegment;
+5. expand the fixture manifest to cover all Milestone 0 edge cases and attack cases;
 6. verify no schema introduces COROS/FIT-specific core semantics.
 
 Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut.
