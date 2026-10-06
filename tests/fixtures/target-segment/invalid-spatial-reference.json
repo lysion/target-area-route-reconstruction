@@ -1,0 +1,38 @@
+{
+  "schema_version": "0.1.0",
+  "id": "segment-invalid-crs",
+  "revision_id": "segment-invalid-crs-r1",
+  "spatial_assessment": {
+    "id": "assessment-a",
+    "revision_id": "assessment-a-r1"
+  },
+  "canonical_track": {
+    "id": "track-a",
+    "revision_id": "track-a-r1"
+  },
+  "ordinal": 0,
+  "spatial_reference": "EPSG:4326",
+  "start_position": {
+    "part_index": 0,
+    "observation_index": 60,
+    "fraction_to_next": 0.25
+  },
+  "end_position": {
+    "part_index": 0,
+    "observation_index": 80,
+    "fraction_to_next": 0.5
+  },
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [
+        112.9,
+        28.2
+      ],
+      [
+        112.901,
+        28.201
+      ]
+    ]
+  }
+}
