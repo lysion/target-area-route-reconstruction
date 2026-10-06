@@ -30,6 +30,14 @@ SpatialAssessment retains four core relation values:
 
 No touching or boundary fifth state is added.
 
+### Assessment precondition
+
+SpatialAssessment is an algorithmic result for an assessable CanonicalTrack.
+
+If acquisition/parsing produces no CanonicalTrack with usable positive-length route geometry, no SpatialAssessment is created. The workflow remains unresolved and must not synthesize `outside`.
+
+The `unknown` relation is used when an assessable CanonicalTrack exists but unresolved spatial evidence can still change the track-area relation. It is not a substitute for source-acquisition or parser failure.
+
 Relation is based on reliable positive-length coverage plus evidence sufficiency.
 
 ### inside
