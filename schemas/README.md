@@ -80,7 +80,8 @@ The semantic runner does not use JSON Schema as a substitute for domain logic. I
 - exact TargetSegment → SpatialAssessment/CanonicalTrack revision links;
 - spatial-reference consistency;
 - TargetSegment ordinal/reference ordering;
-- deterministic relation and exhaustive target coverage for complete, fully observed single-part linked scenarios.
+- deterministic relation and exhaustive target coverage for complete linked scenarios without unresolved target-relevant uncertainty;
+- observed proof for `partial` even when `coverage_completeness = incomplete`.
 
 Local semantic expectations come from `tests/fixtures/manifest.json`. Cross-object expectations come from `tests/fixtures/semantic-scenarios.json`.
 
@@ -93,6 +94,14 @@ Exit codes mirror the schema runner:
 - `2` — repository, manifest, JSON, or runner state prevented a trustworthy run.
 
 The CI workflow runs Layer A first and this independent Layer B runner second.
+
+Milestone 1 representation completeness is checked separately with:
+
+```bash
+python scripts/validate_edge_case_coverage.py
+```
+
+That runner verifies that EC-01 through EC-29 are all mapped exactly once to registered fixtures, linked semantic scenarios, or explicit non-file contract cases.
 
 ## Validation layers
 
@@ -231,13 +240,20 @@ Positive length, parent-position bounds, geometry/lineage regeneration, and orde
 
 All six frozen v0.1 core entity schemas are now present.
 
-The schema and semantic runners are now both executable. Linked semantic coverage now includes EC-14 through EC-23, including fully inside/outside, repeated entry, start-inside departure, point touch, boundary overlap, target-relevant continuity gaps, MultiPolygon components, polygon holes, multiple TargetSegments, and interpolated lineage.
+The schema and semantic runners are executable. The full EC-01 through EC-29 representation map is now complete.
 
-See `../docs/milestone1-linked-scenario-coverage.md`.
+Current coverage artifacts:
 
-The next Milestone 1 focus is coverage and conformance:
+- `../tests/edge-case-coverage.json` — machine-readable 29/29 mapping;
+- `../tests/nonfile-contract-cases.json` — explicit lifecycle/runtime test contracts;
+- `../docs/milestone1-edge-case-coverage.md` — human-readable complete mapping;
+- `../docs/milestone1-linked-scenario-coverage.md` — linked spatial scenario details.
 
-1. map the remaining Milestone 0 edge cases outside EC-14 through EC-23 to fixtures, semantic scenarios, or explicit non-file test representations;
-2. add negative cross-object cases for out-of-bounds TrackPosition, reversed TargetSegment order, wrong TargetArea revision, and spatial-reference mismatch;
-3. stabilize both validation runners in CI;
-4. perform the Milestone 1 exit review only after every intended valid fixture passes and every invalid fixture fails for its documented reason.
+Current registered set: 99 schema fixtures, 16 linked semantic scenarios, 13 non-file contract cases, and 6 negative cross-object cases.
+
+The next Milestone 1 focus is conformance rather than coverage design:
+
+1. stabilize Layer A, Layer B, and coverage-map runners in CI;
+2. add common-definition conformance fixtures where entity fixtures do not directly exercise shared constraints;
+3. verify all intended valid fixtures pass and invalid fixtures fail for the documented reason;
+4. perform the Milestone 1 exit review.
