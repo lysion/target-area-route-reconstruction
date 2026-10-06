@@ -1,0 +1,62 @@
+{
+  "schema_version": "0.1.0",
+  "id": "multipolygon-area",
+  "revision_id": "multipolygon-area-r1",
+  "spatial_reference": "OGC:CRS84",
+  "geometry": {
+    "type": "MultiPolygon",
+    "coordinates": [
+      [
+        [
+          [
+            112,
+            28
+          ],
+          [
+            113,
+            28
+          ],
+          [
+            113,
+            29
+          ],
+          [
+            112,
+            29
+          ],
+          [
+            112,
+            28
+          ]
+        ]
+      ],
+      [
+        [
+          [
+            114,
+            28
+          ],
+          [
+            115,
+            28
+          ],
+          [
+            115,
+            29
+          ],
+          [
+            114,
+            29
+          ],
+          [
+            114,
+            28
+          ]
+        ]
+      ]
+    ]
+  },
+  "definition_provenance": {
+    "description": "Synthetic disconnected MultiPolygon TargetArea fixture."
+  }
+}
