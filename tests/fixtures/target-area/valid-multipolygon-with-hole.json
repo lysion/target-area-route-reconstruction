@@ -1,0 +1,39 @@
+{
+  "schema_version": "0.1.0",
+  "id": "area-multipolygon-hole",
+  "revision_id": "area-multipolygon-hole-r1",
+  "spatial_reference": "OGC:CRS84",
+  "geometry": {
+    "type": "MultiPolygon",
+    "coordinates": [
+      [
+        [
+          [112.9000, 28.2000],
+          [112.9200, 28.2000],
+          [112.9200, 28.2200],
+          [112.9000, 28.2200],
+          [112.9000, 28.2000]
+        ],
+        [
+          [112.9050, 28.2050],
+          [112.9100, 28.2050],
+          [112.9100, 28.2100],
+          [112.9050, 28.2100],
+          [112.9050, 28.2050]
+        ]
+      ],
+      [
+        [
+          [112.9300, 28.2300],
+          [112.9400, 28.2300],
+          [112.9400, 28.2400],
+          [112.9300, 28.2400],
+          [112.9300, 28.2300]
+        ]
+      ]
+    ]
+  },
+  "definition_provenance": {
+    "description": "Synthetic disjoint area with one polygon hole."
+  }
+}
