@@ -1,0 +1,7 @@
+{
+  "definition": "sha256Hash",
+  "value": {
+    "algorithm": "sha256",
+    "digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  }
+}
