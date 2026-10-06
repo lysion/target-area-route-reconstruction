@@ -1,4 +1,4 @@
-name: Schema validation
+name: Contract validation
 
 on:
   push:
@@ -28,3 +28,6 @@ jobs:
 
       - name: Validate Draft 2020-12 schema fixtures
         run: python scripts/validate_schema_fixtures.py --verbose
+
+      - name: Validate semantic fixtures
+        run: python scripts/validate_semantic_fixtures.py --verbose
