@@ -401,17 +401,18 @@ No project decision should rely solely on chat history.
 - accepted the v0.1 Polygon/MultiPolygon TargetArea contract;
 - accepted four-state evidence-aware spatial relation semantics;
 - accepted TargetSegment multiplicity, maximality, ordering, and parent-track lineage requirements;
-- added `docs/domain-model.md` and seven initial ADRs under `docs/decisions/`;
+- added `docs/domain-model.md` and nine initial ADRs under `docs/decisions/`;
 - closed EP-01: ordered usable coordinates are the minimum spatial contract; timestamps and telemetry are optional capabilities;
 - froze target-coverage completeness as a second SpatialAssessment dimension (`complete` / `incomplete`) with auditable unresolved uncertainty provenance;
+- resolved cross-source Activity identity: similarity never implies identity, and future reconciliation remains explicit/auditable outside the v0.1 spatial core;
+- closed EP-08: ManualDecision is a first-class audit/runtime overlay that never mutates algorithmic SpatialAssessment;
 - retained planned speed/pace metric overlays as a later derived capability rather than a Milestone 0 core field.
 
 **Remaining Milestone 0 work:**
 
-1. resolve or explicitly defer cross-source Activity reconciliation without implicit approximate merging;
-2. resolve EP-08 / EC-24 so manual decisions remain separate from immutable algorithmic assessment;
-3. re-run the full edge-case matrix against `docs/domain-model.md`;
-4. ensure there are zero blocking `FAIL` or `REVIEW` cases;
-5. freeze the v0.1 domain contract before creating JSON Schemas.
+1. re-run the full edge-case matrix against `docs/domain-model.md` and ADR-0001 through ADR-0009;
+2. verify zero blocking `FAIL` and zero blocking `REVIEW` cases;
+3. verify every `DEFERRED` case has an explicit later-milestone boundary;
+4. freeze the v0.1 domain contract before creating JSON Schemas.
 
 Work on Milestone 1 or later remains deferred until these exit criteria are met.
