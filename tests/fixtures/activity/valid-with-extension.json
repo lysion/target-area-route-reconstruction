@@ -1,0 +1,7 @@
+{
+  "schema_version": "0.1.0",
+  "id": "activity-b",
+  "extensions": {
+    "org.example.activity_label": "Morning run"
+  }
+}
