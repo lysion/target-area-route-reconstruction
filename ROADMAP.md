@@ -392,21 +392,26 @@ No project decision should rely solely on chat history.
 
 **Completed in this milestone:**
 
-- created `docs/edge-cases.md` as the design-time edge-case matrix;
-- created `docs/evidence-plan.md` with evidence classes, EP-01 through EP-08, convergence rules, and privacy constraints;
-- created `docs/real-world-cases.md` as the standardized anonymized observation record;
-- identified the first review queue and one explicit model gap around manual override/auditability;
-- recorded the planned speed/pace metric-overlay capability in `docs/track-metric-overlays.md` without making it a Milestone 0 core field.
+- created and exercised `docs/edge-cases.md` as the design-time stress matrix;
+- created `docs/evidence-plan.md` and completed representative evidence for EP-02 through EP-07 where required;
+- recorded five anonymized real-world evidence cases in `docs/real-world-cases.md`;
+- completed controlled attacks for continuity, target clipping, repeated entry, MultiPolygon, polygon holes, point touch, positive-length boundary overlap, target-version changes, and target-relevant unobserved gaps;
+- accepted continuity-part semantics and prohibited inferred geometry across continuity breaks;
+- accepted TrackSource / CanonicalTrack provenance separation and preservation of normalized observations from judgment-based cleaned geometry;
+- accepted the v0.1 Polygon/MultiPolygon TargetArea contract;
+- accepted four-state evidence-aware spatial relation semantics;
+- accepted TargetSegment multiplicity, maximality, ordering, and parent-track lineage requirements;
+- added `docs/domain-model.md` and five initial ADRs under `docs/decisions/`;
+- retained planned speed/pace metric overlays as a later derived capability rather than a Milestone 0 core field.
 
-**Next required work:**
+**Remaining Milestone 0 work:**
 
-1. collect representative real-world evidence in the priority order EP-02, EP-03, EP-04, EP-05, then EP-01;
-2. record observations in `docs/real-world-cases.md` without mixing observation and interpretation;
-3. resolve synthetic/design questions EP-06 through EP-08;
-4. revise the candidate entities only where evidence requires it;
-5. write `docs/domain-model.md` from accepted decisions;
-6. record material architectural decisions under `docs/decisions/`;
-7. re-run the full edge-case matrix against the revised model;
-8. freeze the v0.1 domain contract before creating JSON Schemas.
+1. close EP-01 and freeze the minimum spatially valid CanonicalTrack contract;
+2. resolve or explicitly defer cross-source Activity reconciliation without implicit approximate merging;
+3. freeze the representation of assessment/segment completeness and unresolved target-relevant uncertainty;
+4. resolve EP-08 / EC-24 so manual decisions remain separate from immutable algorithmic assessment;
+5. re-run the full edge-case matrix against `docs/domain-model.md`;
+6. ensure there are zero blocking `FAIL` or `REVIEW` cases;
+7. freeze the v0.1 domain contract before creating JSON Schemas.
 
-Work on Milestone 1 or later should remain deferred until these exit criteria are met.
+Work on Milestone 1 or later remains deferred until these exit criteria are met.
