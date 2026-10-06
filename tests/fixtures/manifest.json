@@ -53,6 +53,66 @@
       "expect_schema_valid": true,
       "expect_semantic_valid": false,
       "purpose": "JSON shape is valid but zero-length geometry violates TargetSegment domain semantics"
+    },
+    {
+      "path": "canonical-track/valid-coordinate-only.json",
+      "schema": "../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "expect_semantic_valid": true,
+      "purpose": "minimum ordered coordinate-only CanonicalTrack without timestamps"
+    },
+    {
+      "path": "canonical-track/valid-multipart-with-telemetry.json",
+      "schema": "../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "expect_semantic_valid": true,
+      "purpose": "multiple continuity parts with optional temporal and observed speed evidence"
+    },
+    {
+      "path": "canonical-track/valid-singleton-evidence.json",
+      "schema": "../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "expect_semantic_valid": true,
+      "purpose": "singleton canonical evidence is preservable although not assessable as positive-length route geometry"
+    },
+    {
+      "path": "canonical-track/invalid-empty-parts.json",
+      "schema": "../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "CanonicalTrack requires at least one continuity part"
+    },
+    {
+      "path": "canonical-track/invalid-coordinate-range.json",
+      "schema": "../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "canonical CRS84 longitude/latitude bounds are enforced structurally"
+    },
+    {
+      "path": "target-area/valid-polygon.json",
+      "schema": "../../../schemas/target-area.schema.json",
+      "expect_schema_valid": true,
+      "expect_semantic_valid": true,
+      "purpose": "basic valid Polygon TargetArea revision"
+    },
+    {
+      "path": "target-area/valid-multipolygon-with-hole.json",
+      "schema": "../../../schemas/target-area.schema.json",
+      "expect_schema_valid": true,
+      "expect_semantic_valid": true,
+      "purpose": "one logical TargetArea represented by disconnected polygons and a standard hole"
+    },
+    {
+      "path": "target-area/invalid-linestring.json",
+      "schema": "../../../schemas/target-area.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "LineString is not a v0.1 TargetArea geometry"
+    },
+    {
+      "path": "target-area/semantic-invalid-unclosed-ring.json",
+      "schema": "../../../schemas/target-area.schema.json",
+      "expect_schema_valid": true,
+      "expect_semantic_valid": false,
+      "purpose": "JSON structural shape cannot by itself prove polygon ring closure"
     }
   ]
 }
