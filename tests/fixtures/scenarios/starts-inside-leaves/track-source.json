@@ -1,0 +1,14 @@
+{
+  "schema_version": "0.1.0",
+  "id": "starts-inside-leaves-source",
+  "revision_id": "starts-inside-leaves-source-r1",
+  "activity": {
+    "id": "starts-inside-leaves-activity"
+  },
+  "origin": {
+    "namespace": "synthetic_fixture"
+  },
+  "representation": {
+    "media_type": "application/json"
+  }
+}
