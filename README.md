@@ -69,10 +69,11 @@ Current design artifacts:
 - [Domain model](docs/domain-model.md)
 - [Architecture decisions](docs/decisions/)
 - [Edge cases](docs/edge-cases.md)
+- [Milestone 0 edge-case regression](docs/edge-case-regression.md)
 - [Evidence plan](docs/evidence-plan.md)
 - [Real-world evidence record](docs/real-world-cases.md)
 - [Track metric overlays](docs/track-metric-overlays.md)
 
 ## Status
 
-Early public development. The repository is currently in **Milestone 0: Domain Contract**. Representative evidence, controlled attacks, cross-source identity semantics, coverage-completeness semantics, and manual-decision audit semantics are now incorporated into the domain model and ADRs. The remaining Milestone 0 work is the full edge-case regression and v0.1 contract freeze.
+Early public development. The repository is currently in **Milestone 0: Domain Contract**. Representative evidence, controlled attacks, cross-source identity semantics, coverage-completeness semantics, and manual-decision audit semantics are now incorporated into the domain model and ADRs. The EC-01 through EC-29 regression now passes with 26 PASS, 0 REVIEW, 0 FAIL, and 3 explicitly bounded DEFERRED cases. The remaining Milestone 0 action is the final v0.1 contract freeze review.
