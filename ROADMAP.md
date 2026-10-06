@@ -433,17 +433,21 @@ Encode the frozen domain contract into machine-verifiable schemas and reproducib
 - implemented `scripts/validate_semantic_fixtures.py` as an independent semantic-validation layer using Shapely/GEOS for topology and deterministic cross-object/lineage checks;
 - added `tests/fixtures/semantic-scenarios.json` with linked Activity → TrackSource → CanonicalTrack → TargetArea → SpatialAssessment → TargetSegment scenarios;
 - converted EC-14 through EC-23 into linked semantic coverage: fully inside/outside, single/repeated entry, start-inside departure, point touch, positive-length boundary overlap, relevant continuity gap, MultiPolygon, polygon hole, multiple TargetSegments, and lineage;
-- added schema-valid negative linked scenarios for TargetSegment lineage mismatch and SpatialAssessment track-revision mismatch;
-- expanded the schema fixture manifest to 89 entries so all linked scenario component files also pass Layer A validation;
-- recorded the mapping in `docs/milestone1-linked-scenario-coverage.md`.
+- added EC-29 linked `partial-incomplete-gap` coverage so a determined partial relation can coexist with unresolved additional target coverage;
+- added negative cross-object validation for geometry/lineage mismatch, out-of-bounds TrackPosition, wrong CanonicalTrack revision, wrong TargetArea revision, reversed TargetSegment reference order, and schema-level spatial-reference mismatch;
+- added `tests/nonfile-contract-cases.json` for lifecycle/runtime/reconciliation cases that cannot honestly be represented as standalone core entity fixtures in Milestone 1;
+- added `tests/edge-case-coverage.json` mapping all EC-01 through EC-29 to fixtures, linked semantic scenarios, or explicit non-file contract cases;
+- added `scripts/validate_edge_case_coverage.py` and CI coverage-map validation;
+- expanded the schema fixture manifest to 99 entries and linked semantic scenarios to 16;
+- recorded complete coverage in `docs/milestone1-edge-case-coverage.md` and linked spatial detail in `docs/milestone1-linked-scenario-coverage.md`.
 
 **Immediate Milestone 1 work:**
 
-1. run and stabilize both validation runners against the 89-fixture / 12-scenario set in CI/local development;
-2. map the remaining Milestone 0 edge cases outside EC-14 through EC-23 to reproducible fixtures/scenarios or explicit non-file representations;
-3. add negative semantic scenarios for out-of-bounds TrackPosition, reversed/overlapping segment order, wrong TargetArea revision, and spatial-reference mismatch;
-4. add common-definition conformance fixtures where entity fixtures do not directly exercise shared constraints;
-5. verify all six core schemas and validators remain source/platform independent;
-6. perform the Milestone 1 exit review only after valid fixtures pass and invalid fixtures fail for documented reasons.
+1. run and stabilize the Layer A schema runner, Layer B semantic runner, and edge-case coverage runner against the 99-fixture / 16-scenario set in CI/local development;
+2. add common-definition conformance fixtures where entity fixtures do not directly exercise shared constraints;
+3. verify every expected-valid fixture/scenario passes and every expected-invalid case fails for its documented reason;
+4. verify all six core schemas and validators remain source/platform independent;
+5. confirm the 13 explicit non-file contract cases have clear later-milestone ownership and no hidden Milestone 1 blocker;
+6. perform the Milestone 1 exit review.
 
 Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut.
