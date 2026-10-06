@@ -401,17 +401,17 @@ No project decision should rely solely on chat history.
 - accepted the v0.1 Polygon/MultiPolygon TargetArea contract;
 - accepted four-state evidence-aware spatial relation semantics;
 - accepted TargetSegment multiplicity, maximality, ordering, and parent-track lineage requirements;
-- added `docs/domain-model.md` and five initial ADRs under `docs/decisions/`;
+- added `docs/domain-model.md` and six initial ADRs under `docs/decisions/`;
+- closed EP-01: ordered usable coordinates are the minimum spatial contract; timestamps and telemetry are optional capabilities;
 - retained planned speed/pace metric overlays as a later derived capability rather than a Milestone 0 core field.
 
 **Remaining Milestone 0 work:**
 
-1. close EP-01 and freeze the minimum spatially valid CanonicalTrack contract;
-2. resolve or explicitly defer cross-source Activity reconciliation without implicit approximate merging;
-3. freeze the representation of assessment/segment completeness and unresolved target-relevant uncertainty;
-4. resolve EP-08 / EC-24 so manual decisions remain separate from immutable algorithmic assessment;
-5. re-run the full edge-case matrix against `docs/domain-model.md`;
-6. ensure there are zero blocking `FAIL` or `REVIEW` cases;
-7. freeze the v0.1 domain contract before creating JSON Schemas.
+1. resolve or explicitly defer cross-source Activity reconciliation without implicit approximate merging;
+2. freeze the representation of assessment/segment completeness and unresolved target-relevant uncertainty;
+3. resolve EP-08 / EC-24 so manual decisions remain separate from immutable algorithmic assessment;
+4. re-run the full edge-case matrix against `docs/domain-model.md`;
+5. ensure there are zero blocking `FAIL` or `REVIEW` cases;
+6. freeze the v0.1 domain contract before creating JSON Schemas.
 
 Work on Milestone 1 or later remains deferred until these exit criteria are met.
