@@ -2,7 +2,7 @@
 
 **Review date:** 2026-10-07  
 **Milestone:** 1 — Schemas and Fixtures  
-**Result:** **NOT READY — one blocking gap remains**
+**Result:** **PASS — Milestone 1 complete**
 
 ## Review scope
 
@@ -58,13 +58,13 @@ No non-file case is missing ownership.
 
 Result: **PASS**.
 
-## Blocking gap — raw FIT/GPX source fixtures are absent
+## Initial blocking gap — raw FIT/GPX source fixtures
 
 The Milestone 1 work list explicitly requires:
 
 > create synthetic FIT/GPX/track fixtures for edge cases
 
-The repository currently contains **no `.fit` files and no `.gpx` files**.
+The initial review found that the repository contained no committed `.fit` or `.gpx` parser-input fixtures.
 
 The existing 113 fixtures are strong schema/domain fixtures, but they start at the serialized core-object layer. They do not provide raw parser-input evidence for the Milestone 2 entry path:
 
@@ -76,34 +76,40 @@ This matters because Milestone 2 explicitly starts FIT and GPX ingestion and has
 
 Closing Milestone 1 without any raw FIT/GPX fixture would move parser-test design into Milestone 2, contrary to the roadmap's test-first sequencing.
 
-Therefore this is a **Milestone 1 blocker**, even though the four narrow exit-criteria bullets already pass.
+That gap was correctly treated as a Milestone 1 blocker rather than deferred into parser implementation.
 
-## Minimum closure requirement
+## Closure requirement and resolution
 
-Milestone 1 does not need a large raw-format corpus before exit. It needs a small, deterministic source-fixture baseline that is sufficient to begin Milestone 2 test-first.
+The blocker is now closed with a deterministic, privacy-safe baseline under `tests/source-fixtures/`:
 
-Minimum recommended set:
+1. `equivalent/basic.gpx` and `equivalent/basic.fit` represent equivalent three-point route geometry and identical UTC timestamps;
+2. `gpx/no-timestamps.gpx` is spatially valid without timestamps;
+3. `gpx/discontinuity.gpx` contains two explicit GPX track segments and therefore establishes two continuity parts with no inferred edge between them;
+4. `gpx/malformed.gpx` is intentionally malformed and must fail parsing explicitly;
+5. `fit/no-position.fit` is a structurally valid FIT activity with timestamped Record messages but no position fields, so no usable CanonicalTrack or fallback `outside` classification is allowed;
+6. `tests/source-fixtures/manifest.json` records SHA-256 values, source-structure expectations, future normalization expectations, and GPX/FIT equivalence requirements.
 
-1. one synthetic GPX and one synthetic FIT representing equivalent route geometry and timestamps;
-2. one no-timestamp spatially valid source case where the format permits it, or an explicit format-specific equivalent demonstrating timestamp optionality;
-3. one discontinuity/segmentation source case sufficient to test no-edge continuity semantics;
-4. one malformed/no-usable-position source case sufficient to test parse failure or non-assessability without producing `outside`;
-5. a machine-readable source-fixture expectation manifest describing expected normalization facts without requiring the parser implementation to exist yet.
+The files are generated reproducibly by `scripts/generate_synthetic_source_fixtures.py` and validated independently by `scripts/validate_source_fixture_baseline.py`.
 
-The raw fixtures must be synthetic and privacy-safe. Real private activity files must not be committed.
+No private activity file is committed.
+
+## Closure validation
+
+GitHub Actions run `37544063392` on commit `e158ed13e1b2c7cb837b5e6be5d735c0fcd14c97` executed all Milestone 1 gates successfully:
+
+```text
+Schema fixture expectations: 113/113 matched; 0 mismatch(es).
+Semantic expectations: 33/33 matched; 0 mismatch(es).
+Edge-case coverage: 29/29 frozen cases mapped.
+Raw source fixture baseline: 6/6 files verified; 1 equivalence group verified.
+```
+
+The raw-source validator checks fixture SHA-256 integrity, GPX validity/segmentation/timestamps, FIT signature/data-size/CRC/Record structure, no-position FIT behavior, and the declared FIT/GPX coordinate/timestamp equivalence baseline.
 
 ## Decision
 
-Milestone 1 remains **ACTIVE**.
+Milestone 1 is **DONE**.
 
-The domain/schema/semantic contract work is complete and green, but the milestone should not be marked DONE until the missing synthetic FIT/GPX source-fixture baseline is committed and its expectation manifest is reviewed.
+All roadmap exit criteria pass, the source/platform-independence audit passes, the 13 non-file contract cases have explicit later-milestone ownership, and the raw FIT/GPX test-first baseline is now present and executable.
 
-After that addition, rerun:
-
-```text
-validate_schema_fixtures.py
-validate_semantic_fixtures.py
-validate_edge_case_coverage.py
-```
-
-and perform a short closure re-review. No additional domain redesign is required.
+Milestone 2 — Deterministic Core may proceed without changing the frozen v0.1 domain contract.
