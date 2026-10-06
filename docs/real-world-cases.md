@@ -256,7 +256,8 @@ The real geometry was used to construct:
 - MultiPolygon;
 - polygon hole;
 - target-version change;
-- deliberate hidden-path gaps with known ground truth.
+- deliberate hidden-path gaps with known ground truth;
+- relation-versus-target-coverage-completeness attacks where a relation was already determined but additional coverage could remain unresolved.
 
 **Evidence strength**
 
