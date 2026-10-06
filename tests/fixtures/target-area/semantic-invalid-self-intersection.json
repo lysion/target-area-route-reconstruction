@@ -1,0 +1,21 @@
+{
+  "schema_version": "0.1.0",
+  "id": "area-semantic-invalid-self-intersection",
+  "revision_id": "area-semantic-invalid-self-intersection-r1",
+  "spatial_reference": "OGC:CRS84",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [112.9000, 28.2000],
+        [112.9100, 28.2100],
+        [112.9000, 28.2100],
+        [112.9100, 28.2000],
+        [112.9000, 28.2000]
+      ]
+    ]
+  },
+  "definition_provenance": {
+    "description": "Structurally valid bow-tie polygon used to verify fail-closed topology validation."
+  }
+}
