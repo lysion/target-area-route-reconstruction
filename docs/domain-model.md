@@ -10,7 +10,7 @@ It records evidence-backed domain semantics. It intentionally does not freeze JS
 **Contract status:** draft with accepted spatial decisions  
 **Evidence basis:** EP-01, EP-02, EP-04, EP-05, EP-06, and EP-07 are supported; EP-03 supports source-observation preservation and separation from cleaned/usable geometry, while anomaly taxonomy remains open.
 
-No blocking domain-design question remains. The full edge-case regression is being completed against this contract; Milestone 0 remains pending final contract freeze.
+No blocking domain-design question remains. The full EC-01 through EC-29 regression has passed with zero FAIL and zero REVIEW cases; Milestone 0 remains pending final contract freeze.
 
 ## Core principles
 
@@ -573,10 +573,10 @@ No blocking domain-design decision remains.
 
 Before Milestone 0 can be marked DONE:
 
-1. re-run the complete edge-case matrix against this contract;
-2. verify zero blocking `FAIL` and zero blocking `REVIEW` cases;
-3. verify all deferred concerns have an explicit milestone/extension boundary;
-4. freeze the v0.1 domain contract before starting JSON Schema work.
+1. perform the final contract-freeze review;
+2. freeze the v0.1 domain contract before starting JSON Schema work.
+
+The complete edge-case regression is recorded in `docs/edge-case-regression.md` and passed with 26 PASS, 0 REVIEW, 0 FAIL, and 3 explicitly bounded DEFERRED cases.
 
 ### Explicitly deferred implementation details
 
