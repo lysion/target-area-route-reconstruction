@@ -1,0 +1,41 @@
+{
+  "schema_version": "0.1.0",
+  "id": "relevant-gap-unknown-assessment",
+  "revision_id": "relevant-gap-unknown-assessment-r1",
+  "canonical_track": {
+    "id": "relevant-gap-unknown-track",
+    "revision_id": "relevant-gap-unknown-track-r1"
+  },
+  "target_area": {
+    "id": "relevant-gap-unknown-area",
+    "revision_id": "relevant-gap-unknown-area-r1"
+  },
+  "relation": "unknown",
+  "coverage_completeness": "incomplete",
+  "coverage_uncertainties": [
+    {
+      "affected_track_range": {
+        "start": {
+          "part_index": 0,
+          "observation_index": 1,
+          "fraction_to_next": 0
+        },
+        "end": {
+          "part_index": 1,
+          "observation_index": 0,
+          "fraction_to_next": 0
+        }
+      },
+      "relevance": "The unresolved continuity break connects opposite sides of the TargetArea and may contain positive-length target coverage.",
+      "provenance": {
+        "name": "fixture-gap-relevance",
+        "version": "0.1.0"
+      }
+    }
+  ],
+  "target_segment_refs": [],
+  "algorithm": {
+    "name": "fixture-assessment",
+    "version": "0.1.0"
+  }
+}
