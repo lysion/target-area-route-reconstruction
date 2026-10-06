@@ -399,7 +399,15 @@ A reproducible position on a CanonicalTrack continuity part, including positions
 
 It is used for TargetSegment lineage and may later support metric overlays and other derived intervals.
 
-Neither concept is currently promoted to an independent core entity.
+### CoverageUncertainty
+
+A structured, target-relative explanation of unresolved evidence that prevents a SpatialAssessment from being `complete`.
+
+It is owned by SpatialAssessment and must be traceable to the affected CanonicalTrack interval, continuity break, or quality issue, together with the reason it is relevant to the TargetArea and the provenance of the unresolved judgment.
+
+CoverageUncertainty is a supporting value concept, not an independent core entity.
+
+ContinuityPart, TrackPosition, and CoverageUncertainty are not independent aggregate roots.
 
 ---
 
