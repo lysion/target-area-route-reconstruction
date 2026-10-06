@@ -61,6 +61,8 @@ Development follows a contract-first and test-first sequence:
 5. package the workflow as an agent skill;
 6. add source adapters and higher-level route reconstruction.
 
+See [ROADMAP.md](ROADMAP.md) for milestone gates, exit criteria, and change-control rules.
+
 ## Status
 
 Early public development. The repository is currently in **Milestone 0: Domain Contract**.
