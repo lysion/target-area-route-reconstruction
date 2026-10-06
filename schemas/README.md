@@ -119,6 +119,26 @@ python scripts/validate_edge_case_coverage.py
 
 That runner verifies that EC-01 through EC-29 are all mapped exactly once to registered fixtures, linked semantic scenarios, or explicit non-file contract cases.
 
+## Raw parser-input fixture baseline
+
+Milestone 1 also includes a privacy-safe raw FIT/GPX baseline under `../tests/source-fixtures/`.
+
+It contains:
+
+- equivalent GPX and FIT route/timestamp inputs;
+- GPX without timestamps;
+- GPX with two explicit track segments;
+- intentionally malformed GPX;
+- structurally valid FIT with timestamped records but no positions.
+
+The baseline is described by `../tests/source-fixtures/manifest.json` and validated with:
+
+```bash
+python scripts/validate_source_fixture_baseline.py
+```
+
+The validator checks hashes, GPX structure, FIT header/data/CRC/Record structure, and the declared FIT/GPX equivalence baseline. Production parsing remains Milestone 2 work.
+
 ## Validation layers
 
 A valid JSON Schema instance is not automatically a semantically valid route-reconstruction object.
@@ -267,7 +287,9 @@ Current coverage artifacts:
 
 Current registered set: 113 schema fixtures, 16 linked semantic scenarios, 13 non-file contract cases, and 6 negative cross-object cases. Fourteen of the schema fixtures independently exercise shared common definitions.
 
-The next Milestone 1 focus is conformance rather than coverage design:
+Milestone 1 is complete. The schema/fixture workspace is frozen for v0.1 unless implementation exposes a contract defect requiring normal change control.
+
+Milestone 2 consumes these contracts and fixtures. The completed Milestone 1 conformance status was:
 
 1. stabilize Layer A, Layer B, and coverage-map runners in CI;
 2. add common-definition conformance fixtures where entity fixtures do not directly exercise shared constraints;
