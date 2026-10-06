@@ -38,7 +38,7 @@ The following are deferred until the deterministic core is stable:
 - training-performance or physiological analysis beyond local track speed/pace visualization;
 - route recommendation.
 
-## Draft domain model
+## v0.1 domain model
 
 The current evidence-backed model centers on six entities:
 
@@ -49,7 +49,7 @@ The current evidence-backed model centers on six entities:
 - **SpatialAssessment** — the evidence-aware relation between a canonical track and target-area version, including target-coverage completeness.
 - **TargetSegment** — an ordered, traceable maximal covered portion of a canonical track.
 
-The evidence-backed domain decisions are documented in [docs/domain-model.md](docs/domain-model.md) and the ADRs under [docs/decisions/](docs/decisions/). No blocking domain-design question remains; Milestone 0 is pending full edge-case regression and contract freeze.
+The evidence-backed domain decisions are frozen in [docs/domain-model.md](docs/domain-model.md) and ADR-0001 through ADR-0010 under [docs/decisions/](docs/decisions/). Milestone 0 is complete.
 
 ## Development approach
 
@@ -70,10 +70,11 @@ Current design artifacts:
 - [Architecture decisions](docs/decisions/)
 - [Edge cases](docs/edge-cases.md)
 - [Milestone 0 edge-case regression](docs/edge-case-regression.md)
+- [Milestone 0 contract freeze review](docs/contract-freeze-review.md)
 - [Evidence plan](docs/evidence-plan.md)
 - [Real-world evidence record](docs/real-world-cases.md)
 - [Track metric overlays](docs/track-metric-overlays.md)
 
 ## Status
 
-Early public development. The repository is currently in **Milestone 0: Domain Contract**. Representative evidence, controlled attacks, cross-source identity semantics, coverage-completeness semantics, and manual-decision audit semantics are now incorporated into the domain model and ADRs. The EC-01 through EC-29 regression now passes with 26 PASS, 0 REVIEW, 0 FAIL, and 3 explicitly bounded DEFERRED cases. The remaining Milestone 0 action is the final v0.1 contract freeze review.
+Early public development. **Milestone 0: Domain Contract is DONE** and the v0.1 domain contract is frozen. The project is now in **Milestone 1: Schemas and Fixtures**, converting the frozen semantics into machine-verifiable schemas and reproducible synthetic fixtures. The Milestone 0 regression finished with 26 PASS, 0 REVIEW, 0 FAIL, and 3 explicitly bounded DEFERRED cases.
