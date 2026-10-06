@@ -71,10 +71,12 @@ Current design artifacts:
 - [Edge cases](docs/edge-cases.md)
 - [Milestone 0 edge-case regression](docs/edge-case-regression.md)
 - [Milestone 0 contract freeze review](docs/contract-freeze-review.md)
+- [Shared schema conventions](docs/schema-conventions.md)
+- [Schema workspace](schemas/README.md)
 - [Evidence plan](docs/evidence-plan.md)
 - [Real-world evidence record](docs/real-world-cases.md)
 - [Track metric overlays](docs/track-metric-overlays.md)
 
 ## Status
 
-Early public development. **Milestone 0: Domain Contract is DONE** and the v0.1 domain contract is frozen. The project is now in **Milestone 1: Schemas and Fixtures**, converting the frozen semantics into machine-verifiable schemas and reproducible synthetic fixtures. The Milestone 0 regression finished with 26 PASS, 0 REVIEW, 0 FAIL, and 3 explicitly bounded DEFERRED cases.
+Early public development. **Milestone 0: Domain Contract is DONE** and the v0.1 domain contract is frozen. The project is now in **Milestone 1: Schemas and Fixtures**. Shared schema conventions and reusable common definitions are established; the next core schemas are CanonicalTrack and TargetArea. The Milestone 0 regression finished with 26 PASS, 0 REVIEW, 0 FAIL, and 3 explicitly bounded DEFERRED cases.
