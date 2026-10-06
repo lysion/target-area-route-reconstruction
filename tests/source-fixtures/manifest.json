@@ -1,0 +1,197 @@
+{
+  "schema_version": "0.1.0",
+  "description": "Synthetic, privacy-safe raw-source fixtures for Milestone 1 parser test-first baseline. Expected normalization facts are contracts for Milestone 2; this manifest does not imply that production parsers already exist.",
+  "fixtures": [
+    {
+      "id": "equivalent-basic-gpx",
+      "path": "equivalent/basic.gpx",
+      "format": "gpx",
+      "media_type": "application/gpx+xml",
+      "sha256": "015087f12e481d41e8c27c679f7765571767063e759f37ff10143e78b097391f",
+      "equivalent_group": "basic-route",
+      "source_expectation": {
+        "source_valid": true,
+        "track_count": 1,
+        "segment_count": 1,
+        "point_count": 3,
+        "timestamp_count": 3
+      },
+      "normalization_expectation": {
+        "parse_outcome": "success",
+        "canonical_track_present": true,
+        "assessable": true,
+        "spatial_reference": "OGC:CRS84",
+        "continuity_parts": 1,
+        "observation_counts": [
+          3
+        ],
+        "timestamps_present": true,
+        "positions": [
+          [
+            112.9,
+            28.2
+          ],
+          [
+            112.905,
+            28.205
+          ],
+          [
+            112.91,
+            28.21
+          ]
+        ],
+        "timestamps": [
+          "2026-10-07T00:00:00Z",
+          "2026-10-07T00:00:10Z",
+          "2026-10-07T00:00:20Z"
+        ]
+      }
+    },
+    {
+      "id": "equivalent-basic-fit",
+      "path": "equivalent/basic.fit",
+      "format": "fit",
+      "media_type": "application/octet-stream",
+      "sha256": "4703c5d38ee01f6cfc66248a62d71f73d51ac7d035cf2e001a4fdd0d4f170685",
+      "equivalent_group": "basic-route",
+      "source_expectation": {
+        "source_valid": true,
+        "fit_crc_valid": true,
+        "file_type": "activity",
+        "record_message_count": 3,
+        "positioned_record_count": 3,
+        "timestamped_record_count": 3
+      },
+      "normalization_expectation": {
+        "parse_outcome": "success",
+        "canonical_track_present": true,
+        "assessable": true,
+        "spatial_reference": "OGC:CRS84",
+        "continuity_parts": 1,
+        "observation_counts": [
+          3
+        ],
+        "timestamps_present": true,
+        "position_tolerance_deg": 1e-7,
+        "positions": [
+          [
+            112.9,
+            28.2
+          ],
+          [
+            112.905,
+            28.205
+          ],
+          [
+            112.91,
+            28.21
+          ]
+        ],
+        "timestamps": [
+          "2026-10-07T00:00:00Z",
+          "2026-10-07T00:00:10Z",
+          "2026-10-07T00:00:20Z"
+        ]
+      }
+    },
+    {
+      "id": "gpx-no-timestamps",
+      "path": "gpx/no-timestamps.gpx",
+      "format": "gpx",
+      "media_type": "application/gpx+xml",
+      "sha256": "34d9df2c93e830978740cac2dbdeca1d710184c473b77a31e0cf99b3e14bedd8",
+      "source_expectation": {
+        "source_valid": true,
+        "track_count": 1,
+        "segment_count": 1,
+        "point_count": 3,
+        "timestamp_count": 0
+      },
+      "normalization_expectation": {
+        "parse_outcome": "success",
+        "canonical_track_present": true,
+        "assessable": true,
+        "spatial_reference": "OGC:CRS84",
+        "continuity_parts": 1,
+        "observation_counts": [
+          3
+        ],
+        "timestamps_present": false
+      }
+    },
+    {
+      "id": "gpx-discontinuity",
+      "path": "gpx/discontinuity.gpx",
+      "format": "gpx",
+      "media_type": "application/gpx+xml",
+      "sha256": "e87f1d0fe961595828ef777bf10ef2a172e6c7034153e6c07f02901fc09490ab",
+      "source_expectation": {
+        "source_valid": true,
+        "track_count": 1,
+        "segment_count": 2,
+        "point_count": 4,
+        "timestamp_count": 4
+      },
+      "normalization_expectation": {
+        "parse_outcome": "success",
+        "canonical_track_present": true,
+        "assessable": true,
+        "spatial_reference": "OGC:CRS84",
+        "continuity_parts": 2,
+        "observation_counts": [
+          2,
+          2
+        ],
+        "no_edge_between_parts": true
+      }
+    },
+    {
+      "id": "gpx-malformed",
+      "path": "gpx/malformed.gpx",
+      "format": "gpx",
+      "media_type": "application/gpx+xml",
+      "sha256": "0d4822699dfcff2ba7560149f4aa40c3b151fc3382a36e864b5e993982454554",
+      "source_expectation": {
+        "source_valid": false,
+        "failure_class": "malformed_xml"
+      },
+      "normalization_expectation": {
+        "parse_outcome": "failure",
+        "canonical_track_present": false,
+        "spatial_assessment_allowed": false
+      }
+    },
+    {
+      "id": "fit-no-position",
+      "path": "fit/no-position.fit",
+      "format": "fit",
+      "media_type": "application/octet-stream",
+      "sha256": "8b93fb52e80b36347d7443f802f55f596e7719c42f121ec36dcb544991251ce2",
+      "source_expectation": {
+        "source_valid": true,
+        "fit_crc_valid": true,
+        "file_type": "activity",
+        "record_message_count": 3,
+        "positioned_record_count": 0,
+        "timestamped_record_count": 3
+      },
+      "normalization_expectation": {
+        "parse_outcome": "success_no_usable_track",
+        "canonical_track_present": false,
+        "assessable": false,
+        "spatial_assessment_allowed": false,
+        "forbidden_fallback_relation": "outside"
+      }
+    }
+  ],
+  "equivalence_expectations": [
+    {
+      "group": "basic-route",
+      "members": [
+        "equivalent-basic-gpx",
+        "equivalent-basic-fit"
+      ],
+      "assertion": "Equivalent GPX and FIT inputs must normalize to compatible ordered positions and identical timestamps within declared FIT coordinate quantization tolerance."
+    }
+  ]
+}
