@@ -45,6 +45,8 @@ Freeze the minimum domain model required to represent target-area historical rou
 - define which facts are source data and which are derived data;
 - define provenance and versioning requirements;
 - test the model against edge cases;
+- execute the evidence plan against representative real-world and synthetic cases;
+- separate observed facts from interpretation before accepting domain decisions;
 - record material architectural decisions as ADRs.
 
 ### Required edge cases
@@ -67,18 +69,23 @@ At minimum, the model must express:
 
 ### Deliverables
 
+- `docs/edge-cases.md`
+- `docs/evidence-plan.md`
+- `docs/real-world-cases.md` as the anonymized evidence record
 - `docs/domain-model.md`
 - initial ADRs under `docs/decisions/`
-- an edge-case matrix used to challenge the domain model
 
 ### Exit criteria
 
 Milestone 0 is DONE only when:
 
 - all required edge cases can be represented without ad-hoc fields;
+- there are zero `FAIL` cases and zero blocking `REVIEW` cases;
+- unresolved future concerns are explicitly marked `DEFERRED`;
 - core entities have stable identity and ownership boundaries;
 - the model is independent of source platform and track file format;
 - target-area version changes do not require mutation of raw track evidence;
+- accepted decisions are reflected in `docs/domain-model.md`;
 - no unresolved model ambiguity blocks schema definition.
 
 ---
@@ -98,6 +105,7 @@ Encode the frozen domain contract into schemas and reproducible test fixtures be
 - define canonical enums and nullability rules;
 - create synthetic FIT/GPX/track fixtures for edge cases;
 - define expected classification and clipping outputs;
+- add optional temporal/metric fixtures for constant speed, acceleration/deceleration, pause, GPS jump, discontinuity, and missing timestamps;
 - validate all fixtures against schemas.
 
 ### Deliverables
@@ -131,6 +139,8 @@ Implement the smallest reliable local pipeline:
 
 `FIT/GPX -> CanonicalTrack -> validation -> TargetArea assessment -> TargetSegment -> GeoJSON/basic map`
 
+When valid temporal evidence exists, the basic map may also render an optional speed/pace metric overlay.
+
 ### Work
 
 - FIT ingestion;
@@ -141,6 +151,8 @@ Implement the smallest reliable local pipeline:
 - extraction of target-area segments;
 - GeoJSON export;
 - basic interactive map export;
+- derived segment speed/pace calculation when valid temporal evidence is available;
+- quality-aware speed/pace coloring on the map;
 - unit and integration tests.
 
 ### Explicit non-goals
@@ -150,7 +162,7 @@ Implement the smallest reliable local pipeline:
 - acquisition quota optimization;
 - route-network clustering;
 - heatmaps;
-- training metrics;
+- training-performance or physiological analysis beyond local track speed/pace visualization;
 - route recommendation.
 
 ### Exit criteria
@@ -159,7 +171,9 @@ Implement the smallest reliable local pipeline:
 - partial tracks produce traceable target segments;
 - raw input files are never modified;
 - the same input produces stable output;
-- FIT and GPX representing equivalent geometry normalize compatibly.
+- FIT and GPX representing equivalent geometry normalize compatibly;
+- missing timestamps do not invalidate otherwise valid spatial reconstruction;
+- speed/pace overlays are only produced from valid temporal intervals and do not bridge known discontinuities.
 
 ---
 
@@ -180,7 +194,8 @@ Make long-running reconstruction tasks resumable, auditable, and idempotent.
 - cache-first behavior;
 - resume after interruption;
 - explicit failure states;
-- manual overrides as separate auditable evidence.
+- manual overrides as separate auditable evidence;
+- if derived metrics are persisted, retain algorithm/version, source-track version, parameters, and quality provenance.
 
 ### Exit criteria
 
@@ -302,7 +317,8 @@ Move from individual target-area segments to a reusable historical route-network
 - repeated coverage;
 - temporal coverage;
 - route families;
-- optional heat/frequency representations.
+- optional heat/frequency representations;
+- optional aggregation of speed/pace distributions across repeated route segments after route-segment identity is stable.
 
 ### Constraint
 
@@ -377,15 +393,20 @@ No project decision should rely solely on chat history.
 **Completed in this milestone:**
 
 - created `docs/edge-cases.md` as the design-time edge-case matrix;
-- identified the first review queue and one explicit model gap around manual override/auditability.
+- created `docs/evidence-plan.md` with evidence classes, EP-01 through EP-08, convergence rules, and privacy constraints;
+- created `docs/real-world-cases.md` as the standardized anonymized observation record;
+- identified the first review queue and one explicit model gap around manual override/auditability;
+- recorded the planned speed/pace metric-overlay capability in `docs/track-metric-overlays.md` without making it a Milestone 0 core field.
 
 **Next required work:**
 
-1. resolve the REVIEW/FAIL items in `docs/edge-cases.md`;
-2. revise the six candidate entities only where a concrete case requires it;
-3. write `docs/domain-model.md` from the resolved decisions;
-4. record material architectural decisions under `docs/decisions/`;
-5. re-run the full edge-case matrix against the revised model;
-6. freeze the v0.1 domain contract before creating JSON Schemas.
+1. collect representative real-world evidence in the priority order EP-02, EP-03, EP-04, EP-05, then EP-01;
+2. record observations in `docs/real-world-cases.md` without mixing observation and interpretation;
+3. resolve synthetic/design questions EP-06 through EP-08;
+4. revise the candidate entities only where evidence requires it;
+5. write `docs/domain-model.md` from accepted decisions;
+6. record material architectural decisions under `docs/decisions/`;
+7. re-run the full edge-case matrix against the revised model;
+8. freeze the v0.1 domain contract before creating JSON Schemas.
 
 Work on Milestone 1 or later should remain deferred until these exit criteria are met.
