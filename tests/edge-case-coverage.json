@@ -1,0 +1,375 @@
+{
+  "schema_version": "0.1.0",
+  "description": "Machine-readable Milestone 1 coverage map from frozen EC-01..EC-29 to executable fixtures, linked semantic scenarios, or explicit non-file contract test representations.",
+  "edge_cases": [
+    {
+      "edge_case": "EC-01",
+      "representations": [
+        {
+          "type": "fixture",
+          "ref": "tests/fixtures/activity/valid-minimal.json",
+          "assertion": "Activity is valid with zero TrackSources."
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-02",
+      "representations": [
+        {
+          "type": "non_file_contract_case",
+          "ref": "tests/nonfile-contract-cases.json#EC-02"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-03",
+      "representations": [
+        {
+          "type": "non_file_contract_case",
+          "ref": "tests/nonfile-contract-cases.json#EC-03"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-04",
+      "representations": [
+        {
+          "type": "non_file_contract_case",
+          "ref": "tests/nonfile-contract-cases.json#EC-04"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-05",
+      "representations": [
+        {
+          "type": "fixture",
+          "ref": "tests/fixtures/track-source/valid-corrupted-file-evidence.json",
+          "assertion": "Corrupted durable bytes remain representable as TrackSource evidence."
+        },
+        {
+          "type": "non_file_contract_case",
+          "ref": "tests/nonfile-contract-cases.json#EC-05",
+          "assertion": "Parser failure and absence of CanonicalTrack/SpatialAssessment are execution behavior."
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-06",
+      "representations": [
+        {
+          "type": "fixture",
+          "ref": "tests/fixtures/track-source/valid-point-stream.json",
+          "assertion": "TrackSource does not require filesystem provenance."
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-07",
+      "representations": [
+        {
+          "type": "fixture",
+          "ref": "tests/fixtures/canonical-track/valid-coordinate-only.json",
+          "assertion": "Ordered coordinates without timestamps are valid and assessable."
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-08",
+      "representations": [
+        {
+          "type": "fixture",
+          "ref": "tests/fixtures/canonical-track/valid-coordinate-only.json",
+          "assertion": "Altitude is absent yet spatial track remains valid."
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-09",
+      "representations": [
+        {
+          "type": "fixture",
+          "ref": "tests/fixtures/canonical-track/valid-singleton-evidence.json",
+          "assertion": "Canonical evidence may be valid but not assessable."
+        },
+        {
+          "type": "non_file_contract_case",
+          "ref": "tests/nonfile-contract-cases.json#EC-09",
+          "assertion": "No usable GPS must produce no SpatialAssessment rather than outside."
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-10",
+      "representations": [
+        {
+          "type": "fixture",
+          "ref": "tests/fixtures/canonical-track/valid-multipart-with-telemetry.json",
+          "assertion": "Continuity parts are explicit and ordered."
+        },
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "relevant-gap-unknown",
+          "assertion": "No edge is inferred across a relevant continuity break."
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-11",
+      "representations": [
+        {
+          "type": "non_file_contract_case",
+          "ref": "tests/nonfile-contract-cases.json#EC-11"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-12",
+      "representations": [
+        {
+          "type": "non_file_contract_case",
+          "ref": "tests/nonfile-contract-cases.json#EC-12"
+        },
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "invalid-assessment-area-reference",
+          "assertion": "Exact TargetArea revision identity is semantically enforced."
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-13",
+      "representations": [
+        {
+          "type": "non_file_contract_case",
+          "ref": "tests/nonfile-contract-cases.json#EC-13"
+        },
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "invalid-assessment-area-reference",
+          "assertion": "Historical assessment cannot silently retarget a different TargetArea revision."
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-14",
+      "representations": [
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "multipolygon"
+        },
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "polygon-hole"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-15",
+      "representations": [
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "fully-inside"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-16",
+      "representations": [
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "fully-outside"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-17",
+      "representations": [
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "valid-partial-crossing"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-18",
+      "representations": [
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "repeated-entry"
+        },
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "invalid-target-segment-reference-order"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-19",
+      "representations": [
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "starts-inside-leaves"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-20",
+      "representations": [
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "point-touch"
+        },
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "boundary-overlap"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-21",
+      "representations": [
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "relevant-gap-unknown"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-22",
+      "representations": [
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "repeated-entry"
+        },
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "multipolygon"
+        },
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "polygon-hole"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-23",
+      "representations": [
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "valid-partial-crossing"
+        },
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "invalid-target-segment-lineage"
+        },
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "invalid-target-segment-out-of-bounds"
+        },
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "invalid-target-segment-reference-order"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-24",
+      "representations": [
+        {
+          "type": "non_file_contract_case",
+          "ref": "tests/nonfile-contract-cases.json#EC-24"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-25",
+      "representations": [
+        {
+          "type": "non_file_contract_case",
+          "ref": "tests/nonfile-contract-cases.json#EC-25"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-26",
+      "representations": [
+        {
+          "type": "non_file_contract_case",
+          "ref": "tests/nonfile-contract-cases.json#EC-26"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-27",
+      "representations": [
+        {
+          "type": "non_file_contract_case",
+          "ref": "tests/nonfile-contract-cases.json#EC-27"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-28",
+      "representations": [
+        {
+          "type": "non_file_contract_case",
+          "ref": "tests/nonfile-contract-cases.json#EC-28"
+        }
+      ]
+    },
+    {
+      "edge_case": "EC-29",
+      "representations": [
+        {
+          "type": "fixture",
+          "ref": "tests/fixtures/spatial-assessment/valid-partial-incomplete.json",
+          "assertion": "partial + incomplete is schema-valid with CoverageUncertainty."
+        },
+        {
+          "type": "linked_semantic_scenario",
+          "ref": "partial-incomplete-gap",
+          "assertion": "Observed geometry proves partial while a separate gap may hide more target coverage."
+        }
+      ]
+    }
+  ],
+  "negative_cross_object_cases": [
+    {
+      "name": "invalid-target-segment-lineage",
+      "layer": "semantic",
+      "ref": "tests/fixtures/semantic-scenarios.json#invalid-target-segment-lineage",
+      "assertion": "Geometry and TrackPosition lineage disagree."
+    },
+    {
+      "name": "invalid-target-segment-out-of-bounds",
+      "layer": "semantic",
+      "ref": "tests/fixtures/semantic-scenarios.json#invalid-target-segment-out-of-bounds",
+      "assertion": "TrackPosition observation index exceeds its parent CanonicalTrack."
+    },
+    {
+      "name": "invalid-assessment-track-reference",
+      "layer": "semantic",
+      "ref": "tests/fixtures/semantic-scenarios.json#invalid-assessment-track-reference",
+      "assertion": "SpatialAssessment references the wrong CanonicalTrack revision."
+    },
+    {
+      "name": "invalid-assessment-area-reference",
+      "layer": "semantic",
+      "ref": "tests/fixtures/semantic-scenarios.json#invalid-assessment-area-reference",
+      "assertion": "SpatialAssessment references the wrong TargetArea revision."
+    },
+    {
+      "name": "invalid-target-segment-reference-order",
+      "layer": "semantic",
+      "ref": "tests/fixtures/semantic-scenarios.json#invalid-target-segment-reference-order",
+      "assertion": "SpatialAssessment TargetSegment revision refs are reversed relative to parent-track order."
+    },
+    {
+      "name": "invalid-spatial-reference",
+      "layer": "schema",
+      "ref": "tests/fixtures/target-segment/invalid-spatial-reference.json",
+      "assertion": "v0.1 fixes canonical geometry to OGC:CRS84, so a CRS mismatch is structurally rejected before Layer B; a schema-valid CRS mismatch cannot exist in v0.1."
+    }
+  ]
+}
