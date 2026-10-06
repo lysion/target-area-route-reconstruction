@@ -411,13 +411,23 @@ Milestone 0 completed:
 
 Encode the frozen domain contract into machine-verifiable schemas and reproducible fixtures without changing domain semantics.
 
+**Milestone 1 completed so far:**
+
+- defined shared schema conventions in `docs/schema-conventions.md`;
+- selected JSON Schema Draft 2020-12;
+- fixed v0.1 serialization conventions for IDs/revisions, nullability, enums, units, timestamps, extensions, validation layers, and schema versioning;
+- fixed canonical geometry serialization to OGC:CRS84 with `[longitude, latitude]` positions;
+- fixed zero-based TrackPosition serialization as `part_index / observation_index / fraction_to_next`;
+- added reusable definitions in `schemas/common.schema.json`;
+- added `schemas/README.md` as the schema workspace guide.
+
 **Immediate Milestone 1 work:**
 
-1. define schema conventions shared by all six core entities: IDs, version/provenance references, coordinate/spatial-reference representation, enums, nullability, and extension rules;
-2. implement `CanonicalTrack` and `TargetArea` schemas first because they constrain geometry and spatial-reference compatibility;
-3. implement `SpatialAssessment` and `TargetSegment` schemas next, including coverage completeness, CoverageUncertainty, TrackPosition, and lineage;
-4. implement `TrackSource` and `Activity` schemas;
-5. convert the Milestone 0 edge cases and attack matrix into public synthetic fixtures and expected outputs;
-6. validate that no schema introduces COROS/FIT-specific core semantics.
+1. implement `CanonicalTrack` and `TargetArea` schemas first because they constrain geometry, continuity, observations, and spatial-reference compatibility;
+2. implement `SpatialAssessment` and `TargetSegment` schemas next, including coverage completeness, CoverageUncertainty, TrackPosition, and lineage;
+3. implement `TrackSource` and `Activity` schemas;
+4. convert the Milestone 0 edge cases and attack matrix into public synthetic fixtures and expected outputs;
+5. validate schema and semantic-validation layers separately;
+6. verify no schema introduces COROS/FIT-specific core semantics.
 
 Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut.
