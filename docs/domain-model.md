@@ -8,11 +8,10 @@ It records evidence-backed domain semantics. It intentionally does not freeze JS
 
 **Milestone:** 0 — Domain Contract  
 **Contract status:** draft with accepted spatial decisions  
-**Evidence basis:** EP-02, EP-04, EP-05, EP-06, and EP-07 are supported; EP-03 supports source-observation preservation and separation from cleaned/usable geometry, while anomaly taxonomy remains open.
+**Evidence basis:** EP-01, EP-02, EP-04, EP-05, EP-06, and EP-07 are supported; EP-03 supports source-observation preservation and separation from cleaned/usable geometry, while anomaly taxonomy remains open.
 
 The following remain unresolved before Milestone 0 can be marked DONE:
 
-- EP-01 minimum CanonicalTrack point contract;
 - cross-source Activity reconciliation policy;
 - final representation of assessment completeness / unresolved uncertainty;
 - EP-08 manual-decision lifecycle;
@@ -141,9 +140,20 @@ The exact v0.1 representation of quality-controlled geometry remains deferred to
 
 ### Minimum spatial contract
 
-The exact minimum point contract remains pending EP-01.
+EP-01 is accepted.
 
-Current direction: spatial ordering and usable coordinates are core spatial requirements; timestamps, altitude, distance, and telemetry are capabilities rather than assumed identity fields unless EP-01 shows otherwise.
+The minimum canonical observation required by the spatial core is:
+
+- a usable spatial coordinate in the canonical spatial reference;
+- deterministic order within its continuity part.
+
+Timestamp, altitude, distance, device speed, heart rate, cadence, and other telemetry are optional capabilities. Their absence does not invalidate otherwise usable spatial reconstruction.
+
+Observation order is mandatory. A coordinate set with no deterministic sequence is not sufficient route evidence.
+
+For positive-length route geometry, a continuity part must contain enough usable ordered observations to produce valid non-zero-length line geometry. In practice this requires at least two non-coincident usable positions.
+
+Singleton or zero-length observations may remain preserved as canonical evidence, but they do not by themselves establish target traversal or produce TargetSegments.
 
 ---
 
@@ -448,14 +458,11 @@ Current evidence rejects the following shortcuts:
 - ADR-0003 — Versioned Polygon/MultiPolygon TargetArea contract
 - ADR-0004 — Four-state spatial relation with evidence-aware uncertainty
 - ADR-0005 — TargetSegment multiplicity, maximality, ordering, and lineage
+- ADR-0006 — Minimum spatial CanonicalTrack contract
 
 ---
 
 ## Open decisions before Milestone 0 exit
-
-### EP-01 — minimum valid CanonicalTrack
-
-Still requires the no-timestamp synthetic attack and explicit minimum spatial-validity decision.
 
 ### Cross-source Activity reconciliation
 
