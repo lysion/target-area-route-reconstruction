@@ -1,0 +1,14 @@
+{
+  "schema_version": "0.1.0",
+  "id": "fully-inside-source",
+  "revision_id": "fully-inside-source-r1",
+  "activity": {
+    "id": "fully-inside-activity"
+  },
+  "origin": {
+    "namespace": "synthetic_fixture"
+  },
+  "representation": {
+    "media_type": "application/json"
+  }
+}
