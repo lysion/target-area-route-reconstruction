@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Shared common.schema.json conformance harness",
+  "description": "Test-only wrapper that exercises selected common.schema.json definitions without promoting them to core entities.",
+  "type": "object",
+  "required": [
+    "definition",
+    "value"
+  ],
+  "properties": {
+    "definition": {
+      "type": "string",
+      "enum": [
+        "entityId",
+        "revisionRef",
+        "spatialReference",
+        "position2d",
+        "timestampUtc",
+        "trackPosition",
+        "sha256Hash"
+      ]
+    },
+    "value": true
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "definition": {
+            "const": "entityId"
+          }
+        },
+        "required": [
+          "definition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "$ref": "common.schema.json#/$defs/entityId"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "definition": {
+            "const": "revisionRef"
+          }
+        },
+        "required": [
+          "definition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "$ref": "common.schema.json#/$defs/revisionRef"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "definition": {
+            "const": "spatialReference"
+          }
+        },
+        "required": [
+          "definition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "$ref": "common.schema.json#/$defs/spatialReference"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "definition": {
+            "const": "position2d"
+          }
+        },
+        "required": [
+          "definition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "$ref": "common.schema.json#/$defs/position2d"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "definition": {
+            "const": "timestampUtc"
+          }
+        },
+        "required": [
+          "definition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "$ref": "common.schema.json#/$defs/timestampUtc"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "definition": {
+            "const": "trackPosition"
+          }
+        },
+        "required": [
+          "definition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "$ref": "common.schema.json#/$defs/trackPosition"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "definition": {
+            "const": "sha256Hash"
+          }
+        },
+        "required": [
+          "definition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "$ref": "common.schema.json#/$defs/sha256Hash"
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}
