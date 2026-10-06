@@ -1,0 +1,38 @@
+{
+  "schema_version": "0.1.0",
+  "id": "fully-outside-track",
+  "revision_id": "fully-outside-track-r1",
+  "track_source": {
+    "id": "fully-outside-source",
+    "revision_id": "fully-outside-source-r1"
+  },
+  "spatial_reference": "OGC:CRS84",
+  "parts": [
+    {
+      "observations": [
+        {
+          "position": [
+            110,
+            27
+          ]
+        },
+        {
+          "position": [
+            110.5,
+            27.5
+          ]
+        },
+        {
+          "position": [
+            111,
+            27.75
+          ]
+        }
+      ]
+    }
+  ],
+  "normalizer": {
+    "name": "fixture-normalizer",
+    "version": "0.1.0"
+  }
+}
