@@ -74,10 +74,11 @@ Current design artifacts:
 - [Shared schema conventions](docs/schema-conventions.md)
 - [Schema workspace](schemas/README.md)
 - Executable schema validation: `python scripts/validate_schema_fixtures.py`
+- Executable semantic validation: `python scripts/validate_semantic_fixtures.py`
 - [Evidence plan](docs/evidence-plan.md)
 - [Real-world evidence record](docs/real-world-cases.md)
 - [Track metric overlays](docs/track-metric-overlays.md)
 
 ## Status
 
-Early public development. **Milestone 0: Domain Contract is DONE** and the v0.1 domain contract is frozen. The project is now in **Milestone 1: Schemas and Fixtures**. Shared schema conventions and reusable common definitions are established. All six frozen v0.1 core entity schemas are implemented, with valid/invalid fixtures across Activity, TrackSource, CanonicalTrack, TargetArea, SpatialAssessment, and TargetSegment. A formal JSON Schema Draft 2020-12 fixture runner and GitHub Actions validation workflow are now in place; Milestone 1 next moves into semantic validation and linked end-to-end scenario fixtures. The Milestone 0 regression finished with 26 PASS, 0 REVIEW, 0 FAIL, and 3 explicitly bounded DEFERRED cases.
+Early public development. **Milestone 0: Domain Contract is DONE** and the v0.1 domain contract is frozen. The project is now in **Milestone 1: Schemas and Fixtures**. Shared schema conventions and reusable common definitions are established. All six frozen v0.1 core entity schemas are implemented, with valid/invalid fixtures across Activity, TrackSource, CanonicalTrack, TargetArea, SpatialAssessment, and TargetSegment. Formal Draft 2020-12 and independent semantic-validation runners are now in place and executed sequentially by GitHub Actions. An initial linked end-to-end partial-crossing scenario plus negative lineage/reference scenarios are included; Milestone 1 next focuses on expanding edge-case coverage and validation conformance. The Milestone 0 regression finished with 26 PASS, 0 REVIEW, 0 FAIL, and 3 explicitly bounded DEFERRED cases.
