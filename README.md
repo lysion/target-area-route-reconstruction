@@ -73,10 +73,11 @@ Current design artifacts:
 - [Milestone 0 contract freeze review](docs/contract-freeze-review.md)
 - [Shared schema conventions](docs/schema-conventions.md)
 - [Schema workspace](schemas/README.md)
+- Executable schema validation: `python scripts/validate_schema_fixtures.py`
 - [Evidence plan](docs/evidence-plan.md)
 - [Real-world evidence record](docs/real-world-cases.md)
 - [Track metric overlays](docs/track-metric-overlays.md)
 
 ## Status
 
-Early public development. **Milestone 0: Domain Contract is DONE** and the v0.1 domain contract is frozen. The project is now in **Milestone 1: Schemas and Fixtures**. Shared schema conventions and reusable common definitions are established. All six frozen v0.1 core entity schemas are now implemented, with initial valid/invalid fixtures across Activity, TrackSource, CanonicalTrack, TargetArea, SpatialAssessment, and TargetSegment. Milestone 1 now shifts from object definition to automated schema validation, semantic validation, and linked scenario fixtures. The Milestone 0 regression finished with 26 PASS, 0 REVIEW, 0 FAIL, and 3 explicitly bounded DEFERRED cases.
+Early public development. **Milestone 0: Domain Contract is DONE** and the v0.1 domain contract is frozen. The project is now in **Milestone 1: Schemas and Fixtures**. Shared schema conventions and reusable common definitions are established. All six frozen v0.1 core entity schemas are implemented, with valid/invalid fixtures across Activity, TrackSource, CanonicalTrack, TargetArea, SpatialAssessment, and TargetSegment. A formal JSON Schema Draft 2020-12 fixture runner and GitHub Actions validation workflow are now in place; Milestone 1 next moves into semantic validation and linked end-to-end scenario fixtures. The Milestone 0 regression finished with 26 PASS, 0 REVIEW, 0 FAIL, and 3 explicitly bounded DEFERRED cases.
