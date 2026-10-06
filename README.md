@@ -75,4 +75,4 @@ Current design artifacts:
 
 ## Status
 
-Early public development. The repository is currently in **Milestone 0: Domain Contract**. Representative real-world evidence and controlled spatial attacks have been incorporated into the domain model and initial ADRs. Remaining work is to close the minimum-track contract, cross-source identity policy, assessment-completeness representation, and manual-decision lifecycle, then run the full edge-case regression before freezing v0.1.
+Early public development. The repository is currently in **Milestone 0: Domain Contract**. Representative real-world evidence and controlled spatial attacks have been incorporated into the domain model and initial ADRs. Remaining work is to close the cross-source identity policy, assessment-completeness representation, and manual-decision lifecycle, then run the full edge-case regression before freezing v0.1.
