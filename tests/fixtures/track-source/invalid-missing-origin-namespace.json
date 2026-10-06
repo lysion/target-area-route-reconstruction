@@ -1,0 +1,14 @@
+{
+  "schema_version": "0.1.0",
+  "id": "source-invalid-origin",
+  "revision_id": "source-invalid-origin-r1",
+  "activity": {
+    "id": "activity-a"
+  },
+  "origin": {
+    "native_id": "12345"
+  },
+  "representation": {
+    "media_type": "application/json"
+  }
+}
