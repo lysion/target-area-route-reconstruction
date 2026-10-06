@@ -14,13 +14,13 @@
   "spatial_reference": "OGC:CRS84",
   "start_position": {
     "part_index": 0,
-    "observation_index": 99,
-    "fraction_to_next": 0
+    "observation_index": 0,
+    "fraction_to_next": 0.5
   },
   "end_position": {
     "part_index": 0,
-    "observation_index": 1,
-    "fraction_to_next": 0.5
+    "observation_index": 99,
+    "fraction_to_next": 0
   },
   "geometry": {
     "type": "LineString",
