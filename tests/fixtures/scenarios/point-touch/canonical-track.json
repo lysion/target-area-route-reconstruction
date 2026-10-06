@@ -1,0 +1,38 @@
+{
+  "schema_version": "0.1.0",
+  "id": "point-touch-track",
+  "revision_id": "point-touch-track-r1",
+  "track_source": {
+    "id": "point-touch-source",
+    "revision_id": "point-touch-source-r1"
+  },
+  "spatial_reference": "OGC:CRS84",
+  "parts": [
+    {
+      "observations": [
+        {
+          "position": [
+            111,
+            27
+          ]
+        },
+        {
+          "position": [
+            112,
+            28
+          ]
+        },
+        {
+          "position": [
+            111,
+            29
+          ]
+        }
+      ]
+    }
+  ],
+  "normalizer": {
+    "name": "fixture-normalizer",
+    "version": "0.1.0"
+  }
+}
