@@ -1,0 +1,20 @@
+{
+  "schema_version": "0.1.0",
+  "id": "area-semantic-invalid-ring",
+  "revision_id": "area-semantic-invalid-ring-r1",
+  "spatial_reference": "OGC:CRS84",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [112.9000, 28.2000],
+        [112.9100, 28.2000],
+        [112.9100, 28.2100],
+        [112.9000, 28.2100]
+      ]
+    ]
+  },
+  "definition_provenance": {
+    "description": "Structurally shaped polygon whose ring is not closed."
+  }
+}
