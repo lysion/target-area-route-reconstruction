@@ -374,13 +374,18 @@ No project decision should rely solely on chat history.
 
 **Current milestone:** Milestone 0 — Domain Contract
 
+**Completed in this milestone:**
+
+- created `docs/edge-cases.md` as the design-time edge-case matrix;
+- identified the first review queue and one explicit model gap around manual override/auditability.
+
 **Next required work:**
 
-1. create the edge-case matrix;
-2. use it to challenge the six candidate entities;
-3. revise the model only where a concrete case requires it;
-4. write `docs/domain-model.md`;
-5. record necessary ADRs;
+1. resolve the REVIEW/FAIL items in `docs/edge-cases.md`;
+2. revise the six candidate entities only where a concrete case requires it;
+3. write `docs/domain-model.md` from the resolved decisions;
+4. record material architectural decisions under `docs/decisions/`;
+5. re-run the full edge-case matrix against the revised model;
 6. freeze the v0.1 domain contract before creating JSON Schemas.
 
 Work on Milestone 1 or later should remain deferred until these exit criteria are met.
