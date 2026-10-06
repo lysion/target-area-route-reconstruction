@@ -56,24 +56,24 @@ The edge cases below are intended to validate these cross-cutting rules:
 | EC-03 | Activity | Same source activity is imported repeatedly | Re-import must not create a new real-world activity fact | PASS |
 | EC-04 | Source | One activity has FIT and GPX sources | One Activity may own multiple TrackSource objects | PASS |
 | EC-05 | Source | Source file exists but is corrupted | TrackSource remains evidence; parse failure is explicit | PASS |
-| EC-06 | Source | API point stream exists without a file | TrackSource must not require a filesystem file | REVIEW |
+| EC-06 | Source | API point stream exists without a file | TrackSource must not require a filesystem file | PASS |
 | EC-07 | Track | Valid geometry has no timestamps | Spatially usable CanonicalTrack may still be valid | REVIEW |
 | EC-08 | Track | Valid geometry has no altitude | Track remains valid for spatial reconstruction | PASS |
 | EC-09 | Track | Source has no usable GPS | No valid spatial CanonicalTrack; must not become outside | PASS |
-| EC-10 | Track | GPS has gaps/discontinuities | Quality must express discontinuity without inventing continuity | REVIEW |
-| EC-11 | Track | GPS contains extreme jumps/outliers | Raw evidence preserved; normalized quality flags the anomaly | REVIEW |
+| EC-10 | Track | GPS has gaps/discontinuities | CanonicalTrack preserves ordered continuity parts without inventing cross-gap geometry | PASS |
+| EC-11 | Track | GPS contains extreme jumps/outliers | Raw/normalized observations remain auditable; cleaned/usable geometry is derived | PASS |
 | EC-12 | Area | Same track assessed against two areas | Two independent SpatialAssessment objects | PASS |
 | EC-13 | Area | Target-area boundary changes version | Re-assess without mutating source/canonical track | PASS |
-| EC-14 | Area | Target area is MultiPolygon | Area model must support disjoint valid components | REVIEW |
-| EC-15 | Spatial | Track fully inside area | relation=inside; segment semantics must be defined | REVIEW |
+| EC-14 | Area | Target area is MultiPolygon | v0.1 supports valid Polygon/MultiPolygon and standard holes | PASS |
+| EC-15 | Spatial | Track fully inside area | relation=inside; maximal covered continuity parts become TargetSegments | PASS |
 | EC-16 | Spatial | Track fully outside area | relation=outside; zero target segments | PASS |
 | EC-17 | Spatial | Track enters and exits once | relation=partial; one target segment | PASS |
 | EC-18 | Spatial | Track enters target area multiple times | relation=partial; multiple target segments | PASS |
 | EC-19 | Spatial | Track starts inside then leaves | Classification uses full track, not start point | PASS |
-| EC-20 | Spatial | Track only touches the area boundary | Boundary-touch semantics must be defined | REVIEW |
-| EC-21 | Spatial | Sparse points skip over the area between samples | Sampling limits must not be mistaken for observed entry | REVIEW |
+| EC-20 | Spatial | Track only touches the area boundary | Point touch is outside; positive-length boundary overlap is target coverage | PASS |
+| EC-21 | Spatial | Sparse points skip over the area between samples | No geometry is inferred across a continuity break; relevant uncertainty may yield unknown | PASS |
 | EC-22 | Segment | Multiple disjoint inside portions | 1 SpatialAssessment : N TargetSegment | PASS |
-| EC-23 | Segment | Segment must trace back to source points | Store lineage to canonical point indices/ranges or equivalent | REVIEW |
+| EC-23 | Segment | Segment must trace back to source points | TargetSegment retains parent TrackPosition lineage including interpolated endpoints | PASS |
 | EC-24 | Decision | Human override disagrees with algorithm | Preserve algorithmic result and separate manual decision | FAIL |
 | EC-25 | Runtime | Same source file imported twice | Content identity should support deduplication/idempotency | DEFERRED |
 | EC-26 | Runtime | Acquisition returns URL but file is not durably saved | Must not record source as saved/available | DEFERRED |
@@ -275,9 +275,9 @@ The model should still be able to represent the original evidence and its proven
 
 `TrackSource` represents evidence, not specifically a file.
 
-**Open question**
+**Resolution**
 
-Should `TrackSource` use a generic locator/content descriptor instead of a mandatory file path?
+TrackSource is a source-evidence abstraction, not a file abstraction. Local FIT/GPX files are the v0.1 reference sources, but a future API point stream can be represented without changing core TrackSource semantics.
 
 **Model impact**
 
@@ -285,7 +285,7 @@ Likely requires the TrackSource contract to avoid file-only fields.
 
 **Status**
 
-REVIEW
+PASS
 
 ---
 
@@ -409,11 +409,9 @@ The model must preserve the observed points while representing that the path bet
 
 The system must not silently convert missing observations into certain continuous geometry.
 
-**Open questions**
+**Resolution**
 
-- Does CanonicalTrack require explicit discontinuity markers/parts?
-- Should a track be modeled as one ordered series with breaks, or as multiple geometry parts?
-- How should spatial clipping behave across a gap?
+CanonicalTrack contains one or more ordered continuity parts. No spatial edge, length, target-area intersection, TargetSegment, or network connectivity is inferred across a continuity break. The break does not assert a specific cause.
 
 **Model impact**
 
@@ -421,7 +419,7 @@ Potentially significant CanonicalTrack geometry decision.
 
 **Status**
 
-REVIEW
+PASS
 
 ---
 
@@ -445,9 +443,9 @@ A track includes one or more obviously implausible position jumps.
 
 Validation and cleaning must not destroy provenance.
 
-**Open question**
+**Resolution**
 
-Does v0.1 CanonicalTrack contain quality flags only, or both observed and cleaned point representations?
+CanonicalTrack preserves normalized observation evidence and provenance. Judgment-based cleaning or usable geometry is derived evidence with algorithm/version provenance and must not erase the normalized observations. Exhaustive anomaly taxonomy is deferred.
 
 **Model impact**
 
@@ -455,7 +453,7 @@ Potential distinction between canonical observations and derived cleaned geometr
 
 **Status**
 
-REVIEW
+PASS
 
 ---
 
@@ -545,9 +543,9 @@ The target area should still be one logical assessment target even when represen
 
 TargetArea is a semantic geographic target, not necessarily one contiguous polygon.
 
-**Open question**
+**Resolution**
 
-Should v0.1 explicitly support Polygon and MultiPolygon, while rejecting arbitrary GeometryCollection?
+v0.1 supports valid Polygon and MultiPolygon geometry, including standard holes. Point, LineString, GeometryCollection, empty geometry, and invalid polygon geometry are rejected by the core contract.
 
 **Model impact**
 
@@ -555,7 +553,7 @@ TargetArea geometry contract must be frozen.
 
 **Status**
 
-REVIEW
+PASS
 
 ---
 
@@ -576,14 +574,9 @@ Every usable segment of a CanonicalTrack lies inside the target area.
 
 `relation = inside`.
 
-**Open question**
+**Resolution**
 
-Should an `inside` assessment create:
-
-- one TargetSegment covering the full CanonicalTrack; or
-- zero TargetSegment objects because no clipping was necessary?
-
-For downstream uniformity, one full-length TargetSegment may be preferable, but this must be explicitly decided.
+relation=inside when reliable usable geometry is covered by TargetArea and no relevant unresolved uncertainty could change that conclusion. The same maximal-continuous-coverage rule used for partial tracks applies to TargetSegments; a fully covered continuous part produces a full-length TargetSegment.
 
 **Model impact**
 
@@ -591,7 +584,7 @@ TargetSegment creation semantics.
 
 **Status**
 
-REVIEW
+PASS
 
 ---
 
@@ -728,15 +721,9 @@ The track geometrically touches the target boundary but does not clearly travel 
 
 The project must define deterministic boundary semantics rather than leaving the result library-dependent.
 
-**Open questions**
+**Resolution**
 
-Possible policies include:
-
-- boundary counts as inside;
-- only positive interior length counts as inside;
-- a pure point-touch is outside but boundary-overlap is partial.
-
-The selected rule must be reflected in fixtures and implementation.
+A zero-length point contact with the TargetArea boundary does not create a TargetSegment and does not by itself change outside to partial. Positive-length boundary overlap is valid target-area coverage. No fifth touching relation is added.
 
 **Model impact**
 
@@ -744,7 +731,7 @@ Classification policy, likely not a new entity.
 
 **Status**
 
-REVIEW
+PASS
 
 ---
 
@@ -769,11 +756,9 @@ The model/algorithm must distinguish observed points from inferred connecting ge
 
 Spatial certainty must not exceed evidence quality.
 
-**Open questions**
+**Resolution**
 
-- Is linear interpolation an accepted v0.1 assumption?
-- Is there a maximum gap threshold beyond which relation becomes uncertain?
-- Does this produce `unknown` or a low-confidence `partial` assessment?
+A continuity break never gains a straight-line evidence edge. If an unresolved interval could materially change the TargetArea relation, the assessment may be unknown; an irrelevant break does not automatically make the whole assessment unknown.
 
 **Model impact**
 
@@ -781,7 +766,7 @@ Potential confidence/evidence semantics in SpatialAssessment.
 
 **Status**
 
-REVIEW
+PASS
 
 ---
 
@@ -831,16 +816,9 @@ A clipped target segment is exported, but later a user needs to know exactly whi
 
 TargetSegment must retain lineage to its parent CanonicalTrack.
 
-**Open questions**
+**Resolution**
 
-Possible lineage representation:
-
-- start/end canonical point indices;
-- one or more index ranges;
-- references to point IDs;
-- geometry plus parent range metadata.
-
-The chosen representation must also handle boundary-interpolated points created by clipping.
+TargetSegment retains lineage to its parent CanonicalTrack through reproducible start and end TrackPosition values. TrackPosition must support locations interpolated between adjacent observations; exact schema field names are deferred.
 
 **Model impact**
 
@@ -848,7 +826,7 @@ TargetSegment contract requires an explicit lineage design.
 
 **Status**
 
-REVIEW
+PASS
 
 ---
 
@@ -992,7 +970,7 @@ DEFERRED
 
 # Evidence plan mapping
 
-Open edge cases are resolved through `docs/evidence-plan.md`. Their current statuses remain unchanged until the required evidence or design decision has been completed.
+Edge cases are resolved through `docs/evidence-plan.md`, `docs/domain-model.md`, and the accepted ADRs. Statuses below reflect completed evidence and domain decisions.
 
 | Edge case(s) | Evidence question | Evidence mode |
 |---|---|---|
@@ -1013,21 +991,16 @@ Evidence relevant to speed/pace derivation, especially GPS discontinuities and o
 
 # Review queue
 
-The current draft has the following unresolved domain questions that must be resolved before Milestone 0 can be marked DONE:
+The current draft has four remaining Milestone 0 questions that require closure or explicit deferral before the contract can be frozen:
 
-1. **Cross-source Activity identity** — whether v0.1 needs an explicit reconciliation/alias model.
-2. **TrackSource generality** — ensure the contract supports non-file source evidence.
-3. **Minimum CanonicalTrack point contract** — whether timestamps are optional and what constitutes minimum spatial validity.
-4. **Track discontinuities** — how to represent GPS gaps without inventing continuity.
-5. **Observed vs cleaned geometry** — whether cleaning belongs inside CanonicalTrack or only in derived data.
-6. **TargetArea geometry types** — Polygon/MultiPolygon support and GeometryCollection policy.
-7. **Inside TargetSegment semantics** — whether fully-inside tracks generate a full-length TargetSegment.
-8. **Boundary-touch semantics** — deterministic classification rules.
-9. **Sparse-sampling uncertainty** — interpolation and confidence rules.
-10. **TargetSegment lineage** — point/index lineage, including clipped boundary interpolation.
-11. **Manual decisions** — the current six-entity model does not cleanly preserve algorithm result plus human override.
+1. **Cross-source Activity identity** — v0.1 does not perform implicit approximate merging; decide whether an explicit reconciliation concept is required in the core or deferred as a future extension.
+2. **Minimum CanonicalTrack point contract** — close EP-01, especially the no-timestamp spatial-validity case.
+3. **Assessment completeness representation** — the requirement to distinguish a determined relation from unresolved/possibly incomplete TargetSegments is accepted, but its concrete contract is not frozen.
+4. **Manual decisions** — EC-24 / EP-08 remains a blocking FAIL until algorithmic assessment and human override can be preserved separately.
 
-The next Milestone 0 work should resolve these items with the smallest domain-model changes possible. Any architectural change should be recorded in `docs/domain-model.md` and, when materially consequential, in an ADR.
+The following previously open questions are now resolved by accepted domain decisions: TrackSource generality, continuity parts, raw/normalized versus cleaned geometry separation, TargetArea geometry types, fully-inside TargetSegment semantics, boundary-touch semantics, sparse-sampling uncertainty, and TargetSegment lineage.
+
+Quality-detection thresholds, gap-reachability algorithms, and final TrackPosition field names are implementation/schema details and are explicitly deferred rather than blocking the domain model.
 
 # Promotion path
 
