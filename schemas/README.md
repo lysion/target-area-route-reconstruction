@@ -289,9 +289,14 @@ Current registered set: 113 schema fixtures, 16 linked semantic scenarios, 13 no
 
 Milestone 1 is complete. The schema/fixture workspace is frozen for v0.1 unless implementation exposes a contract defect requiring normal change control.
 
-Milestone 2 consumes these contracts and fixtures. The completed Milestone 1 conformance status was:
+Milestone 2 consumes these contracts and fixtures.
 
-1. stabilize Layer A, Layer B, and coverage-map runners in CI;
-2. add common-definition conformance fixtures where entity fixtures do not directly exercise shared constraints;
-3. verify all intended valid fixtures pass and invalid fixtures fail for the documented reason;
-4. perform the Milestone 1 exit review.
+Completed Milestone 1 validation status:
+
+- 113/113 schema fixture expectations matched;
+- 33/33 semantic expectations matched;
+- EC-01 through EC-29 mapped;
+- 14 shared common-definition conformance probes matched;
+- 6/6 synthetic raw source files verified;
+- 1 equivalent GPX/FIT route group verified;
+- Milestone 1 exit review passed.
