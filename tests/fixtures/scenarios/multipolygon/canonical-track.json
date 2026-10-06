@@ -1,0 +1,50 @@
+{
+  "schema_version": "0.1.0",
+  "id": "multipolygon-track",
+  "revision_id": "multipolygon-track-r1",
+  "track_source": {
+    "id": "multipolygon-source",
+    "revision_id": "multipolygon-source-r1"
+  },
+  "spatial_reference": "OGC:CRS84",
+  "parts": [
+    {
+      "observations": [
+        {
+          "position": [
+            111.5,
+            28.5
+          ]
+        },
+        {
+          "position": [
+            112.5,
+            28.5
+          ]
+        },
+        {
+          "position": [
+            113.5,
+            28.5
+          ]
+        },
+        {
+          "position": [
+            114.5,
+            28.5
+          ]
+        },
+        {
+          "position": [
+            115.5,
+            28.5
+          ]
+        }
+      ]
+    }
+  ],
+  "normalizer": {
+    "name": "fixture-normalizer",
+    "version": "0.1.0"
+  }
+}
