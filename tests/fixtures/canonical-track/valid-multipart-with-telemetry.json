@@ -1,0 +1,48 @@
+{
+  "schema_version": "0.1.0",
+  "id": "track-multipart",
+  "revision_id": "track-multipart-r1",
+  "track_source": {
+    "id": "source-multipart",
+    "revision_id": "source-multipart-r1"
+  },
+  "spatial_reference": "OGC:CRS84",
+  "parts": [
+    {
+      "observations": [
+        {
+          "position": [112.9000, 28.2000],
+          "timestamp": "2026-10-06T00:00:00Z",
+          "altitude_m": 45.2,
+          "distance_m": 0,
+          "observed_speed_mps": 2.8
+        },
+        {
+          "position": [112.9005, 28.2005],
+          "timestamp": "2026-10-06T00:00:01Z",
+          "altitude_m": 45.5,
+          "distance_m": 3.1,
+          "observed_speed_mps": 3.0
+        }
+      ]
+    },
+    {
+      "observations": [
+        {
+          "position": [112.9050, 28.2050],
+          "timestamp": "2026-10-06T00:01:00Z",
+          "distance_m": 90.0
+        },
+        {
+          "position": [112.9055, 28.2055],
+          "timestamp": "2026-10-06T00:01:01Z",
+          "distance_m": 93.2
+        }
+      ]
+    }
+  ],
+  "normalizer": {
+    "name": "fixture-normalizer",
+    "version": "0.1.0"
+  }
+}
