@@ -1,0 +1,14 @@
+{
+  "schema_version": "0.1.0",
+  "id": "repeated-entry-source",
+  "revision_id": "repeated-entry-source-r1",
+  "activity": {
+    "id": "repeated-entry-activity"
+  },
+  "origin": {
+    "namespace": "synthetic_fixture"
+  },
+  "representation": {
+    "media_type": "application/json"
+  }
+}
