@@ -1,0 +1,21 @@
+{
+  "schema_version": "0.1.0",
+  "id": "assessment-c",
+  "revision_id": "assessment-c-r1",
+  "canonical_track": {
+    "id": "track-c",
+    "revision_id": "track-c-r1"
+  },
+  "target_area": {
+    "id": "area-c",
+    "revision_id": "area-c-r1"
+  },
+  "relation": "outside",
+  "coverage_completeness": "complete",
+  "coverage_uncertainties": [],
+  "target_segment_refs": [],
+  "algorithm": {
+    "name": "target-area-assessment",
+    "version": "0.1.0"
+  }
+}
