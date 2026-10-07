@@ -438,37 +438,138 @@ Optimize missing-track acquisition when access is constrained by quota, cost, ra
 
 ---
 
-## Milestone 7 — Historical Route Network
+## Milestone 7 — Cross-Activity Evidence Fusion and Missing-Route Reconstruction
 
 **Status:** NOT STARTED  
 **Release target:** v0.6.0
 
 ### Goal
 
-Move from individual target-area segments to a reusable historical route-network representation.
+Use repeated historical activity evidence to reconstruct target-area route coverage that is systematically missing from individual GPS tracks, while preserving a strict distinction between observed geometry, bounded uncertainty, reconstructed geometry, and unresolved gaps.
+
+The project objective at this stage is not merely to classify whether a gap affects TargetArea relation. It is to improve the completeness of the route representation within the TargetArea when the available evidence can support a defensible reconstruction.
+
+### Scope boundary
+
+Milestone 7 operates after deterministic per-activity reconstruction, persistence, source adapters, and resource-aware acquisition are available. It may combine evidence across multiple Activities, but it must not rewrite raw TrackSource evidence, CanonicalTrack observations, or previously accepted TargetSegments.
+
+A reconstructed route is derived evidence. It is never serialized or presented as directly observed GPS geometry.
+
+Milestone 7 does not require every gap to be reconstructed. Its valid terminal outcomes include:
+
+- unique — one route remains admissible under the declared evidence model;
+- ambiguous — multiple materially different routes remain admissible;
+- unresolved — available evidence is insufficient to produce a useful reconstruction claim.
+
+Exact serialization and whether these outcomes become a new persisted supporting artifact or a later-version domain entity must be decided from real datasets and documented before implementation. No new core entity is frozen by this roadmap revision.
+
+### Evidence priority
+
+Evidence should be used in descending authority where available:
+
+1. observed geometry from other Activities that independently traversed the same corridor;
+2. exact gap endpoints and verified parent-track lineage;
+3. independently supported local reachability or distance bounds;
+4. elapsed time, device distance, elevation, heading, speed, cadence, or other telemetry when its provenance and uncertainty are explicitly supported;
+5. versioned external path/road/trail network data;
+6. weaker historical similarity or statistical priors only as ranking evidence, never as sole proof of a unique route.
+
+The implementation must distinguish evidence that proves a constraint from evidence that only ranks candidates.
 
 ### Work
 
-- route/segment similarity;
-- repeated coverage;
-- temporal coverage;
-- route families;
-- optional heat/frequency representations;
-- optional aggregation of speed/pace distributions across repeated route segments after route-segment identity is stable.
+- identify source and quality gaps that recur in the same target-area corridor across Activities;
+- cluster repeated gaps without discarding Activity identity, direction, visit multiplicity, or provenance;
+- search independently observed historical tracks for geometry that can explain a missing corridor;
+- support verified local gap-reachability constraints when an evidence-backed method exists;
+- generate candidate paths only inside the admissible spatial/evidence envelope;
+- optionally use versioned external road/path/trail topology when historical observations do not resolve the gap;
+- test candidate paths against available distance, elapsed-time, elevation, heading, telemetry, direction and topology constraints;
+- retain all materially admissible alternatives rather than selecting a visually convenient route;
+- classify reconstruction results as unique, ambiguous, or unresolved under explicit algorithm/version/parameters;
+- produce reconstructed geometry only when supported by the declared evidence model;
+- keep observed and reconstructed geometry separately queryable and separately renderable;
+- persist complete reconstruction provenance once the supporting persistence model is defined;
+- expose reconstruction confidence through explicit evidence state and alternatives rather than an ungrounded scalar confidence score;
+- define deterministic rules for how accepted reconstructed geometry may be consumed by the later Historical Route Network milestone.
 
-### Constraint
+### Cross-activity safeguards
 
-Do not freeze a network schema before real target-segment datasets reveal the required semantics.
+- an inferred or reconstructed segment must not be counted as an independent observed witness for reconstructing another gap;
+- repeated reconstructions derived from the same underlying observed Activities must not create artificial evidence multiplicity;
+- circular support chains are invalid;
+- one complete observed traversal may support several missing Activities, but each derived claim must retain the exact contributing evidence set;
+- contradictory observed traversals must preserve ambiguity unless other independent constraints resolve it;
+- systematic GPS loss at the same location is evidence of a recurring observation gap, not proof by itself of one physical path.
+
+### Reconstruction semantics
+
+A local gap can be useful before its exact route is known. Therefore Milestone 7 keeps separate:
+
+- **movement evidence** — evidence that motion occurred during the gap;
+- **extent evidence** — evidence that constrains where that motion could have occurred;
+- **candidate-route evidence** — evidence that admits or rejects specific paths;
+- **reconstructed geometry** — a derived route claim supported by the preceding evidence.
+
+A verified local spatial bound may settle TargetArea relation without settling route geometry. That remains a valid and weaker result. Route reconstruction is attempted only where it materially improves target-area path completeness.
 
 ### Exit criteria
 
-- network results are reproducible from persisted target segments;
-- network derivation never mutates source or canonical tracks;
-- coverage statistics are traceable back to contributing activities.
+- recurrent target-area gaps can be detected and grouped reproducibly across Activities;
+- observed peer-track evidence can be used without losing exact contributing Activity and TrackSource provenance;
+- reconstruction never mutates CanonicalTrack or converts inferred coordinates into observed coordinates;
+- every reconstructed route is reproducible from an exact evidence set, external-network version where used, and algorithm/version/parameters;
+- a unique result is emitted only when materially different admissible alternatives have been eliminated by explicit evidence or constraints;
+- ambiguous candidates remain explicit and are not collapsed into a single route for visualization convenience;
+- unresolved gaps remain unresolved when evidence is insufficient;
+- inferred geometry cannot recursively manufacture independent evidence for later inference;
+- repeated use of the same underlying evidence does not inflate support;
+- at least one benchmark demonstrates recovery of a systematically missing corridor using independent observed traversals;
+- at least one adversarial benchmark demonstrates that plausible competing routes remain ambiguous rather than being falsely resolved;
+- downstream consumers can distinguish observed, reconstructed, ambiguous, and unresolved route coverage.
 
 ---
 
-## Milestone 8 — v1.0 Hardening
+## Milestone 8 — Historical Route Network
+
+**Status:** NOT STARTED  
+**Release target:** v0.7.0
+
+### Goal
+
+Move from individual target-area segments and accepted reconstructed coverage to a reusable historical route-network representation that is as complete as the available evidence permits.
+
+### Work
+
+- route/segment similarity across observed TargetSegments;
+- integration of accepted reconstructed geometry without erasing its evidence class;
+- repeated coverage;
+- temporal coverage;
+- route families;
+- observed-versus-reconstructed coverage accounting;
+- network-level unresolved-gap accounting;
+- optional heat/frequency representations;
+- optional aggregation of speed/pace distributions across repeated observed route segments after route-segment identity is stable;
+- define network-level completeness semantics separately from per-Activity SpatialAssessment completeness.
+
+### Constraint
+
+Do not freeze a network schema before real observed and reconstructed target-area datasets reveal the required semantics.
+
+The network must not treat reconstructed traversals as equivalent independent observations when computing frequency, confidence, or repetition. Observed activity evidence remains separately countable.
+
+### Exit criteria
+
+- network results are reproducible from persisted observed TargetSegments and accepted reconstruction artifacts;
+- network derivation never mutates source, canonical tracks, or per-Activity assessments;
+- every network edge can report whether its support is observed, reconstructed, mixed, ambiguous, or unresolved;
+- frequency and repeated-coverage statistics distinguish direct observations from derived reconstructions;
+- network-level completeness can represent recovered systematic gaps without falsely upgrading incomplete per-Activity observation histories;
+- coverage statistics remain traceable to contributing Activities, TrackSources, and reconstruction evidence.
+
+---
+
+## Milestone 9 — v1.0 Hardening
 
 **Status:** NOT STARTED  
 **Release target:** v1.0.0
@@ -480,6 +581,7 @@ Prove that the project is genuinely reusable rather than a single-user or single
 ### Work
 
 - run at least two materially different real-world benchmarks;
+- include at least one benchmark with repeated GPS-loss corridors and reconstruction outcomes;
 - stabilize public APIs and schemas;
 - compatibility policy and migrations;
 - CI for schemas, tests, linting, and skill validation;
@@ -491,6 +593,7 @@ Prove that the project is genuinely reusable rather than a single-user or single
 ### Exit criteria
 
 - the same core works across multiple data sources or usage environments without domain-model redesign;
+- reconstructed-route behavior remains auditable across materially different regions and path-network structures;
 - public contracts are documented and versioned;
 - fresh-user installation and example workflow pass end-to-end.
 
