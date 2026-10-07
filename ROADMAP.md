@@ -132,10 +132,12 @@ The independent-audit re-exit additionally requires ordered interval/multiplicit
 
 ## Milestone 2 — Deterministic Core
 
-**Status:** ACTIVE — M2A merged; M2B is the sole immediate implementation checkpoint
+**Status:** ACTIVE — M2A and M2B are DONE; M2C is the sole immediate implementation checkpoint
 **Release target:** v0.1.0
 
-**M2A checkpoint:** DONE after independent review and merge of PR #2. Deterministic local FIT/GPX ingestion now normalizes preserved source evidence into the frozen `CanonicalTrack` shape while retaining source order, continuity boundaries, repeated observations, and missing-position diagnostics. See [implementation and acceptance record](docs/milestone2a-canonical-ingestion.md). M2 remains ACTIVE.
+**M2A checkpoint:** DONE after independent review and merge of PR #2. Deterministic local FIT/GPX ingestion now normalizes preserved source evidence into the frozen `CanonicalTrack` shape while retaining source order, continuity boundaries, repeated observations, and missing-position diagnostics. See [implementation and acceptance record](docs/milestone2a-canonical-ingestion.md).
+
+**M2B checkpoint:** DONE after independent review and merge of PR #3. Track quality now produces an immutable supporting `QualityProjection`, explicit source/quality gaps, optional independently verified constraints, and a deterministic verifier while preserving original parent indices. See [implementation record](docs/milestone2b-quality-projection.md). M2 remains ACTIVE; M2C is NEXT.
 
 ### Goal
 
@@ -178,7 +180,7 @@ M2A stops before quality classification, spatial assessment, derived speed/pace,
 
 #### M2B — Track quality, QualityProjection, and gap-proof verifier
 
-**Status:** ACTIVE
+**Status:** DONE
 
 Implement the quality-layer hand-off already defined in [the quality-layer interface](docs/quality-layer-interface.md):
 
@@ -194,19 +196,24 @@ Implement the quality-layer hand-off already defined in [the quality-layer inter
 
 M2B may identify and bound uncertainty. It must not reconstruct a unique missing path, infer TargetArea relation/completeness, or generate TargetSegments.
 
-The [M2B implementation record](docs/milestone2b-quality-projection.md) documents the current explicit-policy algorithm, immutable supporting values, source/quality gaps, domain-only proof method and adversarial verifier. Status remains ACTIVE until independent acceptance.
+The [M2B implementation record](docs/milestone2b-quality-projection.md) documents the accepted explicit-policy algorithm, immutable supporting values, source/quality gaps, domain-only proof method and adversarial verifier. Independent acceptance passed before PR #3 was merged.
 
 #### M2C — Spatial relation calculation
 
-**Status:** NOT STARTED
+**Status:** NEXT
 
-- consume the M2B quality result and verified gap constraints;
+- accept a `QualityProjection` only after `verify_quality(...)` returns `valid` against the exact M2A evidence snapshot and expected quality policy; an unverified or stale projection is not spatial authority;
 - calculate TargetArea relation under the frozen `inside / partial / outside / unknown` semantics;
 - calculate coverage completeness under the existing target-relative contract;
 - preserve established inside/outside evidence even when unresolved gaps remain;
-- fail closed when a gap can still change the target-relative conclusion.
+- fail closed when a gap can still change the target-relative conclusion;
+- treat `usable` as quality-admitted under the explicit algorithm/policy, not as proof that the GPS geometry is the unique or true route;
+- explicitly test leading and trailing gaps, and ensure lack of positive-length usable geometry never degrades to `outside`;
+- keep all target-relative conclusions traceable to the exact parent CanonicalTrack revision, verified quality result, target revision, algorithm/version and parameters.
 
-M2C must not invent new gap evidence or silently interpolate missing geometry.
+**Open M2 gap-bound obligation:** the accepted M2B implementation verifies only the tautological complete CRS84-domain bound. It does not provide a useful local spatial bound for a short GPS gap. M2C must not reinterpret that domain bound as local proof. Any v0.1 acceptance claim that depends on proving a gap wholly inside a local target or disjoint from a local target requires an independently justified local gap-bound method plus verifier support first; until then that specific conclusion must remain unresolved/fail closed.
+
+M2C must not invent new gap evidence, infer a unique missing path, silently interpolate missing geometry, or bypass M2B verification.
 
 #### M2D — Target-area segment extraction
 
@@ -238,6 +245,17 @@ M2C must not invent new gap evidence or silently interpolate missing geometry.
 
 Unit and integration testing remain cross-cutting requirements throughout M2, and the Milestone 2 exit criteria below remain authoritative for the complete release slice.
 
+### Cross-cutting v0.1 obligations
+
+These obligations are not separate checkpoints, but they must be closed before Milestone 2 can be marked DONE and v0.1.0 can be released.
+
+- **Installed-wheel CI gate:** CI must build the wheel, install it with runtime dependencies into an isolated environment outside the source checkout, and smoke-test at least FIT ingestion, GPX ingestion with the packaged `spec/gpx-1.1.xsd`, M2B quality projection, and quality verification. Editable-checkout tests alone are insufficient release evidence.
+- **Source-format support matrix:** document the exact v0.1 FIT/GPX support boundary. At minimum distinguish supported GPX track input from unsupported route/waypoint semantics, and document chained FIT plus any profile/developer/compressed-message combinations that remain outside project-level acceptance coverage. “FIT/GPX supported” must not overstate the tested subset.
+- **Explicit quality-policy ownership:** the deterministic core must not acquire an implicit human-speed or GPS-quality threshold. Quality policy remains explicit, versioned/caller-owned unless a later roadmap revision introduces a separately named and validated reference policy.
+- **Quality semantics:** `usable` means admitted by the declared quality algorithm and policy; it is not certification that the geometry is error-free, physically unique, or the true route.
+- **Gap semantics:** a verified spatial bound constrains uncertainty but is not reconstructed geometry. v0.1 does not create an inferred centerline or “most likely” path for a gap.
+- **Release documentation:** limitations that remain intentionally unsupported must be visible in the v0.1 support/limitations documentation rather than existing only in implementation notes.
+
 ### Explicit non-goals
 
 - COROS/Garmin/Strava adapters;
@@ -246,7 +264,8 @@ Unit and integration testing remain cross-cutting requirements throughout M2, an
 - route-network clustering;
 - heatmaps;
 - training-performance or physiological analysis beyond local track speed/pace visualization;
-- route recommendation.
+- route recommendation;
+- inferred/estimated missing-route centerlines or unique gap reconstruction in v0.1.
 
 ### Exit criteria
 
@@ -256,7 +275,12 @@ Unit and integration testing remain cross-cutting requirements throughout M2, an
 - the same input produces stable output;
 - FIT and GPX representing equivalent geometry normalize compatibly;
 - missing timestamps do not invalidate otherwise valid spatial reconstruction;
-- speed/pace overlays are only produced from valid temporal intervals and do not bridge known discontinuities.
+- speed/pace overlays are only produced from valid temporal intervals and do not bridge known discontinuities;
+- downstream spatial code consumes only independently verified M2B quality claims bound to the exact evidence snapshot and policy;
+- no-usable-geometry and unresolved leading/trailing-gap cases fail closed rather than becoming `outside`;
+- the v0.1 source-format support matrix accurately states supported and explicitly unsupported FIT/GPX cases;
+- CI proves the installed wheel works outside the repository checkout, including packaged GPX XSD access and representative ingestion/quality smoke paths;
+- v0.1 documentation preserves the distinction between observed geometry, quality-admitted geometry, bounded unresolved gaps, and unsupported inferred geometry.
 
 ---
 
@@ -272,20 +296,26 @@ Make long-running reconstruction tasks resumable, auditable, and idempotent.
 ### Work
 
 - introduce persistent state, initially SQLite unless evidence supports another choice;
-- persist activities, track sources, parse state, assessments, and provenance;
+- persist activities, durable raw TrackSource evidence, parse state, assessments, and provenance;
 - content hashing and duplicate detection;
+- preserve a durable evidence chain from raw TrackSource bytes/content hash -> exact TrackSource revision -> CanonicalTrack revision -> QualityProjection/evidence fingerprint -> downstream derived artifacts;
+- on reload/reuse, verify stored content hashes and revision bindings so a self-consistent reconstructed snapshot cannot silently substitute for the preserved source evidence;
 - cache-first behavior;
 - resume after interruption;
 - explicit failure states;
 - manual overrides as separate auditable evidence;
 - if derived metrics are persisted, retain algorithm/version, source-track version, parameters, and quality provenance.
 
+M3 provides integrity/custody of evidence after it enters the system. It does not claim universal cryptographic authenticity of the upstream provider or prove that a user-imported file was genuine before ingestion.
+
 ### Exit criteria
 
 - repeated ingestion does not duplicate facts;
 - interrupted work resumes without reprocessing completed inputs;
 - cached raw sources are preferred over reacquisition;
-- source, parser, algorithm, and target-area versions are traceable.
+- source, parser, algorithm, and target-area versions are traceable;
+- every persisted CanonicalTrack and derived quality/spatial artifact can be traced to the exact durable TrackSource revision and content hash used to produce it;
+- silent replacement/tampering of persisted raw evidence or substitution of a merely self-consistent synthetic snapshot is detected rather than accepted as the original custody chain.
 
 ---
 
@@ -344,7 +374,11 @@ Adapters may implement:
 - activity discovery;
 - track-source resolution;
 - track acquisition;
-- source metadata mapping.
+- source metadata mapping;
+- acquisition provenance, including whether evidence was user-imported or obtained through a provider-authenticated path;
+- provider/native identifiers and integrity/authenticity signals when the upstream source actually exposes them.
+
+Adapters must not claim provider authenticity when the source supplies no mechanically verifiable authenticity evidence.
 
 ### Order
 
@@ -356,7 +390,8 @@ Adapters may implement:
 
 - adding a source adapter does not require changes to `CanonicalTrack` or spatial-classification contracts;
 - source-specific fields remain outside the portable core model;
-- adapter failures are represented explicitly.
+- adapter failures are represented explicitly;
+- acquired evidence records distinguish import/acquisition provenance, and any provider-authenticity claim is limited to evidence actually supplied or verifiable through that provider.
 
 ---
 
@@ -471,7 +506,7 @@ No project decision should rely solely on chat history.
 
 ## Current execution point
 
-**Current milestone:** Milestone 2 — Deterministic Core. M2A is DONE after independent review and merge; M2B is the sole immediate implementation checkpoint.
+**Current milestone:** Milestone 2 — Deterministic Core. M2A and M2B are DONE after independent review and merge; M2C is the sole immediate implementation checkpoint.
 
 **Milestone 0 outcome: DONE**
 
@@ -540,7 +575,9 @@ Milestone 1 completed:
 **Milestone 2 current execution:**
 
 - **M2A — DONE:** deterministic FIT/GPX canonical ingestion is merged. Raw evidence remains immutable; source ordering, continuity breaks, repeated observations, and parent-position lineage are preserved.
-- **M2B — ACTIVE:** implement track-quality validation, the supporting `QualityProjection`, explicit gaps, optional independently justified gap constraints, and the deterministic quality/gap verifier.
-- **M2C–M2F — NOT STARTED:** proceed only in the checkpoint order defined above: spatial relation calculation, TargetSegment extraction, GeoJSON/basic map, then valid temporal metrics and quality-aware coloring.
+- **M2B — DONE:** deterministic track-quality validation, supporting `QualityProjection`, explicit source/quality gaps, domain-only gap proof support, and the independent quality/gap verifier are merged after independent acceptance.
+- **M2C — NEXT:** implement spatial relation/completeness only from independently verified M2B claims. The current domain-only bound is not a useful local gap proof; local-bound-dependent conclusions remain fail-closed until an independently justified local proof method exists.
+- **M2D–M2F — NOT STARTED:** proceed only in the checkpoint order defined above: TargetSegment extraction, GeoJSON/basic map, then valid temporal metrics and quality-aware coloring.
+- **Cross-cutting before M2 DONE:** installed-wheel/outside-checkout CI smoke, an explicit v0.1 FIT/GPX support matrix, explicit quality-policy ownership, and release documentation for quality/gap limitations.
 
-Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut. Any proposed change to this checkpoint order or Milestone 2 scope must update this roadmap before implementation.
+Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut. Any proposed change to this checkpoint order or Milestone 2 scope must update this roadmap before implementation. M3 owns durable evidence custody/integrity after ingestion; M5 owns source-adapter acquisition provenance/authenticity only where mechanically supported.
