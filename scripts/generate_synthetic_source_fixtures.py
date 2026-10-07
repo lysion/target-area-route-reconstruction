@@ -121,14 +121,23 @@ def build_fit(
             (8, 4, 0x86),    # total_timer_time, scaled by 1000
         ]
         for local, global_number in ((2, 19), (3, 18)):
-            data.extend(definition_message(local, global_number, summary_fields))
-            data.extend(data_message(local, struct.pack("<IHIII", end, 0, start, elapsed_ms, elapsed_ms)))
+            fields = summary_fields + [(0, 1, 0x00), (1, 1, 0x00)]
+            payload = struct.pack("<IHIIIBB", end, 0, start, elapsed_ms, elapsed_ms,
+                                  9 if global_number == 19 else 8, 1)  # lap/session stop
+            if global_number == 18:
+                fields += [(5, 1, 0x00), (25, 2, 0x84), (26, 2, 0x84)]
+                payload += struct.pack("<BHH", 1, 0, 1)  # running, first lap, lap count
+            else:
+                fields += [(25, 1, 0x00)]
+                payload += struct.pack("<B", 1)  # running
+            data.extend(definition_message(local, global_number, fields))
+            data.extend(data_message(local, payload))
         activity_fields = [
             (253, 4, 0x86), (0, 4, 0x86), (1, 2, 0x84),
-            (2, 1, 0x00), (3, 1, 0x00), (4, 1, 0x00),
+            (2, 1, 0x00), (3, 1, 0x00), (4, 1, 0x00), (5, 4, 0x86),
         ]
         data.extend(definition_message(4, 34, activity_fields))
-        data.extend(data_message(4, struct.pack("<IIHBBB", end, elapsed_ms, 1, 0, 26, 1)))
+        data.extend(data_message(4, struct.pack("<IIHBBBI", end, elapsed_ms, 1, 0, 26, 1, end)))
 
     header = bytearray([14 if complete_activity else 12, 0x20])
     header.extend(struct.pack("<H", 2100))

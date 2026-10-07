@@ -198,7 +198,7 @@
       "path": "fit/complete-activity.fit",
       "format": "fit",
       "media_type": "application/octet-stream",
-      "sha256": "bc5fd29c3317735f0346bb3b7f7d09979c1d41b593f7e7998808e30d57dde5b7",
+      "sha256": "6034c2b705205650aa816cad876e4d316b076448b9dc87f9c5a2aa73ecac6192",
       "source_expectation": {
         "source_valid": true,
         "fit_crc_valid": true,

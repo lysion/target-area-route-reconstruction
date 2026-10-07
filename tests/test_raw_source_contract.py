@@ -2,22 +2,23 @@
 
 from __future__ import annotations
 
-import json
 import struct
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+import fitdecode
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 from generate_synthetic_source_fixtures import write_fixtures
 from validate_source_fixture_baseline import FixtureError, fit_crc, read_fit, read_gpx
+from strict_json import load_json
 
 
 class RawSourceContractTests(unittest.TestCase):
     def test_all_raw_files_regenerate_byte_identically(self) -> None:
-        manifest = json.loads((ROOT / "tests/source-fixtures/manifest.json").read_text())
+        manifest = load_json(ROOT / "tests/source-fixtures/manifest.json")
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             write_fixtures(root)
@@ -34,6 +35,25 @@ class RawSourceContractTests(unittest.TestCase):
         self.assertEqual(result["message_counts"], {
             "file_id": 1, "record": 3, "lap": 1, "session": 1, "activity": 1,
         })
+
+    def test_complete_activity_summary_contract_independently_decoded(self) -> None:
+        with fitdecode.FitReader(str(ROOT / "tests/source-fixtures/fit/complete-activity.fit"),
+                                 check_crc=fitdecode.CrcCheck.RAISE) as reader:
+            frames = [frame for frame in reader if isinstance(frame, fitdecode.FitDataMessage)]
+        self.assertEqual(frames[0].name, "file_id")
+        self.assertEqual(frames[0].get_value("type"), "activity")
+        self.assertIsNotNone(frames[0].get_value("manufacturer"))
+        messages = {frame.name: frame for frame in frames}
+        for name in ("lap", "session"):
+            message = messages[name]
+            self.assertEqual((message.get_value("timestamp") - message.get_value("start_time")).total_seconds(), 20)
+            self.assertEqual(message.get_value("total_elapsed_time"), 20)
+            self.assertEqual(message.get_value("total_timer_time"), 20)
+            self.assertEqual(message.get_value("sport"), "running")
+        self.assertEqual(messages["activity"].get_value("num_sessions"), 1)
+        self.assertEqual(messages["activity"].get_value("local_timestamp"), messages["activity"].get_value("timestamp"))
+        self.assertEqual(messages["session"].get_value("num_laps"), 1)
+        self.assertEqual(messages["session"].get_value("first_lap_index"), 0)
 
     def test_invalid_position_sentinel_is_not_a_position(self) -> None:
         root = ROOT / "tests/source-fixtures/fit"
