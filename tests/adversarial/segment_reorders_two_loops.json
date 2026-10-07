@@ -1,0 +1,184 @@
+{
+  "activity": {
+    "schema_version": "0.1.0",
+    "id": "scenario-activity"
+  },
+  "track_source": {
+    "schema_version": "0.1.0",
+    "id": "scenario-source",
+    "revision_id": "scenario-source-r1",
+    "activity": {
+      "id": "scenario-activity"
+    },
+    "origin": {
+      "namespace": "synthetic_fixture"
+    },
+    "representation": {
+      "media_type": "application/json"
+    }
+  },
+  "canonical_track": {
+    "schema_version": "0.1.0",
+    "id": "scenario-track",
+    "revision_id": "scenario-track-r1",
+    "track_source": {
+      "id": "scenario-source",
+      "revision_id": "scenario-source-r1"
+    },
+    "spatial_reference": "OGC:CRS84",
+    "parts": [
+      {
+        "observations": [
+          {
+            "position": [
+              0,
+              0
+            ]
+          },
+          {
+            "position": [
+              1,
+              0
+            ]
+          },
+          {
+            "position": [
+              0,
+              0
+            ]
+          },
+          {
+            "position": [
+              0,
+              1
+            ]
+          },
+          {
+            "position": [
+              0,
+              0
+            ]
+          }
+        ]
+      }
+    ],
+    "normalizer": {
+      "name": "fixture-normalizer",
+      "version": "0.1.0"
+    }
+  },
+  "target_area": {
+    "schema_version": "0.1.0",
+    "id": "scenario-area",
+    "revision_id": "scenario-area-r1",
+    "spatial_reference": "OGC:CRS84",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -10,
+            -10
+          ],
+          [
+            10,
+            -10
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            -10,
+            10
+          ],
+          [
+            -10,
+            -10
+          ]
+        ]
+      ]
+    },
+    "definition_provenance": {
+      "description": "Synthetic target rectangle for linked semantic-validation scenario."
+    }
+  },
+  "spatial_assessment": {
+    "schema_version": "0.1.0",
+    "id": "scenario-assessment",
+    "revision_id": "scenario-assessment-r1",
+    "canonical_track": {
+      "id": "scenario-track",
+      "revision_id": "scenario-track-r1"
+    },
+    "target_area": {
+      "id": "scenario-area",
+      "revision_id": "scenario-area-r1"
+    },
+    "relation": "inside",
+    "coverage_completeness": "complete",
+    "coverage_uncertainties": [],
+    "target_segment_refs": [
+      {
+        "id": "audit-segment-0",
+        "revision_id": "r1"
+      }
+    ],
+    "algorithm": {
+      "name": "fixture-assessment",
+      "version": "0.1.0"
+    }
+  },
+  "target_segments": [
+    {
+      "schema_version": "0.1.0",
+      "id": "audit-segment-0",
+      "revision_id": "r1",
+      "spatial_assessment": {
+        "id": "scenario-assessment",
+        "revision_id": "scenario-assessment-r1"
+      },
+      "canonical_track": {
+        "id": "scenario-track",
+        "revision_id": "scenario-track-r1"
+      },
+      "ordinal": 0,
+      "spatial_reference": "OGC:CRS84",
+      "start_position": {
+        "part_index": 0,
+        "observation_index": 0,
+        "fraction_to_next": 0
+      },
+      "end_position": {
+        "part_index": 0,
+        "observation_index": 4,
+        "fraction_to_next": 0
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      }
+    }
+  ]
+}

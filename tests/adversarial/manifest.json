@@ -1,0 +1,107 @@
+{
+  "schema_version": "0.1.0",
+  "cases": [
+    {
+      "name": "nonmaximal_half_of_retraced_inside_part",
+      "path": "nonmaximal_half_of_retraced_inside_part.json",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_COVERAGE_NOT_EXHAUSTIVE"
+    },
+    {
+      "name": "complete_omits_identical_second_part",
+      "path": "complete_omits_identical_second_part.json",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_COVERAGE_NOT_EXHAUSTIVE"
+    },
+    {
+      "name": "complete_omits_repeated_entry",
+      "path": "complete_omits_repeated_entry.json",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_COVERAGE_NOT_EXHAUSTIVE"
+    },
+    {
+      "name": "segment_reorders_two_loops",
+      "path": "segment_reorders_two_loops.json",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_SEGMENT_LINEAGE_MISMATCH"
+    },
+    {
+      "name": "proven_partial_relabelled_inside",
+      "path": "proven_partial_relabelled_inside.json",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "ASSESSMENT_RELATION_CONTRADICTS_EVIDENCE"
+    },
+    {
+      "name": "proven_partial_relabelled_unknown",
+      "path": "proven_partial_relabelled_unknown.json",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "ASSESSMENT_RELATION_CONTRADICTS_EVIDENCE"
+    },
+    {
+      "name": "incomplete_nonmaximal_known_segment",
+      "path": "incomplete_nonmaximal_known_segment.json",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_COVERAGE_NOT_EXHAUSTIVE"
+    },
+    {
+      "name": "positive_inside_track_mislabelled_outside",
+      "path": "positive_inside_track_mislabelled_outside.json",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "ASSESSMENT_RELATION_CONTRADICTS_EVIDENCE"
+    },
+    {
+      "name": "positive_inside_track_correctly_labelled",
+      "path": "positive_inside_track_correctly_labelled.json",
+      "expect_semantic_valid": true
+    },
+    {
+      "name": "roundoff_at_axis_aligned_boundary",
+      "path": "roundoff_at_axis_aligned_boundary.json",
+      "expect_semantic_valid": true
+    },
+    {
+      "name": "nonaxis_interpolation_roundoff",
+      "path": "nonaxis_interpolation_roundoff.json",
+      "expect_semantic_valid": true
+    },
+    {
+      "name": "original_partial_control",
+      "path": "original_partial_control.json",
+      "expect_semantic_valid": true
+    },
+    {
+      "name": "terminal_fraction_without_next",
+      "path": "terminal_fraction_without_next.json",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TRACK_POSITION_OUT_OF_BOUNDS"
+    },
+    {
+      "name": "segment_crosses_continuity_break",
+      "path": "segment_crosses_continuity_break.json",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_SEGMENT_CROSSES_PART"
+    },
+    {
+      "name": "ordinals_and_refs_reverse_together",
+      "path": "ordinals_and_refs_reverse_together.json",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_SEGMENT_ORDER_INVALID"
+    },
+    {
+      "name": "zero_length_track_assessment",
+      "path": "zero_length_track_assessment.json",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TRACK_NOT_ASSESSABLE"
+    },
+    {
+      "name": "complete_multipart_inside",
+      "path": "complete_multipart_inside.json",
+      "expect_semantic_valid": true
+    },
+    {
+      "name": "inside_incomplete_world",
+      "path": "inside_incomplete_world.json",
+      "expect_semantic_valid": true
+    }
+  ]
+}

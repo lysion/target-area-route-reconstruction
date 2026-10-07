@@ -32,15 +32,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
-from shapely.geometry import GeometryCollection, LineString, MultiLineString, shape
-from shapely.ops import unary_union
+from shapely.geometry import LineString, box, shape
 from shapely.validation import explain_validity
 from strict_json import load_json as strict_load_json
 from jsonschema import Draft202012Validator, FormatChecker
 from validate_schema_fixtures import build_registry, schema_documents
-
-
-GEOMETRY_TOLERANCE = 1e-12
+from ordered_spatial_oracle import (
+    POLICY, covered_intervals, observed_facts, position_from_dict,
+    positions_match,
+)
 
 
 class RunnerError(RuntimeError):
@@ -480,24 +480,6 @@ def reconstruct_segment_coordinates(
     return coordinates
 
 
-def coordinates_close(
-    left: tuple[float, float],
-    right: tuple[float, float],
-) -> bool:
-    return (
-        math.isclose(
-            left[0], right[0],
-            rel_tol=0.0,
-            abs_tol=GEOMETRY_TOLERANCE,
-        )
-        and math.isclose(
-            left[1], right[1],
-            rel_tol=0.0,
-            abs_tol=GEOMETRY_TOLERANCE,
-        )
-    )
-
-
 def validate_segment_against_parent(
     segment: dict[str, Any],
     track: dict[str, Any],
@@ -529,107 +511,16 @@ def validate_segment_against_parent(
     expected_line = LineString(reconstructed_coordinates)
     actual_line = shape(segment["geometry"])
 
-    actual_start = tuple(float(v) for v in actual_line.coords[0])
-    actual_end = tuple(float(v) for v in actual_line.coords[-1])
-
-    if not coordinates_close(
-        actual_start, reconstructed_coordinates[0]
+    # Vertex sequence is the domain lineage, including repeated observations.
+    # Hausdorff distance and total length lose traversal order and multiplicity.
+    actual_coordinates = list(actual_line.coords)
+    if len(actual_coordinates) != len(reconstructed_coordinates) or any(
+        not POLICY.coordinates_close(actual, expected, local_length=expected_line.length)
+        for actual, expected in zip(actual_coordinates, reconstructed_coordinates)
     ):
-        errors.append(issue("TARGET_SEGMENT_LINEAGE_MISMATCH", "TargetSegment geometry start does not match start_position lineage"))
-    if not coordinates_close(
-        actual_end, reconstructed_coordinates[-1]
-    ):
-        errors.append(issue("TARGET_SEGMENT_LINEAGE_MISMATCH", "TargetSegment geometry end does not match end_position lineage"))
-
-    if actual_line.hausdorff_distance(expected_line) > GEOMETRY_TOLERANCE:
-        errors.append(issue("TARGET_SEGMENT_LINEAGE_MISMATCH", "TargetSegment geometry does not follow the parent CanonicalTrack interval identified by its lineage"))
-
-    if not math.isclose(
-        actual_line.length,
-        expected_line.length,
-        rel_tol=1e-12,
-        abs_tol=GEOMETRY_TOLERANCE,
-    ):
-        errors.append(issue("TARGET_SEGMENT_LINEAGE_MISMATCH", "TargetSegment geometry length differs from reconstructed parent track interval"))
-
-    if not area_geometry.covers(actual_line):
-        errors.append(issue("TARGET_SEGMENT_OUTSIDE_AREA", "TargetSegment geometry is not fully covered by its TargetArea"))
+        errors.append(issue("TARGET_SEGMENT_LINEAGE_MISMATCH", "TargetSegment geometry differs from ordered parent-track regeneration"))
 
     return errors
-
-
-def linear_components(geometry: Any) -> Any:
-    if geometry.is_empty:
-        return GeometryCollection()
-    if isinstance(geometry, (LineString, MultiLineString)):
-        return geometry
-    if isinstance(geometry, GeometryCollection):
-        lines = [
-            item
-            for item in geometry.geoms
-            if isinstance(item, (LineString, MultiLineString))
-            and not item.is_empty
-            and item.length > 0
-        ]
-        return unary_union(lines) if lines else GeometryCollection()
-    return GeometryCollection()
-
-
-def canonical_part_lines(track: dict[str, Any]) -> list[LineString]:
-    """Build only within-part evidence geometry; never bridge continuity breaks."""
-
-    lines: list[LineString] = []
-    for part in track["parts"]:
-        observations = part["observations"]
-        if len(observations) < 2:
-            continue
-        line = LineString([item["position"] for item in observations])
-        if line.length > GEOMETRY_TOLERANCE:
-            lines.append(line)
-    return lines
-
-
-def derive_relation_for_complete_track(
-    track: dict[str, Any],
-    area_geometry: Any,
-) -> str | None:
-    lines = canonical_part_lines(track)
-    if not lines:
-        return None
-
-    inside_length = 0.0
-    outside_length = 0.0
-
-    for line in lines:
-        inside_length += linear_components(
-            line.intersection(area_geometry)
-        ).length
-        outside_length += linear_components(
-            line.difference(area_geometry)
-        ).length
-
-    if inside_length > GEOMETRY_TOLERANCE:
-        if outside_length > GEOMETRY_TOLERANCE:
-            return "partial"
-        return "inside"
-
-    return "outside"
-
-
-def expected_complete_target_coverage(
-    track: dict[str, Any],
-    area_geometry: Any,
-) -> Any:
-    covered = [
-        linear_components(line.intersection(area_geometry))
-        for line in canonical_part_lines(track)
-    ]
-    covered = [
-        geometry
-        for geometry in covered
-        if not geometry.is_empty and geometry.length > GEOMETRY_TOLERANCE
-    ]
-    return unary_union(covered) if covered else GeometryCollection()
 
 
 def validate_linked_scenario(
@@ -695,19 +586,23 @@ def validate_linked_scenario(
 
     area_geometry = shape(target_area["geometry"])
 
-    # A partial relation is already proven by reliable observed geometry:
-    # there must be positive-length observed coverage both inside and outside.
-    # This remains true even when completeness is incomplete because another
-    # unresolved interval may hide additional target coverage.
-    if spatial_assessment["relation"] == "partial":
-        observed_relation = derive_relation_for_complete_track(
-            canonical_track, area_geometry
-        )
-        if observed_relation != "partial":
-            errors.append(
-                "spatial_assessment.relation='partial' is not proven by "
-                "observed within-part geometry"
-            )
+    # Evidence is assessed before the submitted relation. An uncertainty may
+    # leave further coverage unknown, but cannot erase an established partial.
+    facts = observed_facts(canonical_track, area_geometry)
+    complete = spatial_assessment["coverage_completeness"] == "complete"
+    if facts.inside and facts.outside:
+        required_relation = "partial"
+    elif complete:
+        required_relation = "inside" if facts.inside else "outside"
+    elif facts.inside:
+        # Without an independently bounded quality corridor, only a TargetArea
+        # covering every canonical CRS84 position proves an unobserved path
+        # cannot leave. Ordinary inside+incomplete needs a later quality result.
+        required_relation = "inside" if area_geometry.covers(box(-180, -90, 180, 90)) else "unknown"
+    else:
+        required_relation = "unknown"
+    if spatial_assessment["relation"] != required_relation:
+        errors.append(issue("ASSESSMENT_RELATION_CONTRADICTS_EVIDENCE", f"observed evidence requires {required_relation!r}, got {spatial_assessment['relation']!r}"))
 
     sorted_segments = sorted(target_segments, key=lambda item: item["ordinal"])
     expected_ordinals = list(range(len(sorted_segments)))
@@ -730,7 +625,6 @@ def validate_linked_scenario(
             errors.append(issue("TARGET_SEGMENT_ORDER_INVALID", "TargetSegments are not strictly ordered and non-overlapping by parent CanonicalTrack position"))
             break
 
-    segment_geometries: list[Any] = []
     for index, segment in enumerate(sorted_segments):
         prefix = f"target_segments[{index}]"
 
@@ -750,44 +644,18 @@ def validate_linked_scenario(
         ):
             errors.append(issue(issue_code(error), f"{prefix}: {error.split(': ', 1)[-1]}"))
 
-        try:
-            segment_geometries.append(shape(segment["geometry"]))
-        except Exception:
-            pass
-
-    # For a complete route with no unresolved target-relevant uncertainty,
-    # relation and exhaustive target coverage can be derived from within-part
-    # evidence geometry only. Continuity breaks are never bridged.
-    if (
-        spatial_assessment["coverage_completeness"] == "complete"
-        and not spatial_assessment["coverage_uncertainties"]
+    # All reliable observed covered portions are known even if an uncertainty
+    # can hide more coverage. Compare ordered parameter intervals one by one.
+    expected = covered_intervals(canonical_track, area_geometry)
+    if len(expected) != len(sorted_segments) or any(
+        not positions_match(canonical_track, position_from_dict(segment["start_position"]), interval.start)
+        or not positions_match(canonical_track, position_from_dict(segment["end_position"]), interval.end)
+        for segment, interval in zip(sorted_segments, expected)
+        if validate_target_segment(segment) == []
+        and not validate_track_position_against_parent(canonical_track, segment["start_position"], label="start_position")
+        and not validate_track_position_against_parent(canonical_track, segment["end_position"], label="end_position")
     ):
-        derived_relation = derive_relation_for_complete_track(
-            canonical_track, area_geometry
-        )
-        if (
-            derived_relation is not None
-            and derived_relation != spatial_assessment["relation"]
-        ):
-            errors.append(
-                "spatial_assessment.relation disagrees with deterministic "
-                f"single-part geometry: expected {derived_relation!r}"
-            )
-
-        expected_inside = expected_complete_target_coverage(
-            canonical_track, area_geometry
-        )
-        actual_inside = (
-            unary_union(segment_geometries)
-            if segment_geometries
-            else GeometryCollection()
-        )
-
-        if not expected_inside.equals(actual_inside):
-            errors.append(
-                "complete assessment TargetSegments do not exhaustively match "
-                "the TargetArea-covered portion of the linked CanonicalTrack"
-            )
+        errors.append(issue("TARGET_COVERAGE_NOT_EXHAUSTIVE", "TargetSegments do not equal maximal observed covered intervals in parent-track order"))
 
     return errors
 
