@@ -25,7 +25,7 @@ class ContractGateMutations(unittest.TestCase):
             shutil.copytree(ROOT / name, self.root / name, ignore=shutil.ignore_patterns("__pycache__"))
 
     def document(self, relative: str) -> dict:
-        return json.loads((self.root / relative).read_text(encoding="utf-8"))
+        return load_json(self.root / relative)
 
     def write(self, relative: str, document: dict) -> None:
         (self.root / relative).write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
@@ -74,6 +74,33 @@ class ContractGateMutations(unittest.TestCase):
         self.write(path, manifest)
         result = self.gate("edge_case_coverage")
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+
+    def test_registered_linked_component_must_pass_layer_a(self) -> None:
+        path = "tests/fixtures/scenarios/partial-crossing/activity.json"
+        activity = self.document(path)
+        activity["source_native_id"] = "forbidden"
+        self.write(path, activity)
+        result = self.gate("semantic_fixtures")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("fails Layer A", result.stderr)
+
+    def test_linked_component_must_use_correct_schema(self) -> None:
+        path = "tests/fixtures/manifest.json"
+        manifest = self.document(path)
+        entry = next(x for x in manifest["fixtures"] if x["path"] == "scenarios/partial-crossing/activity.json")
+        entry["schema"] = "../../../../schemas/track-source.schema.json"
+        self.write(path, manifest)
+        result = self.gate("semantic_fixtures")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+
+    def test_duplicate_fixture_registration_rejected(self) -> None:
+        path = "tests/fixtures/manifest.json"
+        manifest = self.document(path)
+        manifest["fixtures"].append(manifest["fixtures"][0])
+        self.write(path, manifest)
+        for gate in ("schema_fixtures", "semantic_fixtures", "edge_case_coverage"):
+            result = self.gate(gate)
+            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
 
     def test_negative_registration_cannot_point_to_positive(self) -> None:
         path = "tests/edge-case-coverage.json"

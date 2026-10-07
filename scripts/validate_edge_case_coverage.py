@@ -13,6 +13,7 @@ test intent and ownership are explicit rather than silently omitted.
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -48,6 +49,24 @@ def validate(repo_root: Path) -> None:
     )
     nonfile_manifest = load_json(repo_root / "tests/nonfile-contract-cases.json")
 
+    for label, document, array_name in (
+        ("coverage", coverage, "edge_cases"),
+        ("fixtures", fixture_manifest, "fixtures"),
+        ("scenarios", scenario_manifest, "scenarios"),
+        ("non-file", nonfile_manifest, "cases"),
+    ):
+        if not isinstance(document, dict) or document.get("schema_version") != "0.1.0":
+            fail(f"{label} manifest must be an object with schema_version '0.1.0'")
+        values = document.get(array_name)
+        if not isinstance(values, list) or not all(isinstance(item, dict) for item in values):
+            fail(f"{label} manifest {array_name} must be an array of objects")
+    for item in fixture_manifest["fixtures"]:
+        if not isinstance(item.get("path"), str) or not item["path"]:
+            fail("fixture path must be non-empty")
+    for item in scenario_manifest["scenarios"]:
+        if not isinstance(item.get("name"), str) or not item["name"]:
+            fail("scenario name must be non-empty")
+
     if coverage.get("schema_version") != "0.1.0":
         fail("edge-case coverage schema_version must be '0.1.0'")
 
@@ -67,6 +86,8 @@ def validate(repo_root: Path) -> None:
         "tests/fixtures/" + item["path"]
         for item in fixture_manifest.get("fixtures", [])
     }
+    if len(fixture_paths) != len(fixture_manifest["fixtures"]):
+        fail("duplicate fixture registration")
     scenarios = scenario_manifest.get("scenarios")
     nonfile_cases = nonfile_manifest.get("cases")
     if not isinstance(scenarios, list) or not isinstance(nonfile_cases, list):
@@ -87,7 +108,7 @@ def validate(repo_root: Path) -> None:
             value = item.get(key)
             if not isinstance(value, str) or not value.strip():
                 fail(f"non-file case {index} requires non-empty {key}")
-        if not item["execution_milestone"].startswith("Milestone "):
+        if not re.fullmatch(r"Milestone [0-9]+(?:.*)", item["execution_milestone"]):
             fail(f"non-file case {index} requires a Milestone execution owner")
         case_id = item["edge_case"]
         if case_id in nonfile_ids or case_id not in expected_ids:
@@ -111,6 +132,7 @@ def validate(repo_root: Path) -> None:
         if not isinstance(reps, list) or not reps:
             fail(f"{edge_case}: at least one representation is required")
 
+        seen_reps: set[tuple[str, str]] = set()
         for rep in reps:
             if not isinstance(rep, dict):
                 fail(f"{edge_case}: representation must be an object")
@@ -120,6 +142,10 @@ def validate(repo_root: Path) -> None:
                 fail(f"{edge_case}: unsupported representation type {rep_type!r}")
             if not isinstance(ref, str) or not ref:
                 fail(f"{edge_case}: representation ref must be non-empty")
+            pair = (rep_type, ref)
+            if pair in seen_reps:
+                fail(f"{edge_case}: duplicate representation")
+            seen_reps.add(pair)
 
             if rep_type == "fixture":
                 if ref not in fixture_paths:
@@ -148,6 +174,8 @@ def validate(repo_root: Path) -> None:
 
     negative_names: set[str] = set()
     for item in negatives:
+        if not isinstance(item, dict):
+            fail("negative cross-object case must be an object")
         name = item.get("name")
         layer = item.get("layer")
         ref = item.get("ref")
@@ -181,6 +209,8 @@ def validate(repo_root: Path) -> None:
     # Scenario edge-case annotations must only reference frozen IDs.
     expected_set = set(expected_ids)
     for scenario in scenario_manifest.get("scenarios", []):
+        if not isinstance(scenario.get("edge_cases", []), list):
+            fail("scenario edge_cases must be an array")
         for edge_case in scenario.get("edge_cases", []):
             if edge_case not in expected_set:
                 fail(

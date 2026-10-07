@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import math
 import sys
 import unittest
@@ -12,10 +11,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 from ordered_spatial_oracle import observed_edges
+from strict_json import load_json
 
 
 def load(name: str) -> dict:
-    return json.loads((ROOT / "tests/fixtures/metrics" / f"{name}.json").read_text())
+    return load_json(ROOT / "tests/fixtures/metrics" / f"{name}.json")
 
 
 def speed_evidence(track: dict) -> list[tuple[float, float]]:
@@ -35,8 +35,8 @@ def speed_evidence(track: dict) -> list[tuple[float, float]]:
 
 class MetricFixtureInputs(unittest.TestCase):
     def test_all_six_inputs_are_registered(self) -> None:
-        cases = json.loads((ROOT / "tests/fixtures/metric-scenarios.json").read_text())["cases"]
-        registered = {entry["path"] for entry in json.loads((ROOT / "tests/fixtures/manifest.json").read_text())["fixtures"]}
+        cases = load_json(ROOT / "tests/fixtures/metric-scenarios.json")["cases"]
+        registered = {entry["path"] for entry in load_json(ROOT / "tests/fixtures/manifest.json")["fixtures"]}
         self.assertEqual({case["name"] for case in cases}, {
             "constant-speed", "acceleration-deceleration", "pause",
             "gps-jump", "discontinuity", "missing-timestamps",
