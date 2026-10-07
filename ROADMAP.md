@@ -137,7 +137,7 @@ The independent-audit re-exit additionally requires ordered interval/multiplicit
 
 **M2A checkpoint:** DONE after independent review and merge of PR #2. Deterministic local FIT/GPX ingestion now normalizes preserved source evidence into the frozen `CanonicalTrack` shape while retaining source order, continuity boundaries, repeated observations, and missing-position diagnostics. See [implementation and acceptance record](docs/milestone2a-canonical-ingestion.md).
 
-**M2B checkpoint:** DONE after independent review and merge of PR #3. Track quality now produces an immutable supporting `QualityProjection`, explicit source/quality gaps, optional independently verified constraints, and a deterministic verifier while preserving original parent indices. See [implementation record](docs/milestone2b-quality-projection.md). M2 remains ACTIVE; M2C is NEXT.
+**M2B checkpoint:** DONE after independent review and merge of PR #3. Track quality now produces an immutable supporting `QualityProjection`, explicit source/quality gaps, optional independently verified constraints, and a deterministic verifier while preserving original parent indices. See [implementation record](docs/milestone2b-quality-projection.md). M2 remains ACTIVE; M2C is ACTIVE.
 
 ### Goal
 
@@ -202,7 +202,7 @@ The [M2B implementation record](docs/milestone2b-quality-projection.md) document
 
 #### M2C — Spatial relation and completeness proof
 
-**Status:** NEXT
+**Status:** ACTIVE
 
 M2C produces a deterministic, non-identity-bearing supporting result for downstream M2D. It does **not** create the frozen `SpatialAssessment` entity and does not add a seventh core entity.
 
@@ -594,7 +594,7 @@ Milestone 1 completed:
 
 - **M2A — DONE:** deterministic FIT/GPX canonical ingestion is merged. Raw evidence remains immutable; source ordering, continuity breaks, repeated observations, and parent-position lineage are preserved.
 - **M2B — DONE:** deterministic track-quality validation, supporting `QualityProjection`, explicit source/quality gaps, domain-only gap proof support, and the independent quality/gap verifier are merged after independent acceptance.
-- **M2C — NEXT:** implement a non-identity-bearing spatial relation/completeness proof result only from independently verified M2B claims. No usable positive-length route geometry means non-assessable and no SpatialAssessment. The current domain-only bound is not a useful local gap proof; local-bound-dependent conclusions remain fail-closed until an independently justified local proof method exists.
+- **M2C — ACTIVE:** implement a non-identity-bearing spatial relation/completeness proof result only from independently verified M2B claims. No usable positive-length route geometry means non-assessable and no SpatialAssessment. The current domain-only bound is not a useful local gap proof; local-bound-dependent conclusions remain fail-closed until an independently justified local proof method exists.
 - **M2D — NOT STARTED:** extract exhaustive TargetSegments from the accepted M2C proof result, then assemble the frozen SpatialAssessment with valid target-segment references. Non-assessable M2C results produce neither entity.
 - **M2E–M2F — NOT STARTED:** proceed only after M2D: GeoJSON/basic map, then valid temporal metrics and quality-aware coloring.
 - **Cross-cutting before M2 DONE:** installed-wheel/outside-checkout CI smoke, an explicit v0.1 FIT/GPX support matrix, explicit quality-policy ownership, and release documentation for quality/gap limitations.

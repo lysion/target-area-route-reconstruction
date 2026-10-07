@@ -35,3 +35,7 @@ The formal schema and semantic manifests include diagonal interpolation noise, v
 ## Production quality distance (M2B)
 
 [M2B's implementation record](milestone2b-quality-projection.md#first-quality-algorithm-and-numerical-policy) separately defines the pinned GeographicLib 2.1 WGS84 inverse endpoint-distance method, metre units, antimeridian/polar behavior, exact UTC fractional-duration arithmetic and a 1 micrometre computational comparison guard. That screening policy does not change this planar fixture oracle, canonical interpolation or the domain definition of positive length. It preserves every tiny/zero-distance candidate edge and never uses the guard to delete observations or manufacture a gap route.
+
+## Production spatial proof (M2C)
+
+[M2C](milestone2c-spatial-relation.md#ordered-clipping-and-numerical-policy) promotes pinned Shapely 2.1.2 to runtime and implements per-admitted-edge planar CRS84 clipping, dominant-axis fractional lineage, the bounded coordinate-regeneration comparison above, and exact canonical partition accounting. It records Shapely/GEOS versions and reports explicit numerical failure when fractions or partitions cannot be represented reliably. It does not snap, buffer, merge visits or use an epsilon to define positive length. Longitude interpolation is explicitly linear, including 179 to -179 through 0; shortest-geodesic/periodic antimeridian interpretation is not inferred. This is separate from M2B physical-distance screening and does not broaden the M1 oracle claims.
