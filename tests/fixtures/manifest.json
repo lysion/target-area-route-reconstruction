@@ -1535,6 +1535,36 @@
       "path": "adversarial/short_covered_interval_cannot_be_halved/target-segment-0.json",
       "schema": "../../../../schemas/target-segment.schema.json",
       "expect_schema_valid": true
+    },
+    {
+      "path": "adversarial/incomplete_omits_identical_second_part/activity.json",
+      "schema": "../../../../schemas/activity.schema.json",
+      "expect_schema_valid": true
+    },
+    {
+      "path": "adversarial/incomplete_omits_identical_second_part/track-source.json",
+      "schema": "../../../../schemas/track-source.schema.json",
+      "expect_schema_valid": true
+    },
+    {
+      "path": "adversarial/incomplete_omits_identical_second_part/canonical-track.json",
+      "schema": "../../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true
+    },
+    {
+      "path": "adversarial/incomplete_omits_identical_second_part/target-area.json",
+      "schema": "../../../../schemas/target-area.schema.json",
+      "expect_schema_valid": true
+    },
+    {
+      "path": "adversarial/incomplete_omits_identical_second_part/spatial-assessment.json",
+      "schema": "../../../../schemas/spatial-assessment.schema.json",
+      "expect_schema_valid": true
+    },
+    {
+      "path": "adversarial/incomplete_omits_identical_second_part/target-segment-0.json",
+      "schema": "../../../../schemas/target-segment.schema.json",
+      "expect_schema_valid": true
     }
   ]
 }

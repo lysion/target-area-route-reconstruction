@@ -547,6 +547,19 @@
       "target_segments": [
         "adversarial/short_covered_interval_cannot_be_halved/target-segment-0.json"
       ]
+    },
+    {
+      "name": "audit-incomplete_omits_identical_second_part",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_COVERAGE_NOT_EXHAUSTIVE",
+      "activity": "adversarial/incomplete_omits_identical_second_part/activity.json",
+      "track_source": "adversarial/incomplete_omits_identical_second_part/track-source.json",
+      "canonical_track": "adversarial/incomplete_omits_identical_second_part/canonical-track.json",
+      "target_area": "adversarial/incomplete_omits_identical_second_part/target-area.json",
+      "spatial_assessment": "adversarial/incomplete_omits_identical_second_part/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/incomplete_omits_identical_second_part/target-segment-0.json"
+      ]
     }
   ]
 }

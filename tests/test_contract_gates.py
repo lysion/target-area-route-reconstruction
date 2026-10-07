@@ -120,6 +120,31 @@ class ContractGateMutations(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     load_json(path)
 
+    def test_every_gate_rejects_nonfinite_manifest_values(self) -> None:
+        for gate, relative in (
+            ("schema_fixtures", "tests/fixtures/manifest.json"),
+            ("semantic_fixtures", "tests/fixtures/manifest.json"),
+            ("edge_case_coverage", "tests/edge-case-coverage.json"),
+            ("source_fixture_baseline", "tests/source-fixtures/manifest.json"),
+        ):
+            path = self.root / relative
+            original = path.read_text()
+            for value in ("NaN", "Infinity", "-Infinity", "1e9999"):
+                with self.subTest(gate=gate, value=value):
+                    path.write_text('{"unused_probe": ' + value + ',' + original.lstrip()[1:])
+                    result = self.gate(gate)
+                    self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+            path.write_text(original)
+
+    def test_nonfile_contract_duplicates_and_malformed_items(self) -> None:
+        path = "tests/nonfile-contract-cases.json"
+        original = self.document(path)
+        for cases in ([*original["cases"], original["cases"][0]], ["not an object"]):
+            with self.subTest(cases_type=type(cases[-1]).__name__):
+                self.write(path, {**original, "cases": cases})
+                result = self.gate("edge_case_coverage")
+                self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -124,6 +124,12 @@
       "expect_semantic_valid": false,
       "expect_semantic_issue_code": "TARGET_COVERAGE_NOT_EXHAUSTIVE",
       "scenario": "audit-short_covered_interval_cannot_be_halved"
+    },
+    {
+      "name": "incomplete_omits_identical_second_part",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_COVERAGE_NOT_EXHAUSTIVE",
+      "scenario": "audit-incomplete_omits_identical_second_part"
     }
   ]
 }

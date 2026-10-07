@@ -44,6 +44,9 @@ class NumericalPolicy:
 
     coordinate_error_cap_deg: float = 1e-12
 
+    def coordinate_error(self, *, scale: float, local_length: float) -> float:
+        return min(self.coordinate_error_cap_deg, 8 * math.ulp(scale), local_length / 4)
+
     def coordinates_close(
         self,
         left: tuple[float, float] | list[float],
@@ -53,7 +56,7 @@ class NumericalPolicy:
         operand_scale: float = 0.0,
     ) -> bool:
         scale = max(operand_scale, *(abs(float(x)) for x in (*left, *right)))
-        allowed = min(self.coordinate_error_cap_deg, 8 * math.ulp(scale), local_length / 4)
+        allowed = self.coordinate_error(scale=scale, local_length=local_length)
         return all(abs(float(a) - float(b)) <= allowed for a, b in zip(left, right))
 
 
@@ -204,9 +207,6 @@ def interpolate(track: dict[str, Any], value: Position) -> tuple[float, float]:
 def positions_match(track: dict[str, Any], actual: Position, expected: Position, *, interval_length: float) -> bool:
     if (actual.part_index, actual.observation_index) != (expected.part_index, expected.observation_index):
         return False
-    fraction_scale = max(abs(actual.fraction_to_next), abs(expected.fraction_to_next))
-    if abs(actual.fraction_to_next - expected.fraction_to_next) > 8 * math.ulp(fraction_scale):
-        return False
     observations = track["parts"][expected.part_index]["observations"]
     if expected.observation_index + 1 < len(observations):
         edge_length = coordinate_length((
@@ -217,7 +217,15 @@ def positions_match(track: dict[str, Any], actual: Position, expected: Position,
         edge_length = 1.0
     if edge_length == 0:
         return actual.fraction_to_next == expected.fraction_to_next
+    # Subtracting large coordinates on a short edge can amplify fraction
+    # error (e.g. 112.9 - 112.895). Propagate the same coordinate error budget.
+    local_length = min(edge_length, interval_length)
+    fraction_scale = max(abs(actual.fraction_to_next), abs(expected.fraction_to_next))
+    fraction_error = max(8 * math.ulp(fraction_scale),
+                         POLICY.coordinate_error(scale=track_scale(track), local_length=local_length) / edge_length)
+    if abs(actual.fraction_to_next - expected.fraction_to_next) > fraction_error:
+        return False
     return POLICY.coordinates_close(
         interpolate(track, actual), interpolate(track, expected),
-        local_length=min(edge_length, interval_length), operand_scale=track_scale(track),
+        local_length=local_length, operand_scale=track_scale(track),
     )
