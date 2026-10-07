@@ -89,7 +89,8 @@ Current design artifacts:
 - [Numerical policy](docs/numerical-policy.md)
 - [M1 remediation and before/after evidence](docs/milestone1-remediation.md)
 - [M1 fresh re-exit review](docs/milestone1-re-exit-review.md)
+- [M2A deterministic canonical ingestion](docs/milestone2a-canonical-ingestion.md)
 
 ## Status
 
-Early public development. **Milestone 0: Domain Contract is DONE. Milestone 1: Schemas and Fixtures is DONE after adversarial remediation and re-review. Milestone 2: Deterministic Core is ACTIVE.** An independent audit of commit `141dc092f5a3c7845066156cafd26b3879e99137` invalidated the sufficiency of the previous green oracle. The ordered-interval oracle, reason-specific negatives, mutation regressions and independent raw-source checks now pass branch CI. See [the fresh re-exit review](docs/milestone1-re-exit-review.md). The [historical exit review](docs/milestone1-exit-review.md) and [remediation record](docs/milestone1-remediation.md) preserve the original PASS and reopening. Production Milestone 2 implementation has not begun in this remediation branch.
+Early public development. **Milestone 0: Domain Contract is DONE. Milestone 1: Schemas and Fixtures is DONE after adversarial remediation and re-review. Milestone 2: Deterministic Core is ACTIVE.** An independent audit of commit `141dc092f5a3c7845066156cafd26b3879e99137` invalidated the sufficiency of the previous green oracle. The ordered-interval oracle, reason-specific negatives, mutation regressions and independent raw-source checks passed branch CI before PR #1 was merged. See [the fresh re-exit review](docs/milestone1-re-exit-review.md). The [historical exit review](docs/milestone1-exit-review.md) and [remediation record](docs/milestone1-remediation.md) preserve the original PASS and reopening. [M2A ingestion](docs/milestone2a-canonical-ingestion.md) is implemented for independent review; quality, spatial assessment and export/map implementation remain unfinished.

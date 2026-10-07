@@ -135,6 +135,8 @@ The independent-audit re-exit additionally requires ordered interval/multiplicit
 **Status:** ACTIVE — Milestone 1 remediation re-review passed
 **Release target:** v0.1.0
 
+**M2A checkpoint:** deterministic local FIT/GPX canonical ingestion is implemented on `codex/m2a-canonical-ingestion` for independent review; see [implementation and acceptance record](docs/milestone2a-canonical-ingestion.md). The slice preserves normalized evidence and source continuity and stops before QualityProjection. M2B and the spatial/export/map stages remain unfinished; M2 remains ACTIVE.
+
 ### Goal
 
 Implement the smallest reliable local pipeline:
