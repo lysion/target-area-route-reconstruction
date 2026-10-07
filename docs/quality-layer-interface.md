@@ -47,3 +47,9 @@ M1 contains a noncircular `inside + incomplete` witness: `audit-inside_incomplet
 - Keep speed unavailable across missing/non-increasing timestamps or quality breaks while preserving spatial evidence.
 
 These are M2 algorithm acceptance tests, not claims of implemented M1 runtime behavior. The six metric input fixtures and raw sentinel/segmentation fixtures supply the evidence shapes now.
+
+## Checkpoint ownership and current implementation
+
+Under the current ROADMAP, M2B implements the supporting quality values, explicit gaps and verifier; M2C consumes those verified values for target-relative conclusions. The local-target relation/completeness acceptance tests above belong to M2C and require an independently supported local-bound method before such claims are made. They do not authorize M2B to infer a route or a local bound.
+
+See [the M2B implementation record](milestone2b-quality-projection.md) for the exact immutable value structure, whole-edge original-parent ranges, explicit caller quality policy, pinned WGS84 screening distance, unavailable-rule diagnostics and independent verifier. The initial optional proof method is the complete CRS84 coordinate-domain bound only; all gaps remain unreconstructed. M2B remains ACTIVE for independent review and M2C remains NOT STARTED.

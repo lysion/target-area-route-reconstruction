@@ -178,7 +178,7 @@ M2A stops before quality classification, spatial assessment, derived speed/pace,
 
 #### M2B — Track quality, QualityProjection, and gap-proof verifier
 
-**Status:** NEXT
+**Status:** ACTIVE
 
 Implement the quality-layer hand-off already defined in [the quality-layer interface](docs/quality-layer-interface.md):
 
@@ -193,6 +193,8 @@ Implement the quality-layer hand-off already defined in [the quality-layer inter
 - mutation-sensitive tests proving that rejected or missing geometry cannot be silently reconnected.
 
 M2B may identify and bound uncertainty. It must not reconstruct a unique missing path, infer TargetArea relation/completeness, or generate TargetSegments.
+
+The [M2B implementation record](docs/milestone2b-quality-projection.md) documents the current explicit-policy algorithm, immutable supporting values, source/quality gaps, domain-only proof method and adversarial verifier. Status remains ACTIVE until independent acceptance.
 
 #### M2C — Spatial relation calculation
 
@@ -538,7 +540,7 @@ Milestone 1 completed:
 **Milestone 2 current execution:**
 
 - **M2A — DONE:** deterministic FIT/GPX canonical ingestion is merged. Raw evidence remains immutable; source ordering, continuity breaks, repeated observations, and parent-position lineage are preserved.
-- **M2B — NEXT:** implement track-quality validation, the supporting `QualityProjection`, explicit gaps, optional independently justified gap constraints, and the deterministic quality/gap verifier.
+- **M2B — ACTIVE:** implement track-quality validation, the supporting `QualityProjection`, explicit gaps, optional independently justified gap constraints, and the deterministic quality/gap verifier.
 - **M2C–M2F — NOT STARTED:** proceed only in the checkpoint order defined above: spatial relation calculation, TargetSegment extraction, GeoJSON/basic map, then valid temporal metrics and quality-aware coloring.
 
 Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut. Any proposed change to this checkpoint order or Milestone 2 scope must update this roadmap before implementation.
