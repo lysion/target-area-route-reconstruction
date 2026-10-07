@@ -94,14 +94,20 @@
       "expect_semantic_issue_code": "TRACK_NOT_ASSESSABLE"
     },
     {
-      "name": "complete_multipart_inside",
-      "path": "complete_multipart_inside.json",
+      "name": "identical_multipart_unknown_incomplete",
+      "path": "identical_multipart_unknown_incomplete.json",
       "expect_semantic_valid": true
     },
     {
       "name": "inside_incomplete_world",
       "path": "inside_incomplete_world.json",
       "expect_semantic_valid": true
+    },
+    {
+      "name": "unproven_complete_multipart",
+      "path": "unproven_complete_multipart.json",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "COVERAGE_COMPLETENESS_UNPROVEN"
     }
   ]
 }

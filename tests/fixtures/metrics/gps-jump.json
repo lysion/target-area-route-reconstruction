@@ -1,0 +1,48 @@
+{
+  "schema_version": "0.1.0",
+  "id": "metric-gps-jump",
+  "revision_id": "r1",
+  "track_source": {
+    "id": "metric-source-gps-jump",
+    "revision_id": "r1"
+  },
+  "spatial_reference": "OGC:CRS84",
+  "parts": [
+    {
+      "observations": [
+        {
+          "position": [
+            0,
+            0
+          ],
+          "timestamp": "2026-10-07T00:00:00Z"
+        },
+        {
+          "position": [
+            0.001,
+            0
+          ],
+          "timestamp": "2026-10-07T00:00:10Z"
+        },
+        {
+          "position": [
+            1.0,
+            0
+          ],
+          "timestamp": "2026-10-07T00:00:20Z"
+        },
+        {
+          "position": [
+            1.001,
+            0
+          ],
+          "timestamp": "2026-10-07T00:00:30Z"
+        }
+      ]
+    }
+  ],
+  "normalizer": {
+    "name": "fixture-normalizer",
+    "version": "0.1.0"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1.0",
+  "description": "Input-only temporal/quality capability fixtures for Milestone 2; no derived speed or rejection algorithm is claimed in Milestone 1.",
+  "cases": [
+    {
+      "name": "constant-speed",
+      "path": "metrics/constant-speed.json"
+    },
+    {
+      "name": "acceleration-deceleration",
+      "path": "metrics/acceleration-deceleration.json"
+    },
+    {
+      "name": "pause",
+      "path": "metrics/pause.json"
+    },
+    {
+      "name": "gps-jump",
+      "path": "metrics/gps-jump.json"
+    },
+    {
+      "name": "discontinuity",
+      "path": "metrics/discontinuity.json"
+    },
+    {
+      "name": "missing-timestamps",
+      "path": "metrics/missing-timestamps.json"
+    }
+  ]
+}

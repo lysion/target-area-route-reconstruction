@@ -66,7 +66,7 @@ class OrderedSpatialOracleTests(unittest.TestCase):
         })
 
     def test_connecting_continuity_parts_mutation_is_killed(self) -> None:
-        bundle = self.load_case("complete_multipart_inside")
+        bundle = self.load_case("identical_multipart_unknown_incomplete")
         self.assertEqual(layer_b.validate_linked_scenario(**bundle), [])
         original = oracle.observed_edges
 

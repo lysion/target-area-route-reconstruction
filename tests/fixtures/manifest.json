@@ -829,6 +829,42 @@
         ],
         "validator": "maxLength"
       }
+    },
+    {
+      "path": "metrics/constant-speed.json",
+      "schema": "../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "optional temporal/quality capability input: constant-speed"
+    },
+    {
+      "path": "metrics/acceleration-deceleration.json",
+      "schema": "../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "optional temporal/quality capability input: acceleration-deceleration"
+    },
+    {
+      "path": "metrics/pause.json",
+      "schema": "../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "optional temporal/quality capability input: pause"
+    },
+    {
+      "path": "metrics/gps-jump.json",
+      "schema": "../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "optional temporal/quality capability input: gps-jump"
+    },
+    {
+      "path": "metrics/discontinuity.json",
+      "schema": "../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "optional temporal/quality capability input: discontinuity"
+    },
+    {
+      "path": "metrics/missing-timestamps.json",
+      "schema": "../../../schemas/canonical-track.schema.json",
+      "expect_schema_valid": true,
+      "purpose": "optional temporal/quality capability input: missing-timestamps"
     }
   ]
 }

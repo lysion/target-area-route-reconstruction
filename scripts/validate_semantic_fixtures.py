@@ -590,6 +590,11 @@ def validate_linked_scenario(
     # leave further coverage unknown, but cannot erase an established partial.
     facts = observed_facts(canonical_track, area_geometry)
     complete = spatial_assessment["coverage_completeness"] == "complete"
+    if complete and len(canonical_track["parts"]) > 1:
+        # This fixture interface has no independently verified bound on a
+        # continuity break. No unseen path or lack of movement can be inferred
+        # from its endpoints. A future quality result may supply such proof.
+        errors.append(issue("COVERAGE_COMPLETENESS_UNPROVEN", "complete coverage across continuity parts requires independently validated gap evidence"))
     if facts.inside and facts.outside:
         required_relation = "partial"
     elif complete:
