@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CanonicalTrack",
+  "description": "Format-independent normalized spatial evidence with explicit ordered continuity parts under the frozen v0.1 domain contract.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "revision_id",
+    "track_source",
+    "spatial_reference",
+    "parts",
+    "normalizer"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "common.schema.json#/$defs/schemaVersion"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/entityId"
+    },
+    "revision_id": {
+      "$ref": "common.schema.json#/$defs/revisionId"
+    },
+    "track_source": {
+      "$ref": "common.schema.json#/$defs/revisionRef",
+      "description": "Exact immutable TrackSource revision from which this CanonicalTrack revision was normalized."
+    },
+    "spatial_reference": {
+      "$ref": "common.schema.json#/$defs/spatialReference"
+    },
+    "parts": {
+      "type": "array",
+      "description": "Ordered continuity parts. No geometry or route edge exists between adjacent array elements.",
+      "items": {
+        "$ref": "#/$defs/continuityPart"
+      },
+      "minItems": 1
+    },
+    "normalizer": {
+      "$ref": "common.schema.json#/$defs/softwareProvenance",
+      "description": "Parser/normalizer identity, version, and reproducibility parameters."
+    },
+    "extensions": {
+      "$ref": "common.schema.json#/$defs/extensions"
+    }
+  },
+  "$defs": {
+    "continuityPart": {
+      "type": "object",
+      "description": "One ordered interval in which adjacent observations may form canonical line geometry. Array order defines part_index.",
+      "required": [
+        "observations"
+      ],
+      "properties": {
+        "observations": {
+          "type": "array",
+          "description": "Ordered canonical observations. A singleton is preserved evidence but cannot by itself form positive-length route geometry.",
+          "items": {
+            "$ref": "#/$defs/observation"
+          },
+          "minItems": 1
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions"
+        }
+      },
+      "additionalProperties": false
+    },
+    "observation": {
+      "type": "object",
+      "description": "One normalized spatial observation. Position is required; temporal and measurement capabilities are optional.",
+      "required": [
+        "position"
+      ],
+      "properties": {
+        "position": {
+          "$ref": "common.schema.json#/$defs/position2d"
+        },
+        "timestamp": {
+          "$ref": "common.schema.json#/$defs/timestampUtc"
+        },
+        "altitude_m": {
+          "type": "number",
+          "description": "Optional altitude measurement in metres. Vertical datum semantics remain source/normalization provenance."
+        },
+        "distance_m": {
+          "$ref": "common.schema.json#/$defs/nonNegativeNumber",
+          "description": "Optional source/normalized cumulative distance in metres."
+        },
+        "observed_speed_mps": {
+          "$ref": "common.schema.json#/$defs/nonNegativeNumber",
+          "description": "Optional observed/device speed telemetry in metres per second. This is not derived geometric speed."
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

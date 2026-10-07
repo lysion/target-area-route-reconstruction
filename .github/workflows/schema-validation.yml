@@ -40,3 +40,14 @@ jobs:
 
       - name: Run contract mutation regressions
         run: python -m unittest discover -s tests -p 'test_*.py'
+
+      - name: Verify installed wheel outside source checkout
+        shell: bash
+        run: |
+          wheel_check_dir=$(mktemp -d)
+          python -m pip wheel --no-deps . --wheel-dir "$wheel_check_dir/dist"
+          python -m venv "$wheel_check_dir/venv"
+          "$wheel_check_dir/venv/bin/python" -m pip install "$wheel_check_dir"/dist/*.whl
+          cp tests/wheel_smoke.py "$wheel_check_dir/smoke.py"
+          cd "$wheel_check_dir"
+          env -u PYTHONPATH "$wheel_check_dir/venv/bin/python" smoke.py "$GITHUB_WORKSPACE/tests/source-fixtures" "$GITHUB_WORKSPACE"
