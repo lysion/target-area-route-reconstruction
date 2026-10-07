@@ -143,7 +143,9 @@ The independent-audit re-exit additionally requires ordered interval/multiplicit
 
 Implement the smallest reliable local pipeline:
 
-`FIT/GPX -> CanonicalTrack -> validation -> TargetArea assessment -> TargetSegment -> GeoJSON/basic map`
+`FIT/GPX -> CanonicalTrack -> validation -> relation/completeness proof -> TargetSegment -> SpatialAssessment -> GeoJSON/basic map`
+
+The relation/completeness proof is a non-identity-bearing supporting result. It does not add a seventh core entity. The frozen `SpatialAssessment` entity is assembled only after required `TargetSegment` references exist.
 
 When valid temporal evidence exists, the basic map may also render an optional speed/pace metric overlay.
 
@@ -198,32 +200,48 @@ M2B may identify and bound uncertainty. It must not reconstruct a unique missing
 
 The [M2B implementation record](docs/milestone2b-quality-projection.md) documents the accepted explicit-policy algorithm, immutable supporting values, source/quality gaps, domain-only proof method and adversarial verifier. Independent acceptance passed before PR #3 was merged.
 
-#### M2C — Spatial relation calculation
+#### M2C — Spatial relation and completeness proof
 
 **Status:** NEXT
 
+M2C produces a deterministic, non-identity-bearing supporting result for downstream M2D. It does **not** create the frozen `SpatialAssessment` entity and does not add a seventh core entity.
+
 - accept a `QualityProjection` only after `verify_quality(...)` returns `valid` against the exact M2A evidence snapshot and expected quality policy; an unverified or stale projection is not spatial authority;
-- calculate TargetArea relation under the frozen `inside / partial / outside / unknown` semantics;
-- calculate coverage completeness under the existing target-relative contract;
+- determine whether the parent track has usable positive-length route geometry and is assessable under ADR-0004;
+- if no usable positive-length route geometry exists, return an explicit non-assessable supporting result and create no relation and no `SpatialAssessment`;
+- for assessable tracks, prove TargetArea relation under the frozen `inside / partial / outside / unknown` semantics;
+- calculate target-relative coverage completeness under the existing contract;
 - preserve established inside/outside evidence even when unresolved gaps remain;
 - fail closed when a gap can still change the target-relative conclusion;
+- retain ordered parent-interval/evidence support sufficient for M2D to extract exhaustive `TargetSegment` results without re-deriving or inventing spatial facts;
 - treat `usable` as quality-admitted under the explicit algorithm/policy, not as proof that the GPS geometry is the unique or true route;
-- explicitly test leading and trailing gaps, and ensure lack of positive-length usable geometry never degrades to `outside`;
+- explicitly test leading and trailing gaps;
 - keep all target-relative conclusions traceable to the exact parent CanonicalTrack revision, verified quality result, target revision, algorithm/version and parameters.
+
+The M2C supporting result may carry relation/completeness proof material and original-parent interval evidence, but it must not assign `TargetSegment` identity/revision, ordinals, final segment geometry, or `target_segment_refs`. Those belong to M2D.
+
+**ADR-0004 assessability rule:** `unknown` is not a substitute for an unassessable track. When no usable positive-length route geometry exists, no `SpatialAssessment` is created. `unknown` applies only when an assessable track exists but unresolved spatial evidence can still change the relation.
 
 **Open M2 gap-bound obligation:** the accepted M2B implementation verifies only the tautological complete CRS84-domain bound. It does not provide a useful local spatial bound for a short GPS gap. M2C must not reinterpret that domain bound as local proof. Any v0.1 acceptance claim that depends on proving a gap wholly inside a local target or disjoint from a local target requires an independently justified local gap-bound method plus verifier support first; until then that specific conclusion must remain unresolved/fail closed.
 
-M2C must not invent new gap evidence, infer a unique missing path, silently interpolate missing geometry, or bypass M2B verification.
+M2C must not invent new gap evidence, infer a unique missing path, silently interpolate missing geometry, bypass M2B verification, generate `TargetSegment`, or assemble `SpatialAssessment`.
 
-#### M2D — Target-area segment extraction
+#### M2D — Target-area segment extraction and SpatialAssessment assembly
 
 **Status:** NOT STARTED
 
-- extract traceable `TargetSegment` results from spatially admitted usable geometry;
+- consume only an assessable, verified M2C supporting result;
+- extract traceable `TargetSegment` results from the target-relative parent intervals proved by M2C;
 - preserve original parent `CanonicalTrack` lineage and TrackPositions;
 - enforce maximality within each continuous usable interval;
 - preserve repeated visits as distinct occurrences;
-- never span a source continuity break, excluded interval, or unresolved gap.
+- never span a source continuity break, excluded interval, or unresolved gap;
+- verify TargetSegment coverage/exhaustiveness against the M2C proof result;
+- after required TargetSegments exist, assemble the frozen `SpatialAssessment` entity with exact CanonicalTrack, TargetArea, algorithm and segment references;
+- enforce the frozen schema requirement that `inside` and `partial` assessments reference at least one `TargetSegment`, while `outside` references none;
+- for an M2C non-assessable result, create neither `TargetSegment` nor `SpatialAssessment`.
+
+M2D must not reclassify relation/completeness by inventing new spatial evidence. If M2C proof material is insufficient to construct schema-valid, exhaustive segments and assessment references, fail closed rather than fabricating references.
 
 #### M2E — GeoJSON and basic interactive map
 
@@ -277,7 +295,7 @@ These obligations are not separate checkpoints, but they must be closed before M
 - missing timestamps do not invalidate otherwise valid spatial reconstruction;
 - speed/pace overlays are only produced from valid temporal intervals and do not bridge known discontinuities;
 - downstream spatial code consumes only independently verified M2B quality claims bound to the exact evidence snapshot and policy;
-- no-usable-geometry and unresolved leading/trailing-gap cases fail closed rather than becoming `outside`;
+- no-usable-positive-length-geometry cases are explicitly non-assessable and create no `SpatialAssessment`; unresolved leading/trailing-gap cases fail closed rather than becoming `outside`;
 - the v0.1 source-format support matrix accurately states supported and explicitly unsupported FIT/GPX cases;
 - CI proves the installed wheel works outside the repository checkout, including packaged GPX XSD access and representative ingestion/quality smoke paths;
 - v0.1 documentation preserves the distinction between observed geometry, quality-admitted geometry, bounded unresolved gaps, and unsupported inferred geometry.
@@ -576,8 +594,9 @@ Milestone 1 completed:
 
 - **M2A — DONE:** deterministic FIT/GPX canonical ingestion is merged. Raw evidence remains immutable; source ordering, continuity breaks, repeated observations, and parent-position lineage are preserved.
 - **M2B — DONE:** deterministic track-quality validation, supporting `QualityProjection`, explicit source/quality gaps, domain-only gap proof support, and the independent quality/gap verifier are merged after independent acceptance.
-- **M2C — NEXT:** implement spatial relation/completeness only from independently verified M2B claims. The current domain-only bound is not a useful local gap proof; local-bound-dependent conclusions remain fail-closed until an independently justified local proof method exists.
-- **M2D–M2F — NOT STARTED:** proceed only in the checkpoint order defined above: TargetSegment extraction, GeoJSON/basic map, then valid temporal metrics and quality-aware coloring.
+- **M2C — NEXT:** implement a non-identity-bearing spatial relation/completeness proof result only from independently verified M2B claims. No usable positive-length route geometry means non-assessable and no SpatialAssessment. The current domain-only bound is not a useful local gap proof; local-bound-dependent conclusions remain fail-closed until an independently justified local proof method exists.
+- **M2D — NOT STARTED:** extract exhaustive TargetSegments from the accepted M2C proof result, then assemble the frozen SpatialAssessment with valid target-segment references. Non-assessable M2C results produce neither entity.
+- **M2E–M2F — NOT STARTED:** proceed only after M2D: GeoJSON/basic map, then valid temporal metrics and quality-aware coloring.
 - **Cross-cutting before M2 DONE:** installed-wheel/outside-checkout CI smoke, an explicit v0.1 FIT/GPX support matrix, explicit quality-policy ownership, and release documentation for quality/gap limitations.
 
 Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut. Any proposed change to this checkpoint order or Milestone 2 scope must update this roadmap before implementation. M3 owns durable evidence custody/integrity after ingestion; M5 owns source-adapter acquisition provenance/authenticity only where mechanically supported.
