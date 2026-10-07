@@ -268,17 +268,23 @@ def assert_subset(actual: dict[str, Any], expected: dict[str, Any], label: str) 
 def main() -> int:
     repo_root = Path(__file__).resolve().parent.parent
     root = repo_root / "tests/source-fixtures"
-    manifest = load_json(root / "manifest.json")
-    fixtures = manifest.get("fixtures", [])
-    if not isinstance(fixtures, list) or not fixtures:
-        print("ERROR: source fixture manifest has no fixtures", file=sys.stderr)
-        return 2
-
     observed: dict[str, dict[str, Any]] = {}
 
     try:
+        manifest = load_json(root / "manifest.json")
+        if not isinstance(manifest, dict) or manifest.get("schema_version") != "0.1.0":
+            raise FixtureError("source fixture manifest must be an object with schema_version '0.1.0'")
+        fixtures = manifest.get("fixtures", [])
+        if not isinstance(fixtures, list) or not fixtures:
+            raise FixtureError("source fixture manifest has no fixtures")
+        seen_ids: set[str] = set()
+        seen_paths: set[str] = set()
         for entry in fixtures:
             fixture_id = entry["id"]
+            if fixture_id in seen_ids or entry["path"] in seen_paths:
+                raise FixtureError("duplicate source fixture ID or path")
+            seen_ids.add(fixture_id)
+            seen_paths.add(entry["path"])
             path = root / entry["path"]
             if not path.is_file():
                 raise FixtureError(f"{fixture_id}: missing file {path}")
