@@ -126,6 +126,8 @@ Encode the frozen domain contract into schemas and reproducible test fixtures be
 - all Milestone 0 edge cases have reproducible fixtures or explicit non-file test representations;
 - no schema depends on COROS-specific fields.
 
+The independent-audit re-exit additionally requires ordered interval/multiplicity validation, reason-specific negatives, mandatory Layer A for linked components, mutation-sensitive continuity tests, a documented numerical policy and quality hand-off, strict JSON, independent raw format checks, and a fresh review with green branch CI. Historical PASS records remain preserved.
+
 ---
 
 ## Milestone 2 — Deterministic Core
@@ -147,6 +149,7 @@ When valid temporal evidence exists, the basic map may also render an optional s
 - GPX ingestion;
 - normalization into `CanonicalTrack`;
 - track-quality validation;
+- implement the supporting quality result and gap-proof verifier in [the quality-layer interface](docs/quality-layer-interface.md), preserving normalized observations and parent indices;
 - spatial relation calculation;
 - extraction of target-area segments;
 - GeoJSON export;

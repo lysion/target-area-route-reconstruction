@@ -15,6 +15,8 @@ All files are synthetic and privacy-safe. No real activity location data is stor
 
   Representative synthetic FIT Activity with FileId, three Records, Lap, Session, and Activity summary messages in event order. It is also coordinate/timestamp-equivalent to `equivalent/basic.gpx`.
 
+  Independent decoding checks required summary timestamps/start/elapsed/timer fields, a single running session/lap, their index/count association, and Activity session count/local timestamp. This follows Garmin's [Activity-file structure](https://developer.garmin.com/fit/file-types/activity/) and [encoding recipe](https://developer.garmin.com/fit/cookbook/encoding-activity-files/). Optional device/sensor messages, compressed timestamps and developer fields are later parser tests, not claims of this small baseline.
+
 - `gpx/no-timestamps.gpx`
 
   Spatially valid GPX with ordered positions and no timestamps. It establishes that missing timestamps do not invalidate spatial reconstruction.
@@ -61,5 +63,7 @@ python scripts/generate_synthetic_source_fixtures.py
 ```
 
 The generator is fixture tooling only. It is not the production FIT/GPX parser.
+
+The original six fixtures are preserved byte-for-byte. In particular, the timestamp-only no-position FIT is protocol-readable evidence, not a conforming complete Activity profile (Activity Records require a timestamp plus another value). The complete Activity is a separate file; fixing baseline labeling does not rewrite old raw evidence.
 
 The gate runs the repository's narrow FIT reader alongside pinned `fitdecode==0.11.0`, which independently checks FIT framing, CRC, profile field decoding, and invalid sentinels. The small pure-Python dependency is pinned so CI behavior is reproducible. GPX files are checked against the vendored official Topografix GPX 1.1 XSD (`spec/gpx-1.1.xsd`, SHA-256 `9e4d1988b862edbe556305b130f8f6f1b29864fefd0dc02d5dab04ccdd1f34d6`) using pinned `lxml==6.1.3`. The XSD is stored locally so CI never fetches it at test time.

@@ -59,7 +59,7 @@ The runner:
 5. enables format checking, including canonical RFC3339/date-time constraints;
 6. reads `tests/fixtures/manifest.json`;
 7. validates each fixture against its declared schema;
-8. compares actual validity with `expect_schema_valid`;
+8. compares actual validity with `expect_schema_valid`, and for negatives requires `expect_schema_error` to match the instance path and schema keyword (not prose);
 9. exits non-zero on any mismatch or runner/manifest/schema error.
 
 Exit codes:
@@ -82,7 +82,7 @@ python scripts/validate_semantic_fixtures.py
 
 Use `--verbose` to print the reasons expected-invalid semantic fixtures/scenarios are rejected.
 
-The semantic runner does not use JSON Schema as a substitute for domain logic. It evaluates:
+Before any linked semantic check, the runner requires every component to be registered in the fixture manifest, associated with the correct entity schema, expected schema-valid, and actually Layer A-valid. It then evaluates independent domain logic:
 
 - explicit Polygon/MultiPolygon ring closure and Shapely/GEOS topology validity;
 - CanonicalTrack positive-length assessability separately from canonical evidence validity;
@@ -90,14 +90,16 @@ The semantic runner does not use JSON Schema as a substitute for domain logic. I
 - TrackPosition bounds against the parent CanonicalTrack;
 - deterministic interpolation of TrackPosition endpoints;
 - TargetSegment geometry regeneration against the parent track interval;
-- TargetArea coverage of linked TargetSegment geometry;
+- TargetArea-covered ordered parent intervals, preserving direction, multiplicity and part identity;
 - exact Activity → TrackSource → CanonicalTrack revision/identity links;
 - exact SpatialAssessment → CanonicalTrack/TargetArea revision links;
 - exact TargetSegment → SpatialAssessment/CanonicalTrack revision links;
 - spatial-reference consistency;
 - TargetSegment ordinal/reference ordering;
-- deterministic relation and exhaustive target coverage for complete linked scenarios without unresolved target-relevant uncertainty;
-- observed proof for `partial` even when `coverage_completeness = incomplete`.
+- maximal coverage of all reliable observed intervals, even when additional coverage is unresolved;
+- evidence-first relation facts, including proven `partial` with incomplete coverage.
+
+Semantic negatives require a stable `expect_semantic_issue_code`; an unrelated rejection cannot satisfy the expected failure. The [numerical policy](../docs/numerical-policy.md) defines interpolation/comparison. The [quality hand-off](../docs/quality-layer-interface.md) states the oracle's all-observed-edges-reliable assumption and its current gap-proof capability limit. It does not claim to implement production quality validation.
 
 Local semantic expectations come from `tests/fixtures/manifest.json`. Cross-object expectations come from `tests/fixtures/semantic-scenarios.json`.
 
@@ -117,7 +119,7 @@ Milestone 1 representation completeness is checked separately with:
 python scripts/validate_edge_case_coverage.py
 ```
 
-That runner verifies that EC-01 through EC-29 are all mapped exactly once to registered fixtures, linked semantic scenarios, or explicit non-file contract cases.
+That runner verifies that EC-01 through EC-29 are all mapped exactly once to registered fixtures, linked semantic scenarios, or explicit non-file contract cases. Non-file cases must retain assertion, execution owner/milestone, future test shape and reason. Duplicate/malformed entries and negative references to positive cases fail.
 
 ## Raw parser-input fixture baseline
 
@@ -130,6 +132,9 @@ It contains:
 - GPX with two explicit track segments;
 - intentionally malformed GPX;
 - structurally valid FIT with timestamped records but no positions.
+- a complete representative FIT Activity with FileId/Record/Lap/Session/Activity summaries;
+- FIT invalid-position sentinels and a positioned/missing/positioned sequence;
+- well-formed XML with invalid GPX root, coordinate range or version.
 
 The baseline is described by `../tests/source-fixtures/manifest.json` and validated with:
 
@@ -137,7 +142,7 @@ The baseline is described by `../tests/source-fixtures/manifest.json` and valida
 python scripts/validate_source_fixture_baseline.py
 ```
 
-The validator checks hashes, GPX structure, FIT header/data/CRC/Record structure, and the declared FIT/GPX equivalence baseline. Production parsing remains Milestone 2 work.
+The validator checks hashes, local official GPX 1.1 XSD conformance using pinned lxml, FIT framing/header and file CRC/fields using both the fixture reader and pinned fitdecode, and declared FIT/GPX equivalence. Original minimal FIT streams are labeled separately from the complete Activity. Production parsing remains Milestone 2 work.
 
 ## Validation layers
 
@@ -285,18 +290,8 @@ Current coverage artifacts:
 - `../docs/milestone1-edge-case-coverage.md` — human-readable complete mapping;
 - `../docs/milestone1-linked-scenario-coverage.md` — linked spatial scenario details.
 
-Current registered set: 113 schema fixtures, 16 linked semantic scenarios, 13 non-file contract cases, and 6 negative cross-object cases. Fourteen of the schema fixtures independently exercise shared common definitions.
+Current registered set: 260 schema fixtures, 39 linked semantic scenarios (including 23 adversarial/control scenarios), 13 non-file contract cases, and 6 coverage-map negative cross-object registrations. Fifteen schema fixtures independently exercise common definitions, including exact lowercase 64-character SHA-256 digests. Six metric inputs retain the M1 optional-capability commitment.
 
-Milestone 1 is complete. The schema/fixture workspace is frozen for v0.1 unless implementation exposes a contract defect requiring normal change control.
+There are 56 local/linked semantic expectations and 12 raw files in two FIT/GPX equivalence groups. Entity fixture counts include shared-shaped scenario components and are not independent behavioral coverage counts. Conventional unit/integration and mutation tests run with `python -m unittest discover -s tests -p 'test_*.py'`.
 
-Milestone 2 consumes these contracts and fixtures.
-
-Completed Milestone 1 validation status:
-
-- 113/113 schema fixture expectations matched;
-- 33/33 semantic expectations matched;
-- EC-01 through EC-29 mapped;
-- 14 shared common-definition conformance probes matched;
-- 6/6 synthetic raw source files verified;
-- 1 equivalent GPX/FIT route group verified;
-- Milestone 1 exit review passed.
+The previous PASS was invalidated by the adversarial audit. Current milestone status and final results are governed by [ROADMAP](../ROADMAP.md) and [the fresh re-exit review](../docs/milestone1-re-exit-review.md); historical counts remain in the original reviews.

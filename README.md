@@ -18,7 +18,7 @@ The core design intentionally separates platform access, file formats, acquisiti
 
 ## v0.1 scope
 
-The first milestone is deliberately narrow:
+The first release is deliberately narrow:
 
 - local FIT and GPX inputs;
 - an explicit target area;
@@ -85,6 +85,10 @@ Current design artifacts:
 - [Evidence plan](docs/evidence-plan.md)
 - [Real-world evidence record](docs/real-world-cases.md)
 - [Track metric overlays](docs/track-metric-overlays.md)
+- [Normalized evidence / quality interface](docs/quality-layer-interface.md)
+- [Numerical policy](docs/numerical-policy.md)
+- [M1 remediation and before/after evidence](docs/milestone1-remediation.md)
+- [M1 fresh re-exit review](docs/milestone1-re-exit-review.md)
 
 ## Status
 

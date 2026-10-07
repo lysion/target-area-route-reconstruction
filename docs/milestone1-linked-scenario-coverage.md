@@ -19,7 +19,7 @@ This document records which frozen edge cases are now represented by linked sema
 | EC-21 — target-relevant continuity gap | `relevant-gap-unknown` | no chord is created across continuity parts; unresolved target relevance remains unknown + incomplete |
 | EC-22 — multiple disjoint target segments | `repeated-entry`, `multipolygon`, `polygon-hole` | multiple TargetSegments remain children of one SpatialAssessment |
 | EC-23 — lineage | `valid-partial-crossing`, `repeated-entry`, `starts-inside-leaves`, `boundary-overlap`, `multipolygon`, `polygon-hole`, plus lineage/order/bounds negatives | start/end TrackPosition values regenerate target geometry; invalid lineage, out-of-bounds positions, and reversed refs fail semantically |
-| EC-29 — determined relation with incomplete coverage | `partial-incomplete-gap` | observed geometry already proves partial while a separate unresolved continuity break may hide additional target coverage |
+| EC-29 — determined relation with incomplete coverage | `partial-incomplete-gap`, `audit-inside_incomplete_world` | partial remains proven despite a gap; a CRS84-domain target proves inside without circular reliance on the submitted relation |
 
 ## Scenario chain
 
@@ -41,7 +41,7 @@ TargetSegment[]
 
 The semantic runner checks identity/revision references across that chain in addition to local geometry semantics.
 
-## Current linked scenario set
+## Original linked scenario set (retained)
 
 Positive scenarios:
 
@@ -94,7 +94,15 @@ The scenario set now exercises:
 - MultiPolygon components;
 - continuity-break no-edge semantics;
 - target-relevant CoverageUncertainty;
-- exhaustive target coverage for complete scenarios.
+- maximal observed coverage for both complete and incomplete scenarios.
+
+## Adversarial additions
+
+The same formal manifests now register 23 additional scenarios, indexed in `tests/adversarial/manifest.json`. They exercise omitted A→B→A traversal, repeated entry over identical geometry, identical geometry in separate parts (both complete and incomplete omission attacks), reordered loops, shortened known incomplete segments, contradictory incomplete relations, diagonal roundoff, length underflow, repeated coordinates, tiny interval truncation, bounds/order/cross-part negatives, and positive controls. There are 39 linked scenarios in total, all with mandatory Layer A validation. Every negative names a stable issue code.
+
+`tests/test_spatial_oracle.py` injects an edge between adjacent parts and requires the positive multipart control to stop validating. `tests/test_contract_gates.py` separately attacks the runners' reason expectations, schema registrations, strict JSON readers and coverage declarations. These tests add behavioral evidence beyond counting mapped EC IDs.
+
+The fixture oracle's usable-evidence assumptions and unsupported gap-bound proofs are explicit in [the quality-layer contract](quality-layer-interface.md). General local-area inside/incomplete needs independently justified gap constraints; a submitted relation or prose uncertainty is insufficient.
 
 ## Relationship to complete edge-case mapping
 
@@ -106,4 +114,4 @@ The full EC-01 through EC-29 mapping is now recorded in:
 
 This document remains focused on linked spatial scenarios.
 
-Remaining Milestone 1 work is validation conformance: stabilize Layer A, Layer B, and coverage-map execution in CI, add any missing common-definition conformance fixtures, and perform the final Milestone 1 exit review.
+Current readiness is recorded in [the fresh re-exit review](milestone1-re-exit-review.md). The original exit review remains historical evidence.
