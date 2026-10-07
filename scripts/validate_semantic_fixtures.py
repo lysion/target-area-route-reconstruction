@@ -35,6 +35,9 @@ from typing import Any, Callable, Iterable
 from shapely.geometry import GeometryCollection, LineString, MultiLineString, shape
 from shapely.ops import unary_union
 from shapely.validation import explain_validity
+from strict_json import load_json as strict_load_json
+from jsonschema import Draft202012Validator, FormatChecker
+from validate_schema_fixtures import build_registry, schema_documents
 
 
 GEOMETRY_TOLERANCE = 1e-12
@@ -42,6 +45,15 @@ GEOMETRY_TOLERANCE = 1e-12
 
 class RunnerError(RuntimeError):
     """Raised when repository/manifest state prevents trustworthy validation."""
+
+
+def issue(code: str, detail: str) -> str:
+    """Stable machine-readable identity followed by diagnostic prose."""
+    return f"{code}: {detail}"
+
+
+def issue_code(error: str) -> str:
+    return error.split(":", 1)[0]
 
 
 @dataclass(frozen=True)
@@ -52,12 +64,19 @@ class LocalSemanticResult:
     errors: tuple[str, ...]
     expected_assessable: bool | None
     actual_assessable: bool | None
+    expected_issue_code: str | None
 
     @property
     def semantic_expectation_matched(self) -> bool:
         return (
             self.expected_valid is None
-            or self.expected_valid == self.actual_valid
+            or (
+                self.expected_valid == self.actual_valid
+                and (
+                    self.expected_valid
+                    or self.expected_issue_code in {issue_code(error) for error in self.errors}
+                )
+            )
         )
 
     @property
@@ -81,22 +100,27 @@ class ScenarioResult:
     expected_valid: bool
     actual_valid: bool
     errors: tuple[str, ...]
+    expected_issue_code: str | None
 
     @property
     def matched(self) -> bool:
-        return self.expected_valid == self.actual_valid
+        return self.expected_valid == self.actual_valid and (
+            self.expected_valid
+            or self.expected_issue_code in {issue_code(error) for error in self.errors}
+        )
 
 
 def load_json(path: Path) -> Any:
     try:
-        with path.open("r", encoding="utf-8") as handle:
-            return json.load(handle)
+        return strict_load_json(path)
     except FileNotFoundError as exc:
         raise RunnerError(f"file not found: {path}") from exc
     except json.JSONDecodeError as exc:
         raise RunnerError(
             f"invalid JSON: {path}:{exc.lineno}:{exc.colno}: {exc.msg}"
         ) from exc
+    except ValueError as exc:
+        raise RunnerError(f"invalid JSON: {path}: {exc}") from exc
 
 
 def resolve_under(root: Path, raw_path: str, *, label: str) -> Path:
@@ -172,26 +196,22 @@ def validate_target_area(area: dict[str, Any]) -> list[str]:
 
     for ring_index, ring in enumerate(iter_polygon_rings(geometry_data)):
         if not ring or ring[0] != ring[-1]:
-            errors.append(
-                f"polygon ring {ring_index} is not explicitly closed"
-            )
+            errors.append(issue("TARGET_AREA_RING_UNCLOSED", f"polygon ring {ring_index} is not explicitly closed"))
 
     try:
         geometry = shape(geometry_data)
     except Exception as exc:  # Shapely raises several geometry-specific types.
-        errors.append(f"geometry construction failed: {exc}")
+        errors.append(issue("TARGET_AREA_GEOMETRY_INVALID", f"geometry construction failed: {exc}"))
         return errors
 
     if geometry.is_empty:
-        errors.append("TargetArea geometry is empty")
+        errors.append(issue("TARGET_AREA_GEOMETRY_INVALID", "TargetArea geometry is empty"))
 
     if geometry.area <= 0:
-        errors.append("TargetArea geometry has no positive area")
+        errors.append(issue("TARGET_AREA_GEOMETRY_INVALID", "TargetArea geometry has no positive area"))
 
     if not geometry.is_valid:
-        errors.append(
-            "TargetArea topology is invalid: " + explain_validity(geometry)
-        )
+        errors.append(issue("TARGET_AREA_TOPOLOGY_INVALID", "TargetArea topology is invalid: " + explain_validity(geometry)))
 
     return errors
 
@@ -206,9 +226,7 @@ def validate_spatial_assessment(assessment: dict[str, Any]) -> list[str]:
         if not track_position_ordered(
             affected["start"], affected["end"], allow_equal=True
         ):
-            errors.append(
-                f"coverage_uncertainties[{index}] track range is reversed"
-            )
+            errors.append(issue("COVERAGE_UNCERTAINTY_RANGE_REVERSED", f"coverage_uncertainties[{index}] track range is reversed"))
 
     return errors
 
@@ -219,22 +237,18 @@ def validate_target_segment(segment: dict[str, Any]) -> list[str]:
     end = segment["end_position"]
 
     if start["part_index"] != end["part_index"]:
-        errors.append(
-            "TargetSegment endpoints must belong to one continuity part"
-        )
+        errors.append(issue("TARGET_SEGMENT_CROSSES_PART", "TargetSegment endpoints must belong to one continuity part"))
     elif not track_position_ordered(start, end, allow_equal=False):
-        errors.append(
-            "TargetSegment start_position must precede end_position"
-        )
+        errors.append(issue("TARGET_SEGMENT_ORDER_INVALID", "TargetSegment start_position must precede end_position"))
 
     try:
         geometry = shape(segment["geometry"])
     except Exception as exc:
-        errors.append(f"TargetSegment geometry construction failed: {exc}")
+        errors.append(issue("TARGET_SEGMENT_GEOMETRY_INVALID", f"TargetSegment geometry construction failed: {exc}"))
         return errors
 
     if geometry.is_empty or geometry.length <= 0:
-        errors.append("TargetSegment geometry must have positive length")
+        errors.append(issue("TARGET_SEGMENT_ZERO_LENGTH", "TargetSegment geometry must have positive length"))
 
     return errors
 
@@ -302,6 +316,13 @@ def load_fixture_manifest(
                     "expect_schema_valid=true"
                 )
 
+        issue_expectation = entry.get("expect_semantic_issue_code")
+        if semantic_expected is False:
+            if not isinstance(issue_expectation, str) or not issue_expectation:
+                raise RunnerError(f"{entry['path']}: expected-invalid semantic fixture requires expect_semantic_issue_code")
+        elif issue_expectation is not None:
+            raise RunnerError(f"{entry['path']}: semantic issue code requires expect_semantic_valid=false")
+
         resolve_under(
             fixtures_root, entry["path"], label="fixture"
         )
@@ -364,6 +385,7 @@ def run_local_semantic_checks(
                 errors=errors,
                 expected_assessable=expected_assessable,
                 actual_assessable=actual_assessable,
+                expected_issue_code=entry.get("expect_semantic_issue_code"),
             )
         )
 
@@ -391,21 +413,17 @@ def validate_track_position_against_parent(
     parts = track["parts"]
     if part_index >= len(parts):
         return [
-            f"{label}: part_index {part_index} is out of bounds "
-            f"for {len(parts)} part(s)"
+            issue("TRACK_POSITION_OUT_OF_BOUNDS", f"{label}: part_index {part_index} is out of bounds for {len(parts)} part(s)")
         ]
 
     observations = parts[part_index]["observations"]
     if observation_index >= len(observations):
         return [
-            f"{label}: observation_index {observation_index} is out of bounds "
-            f"for part {part_index} with {len(observations)} observation(s)"
+            issue("TRACK_POSITION_OUT_OF_BOUNDS", f"{label}: observation_index {observation_index} is out of bounds for part {part_index} with {len(observations)} observation(s)")
         ]
 
     if fraction > 0 and observation_index + 1 >= len(observations):
-        errors.append(
-            f"{label}: non-zero fraction_to_next requires a next observation"
-        )
+        errors.append(issue("TRACK_POSITION_OUT_OF_BOUNDS", f"{label}: non-zero fraction_to_next requires a next observation"))
 
     return errors
 
@@ -517,21 +535,14 @@ def validate_segment_against_parent(
     if not coordinates_close(
         actual_start, reconstructed_coordinates[0]
     ):
-        errors.append(
-            "TargetSegment geometry start does not match start_position lineage"
-        )
+        errors.append(issue("TARGET_SEGMENT_LINEAGE_MISMATCH", "TargetSegment geometry start does not match start_position lineage"))
     if not coordinates_close(
         actual_end, reconstructed_coordinates[-1]
     ):
-        errors.append(
-            "TargetSegment geometry end does not match end_position lineage"
-        )
+        errors.append(issue("TARGET_SEGMENT_LINEAGE_MISMATCH", "TargetSegment geometry end does not match end_position lineage"))
 
     if actual_line.hausdorff_distance(expected_line) > GEOMETRY_TOLERANCE:
-        errors.append(
-            "TargetSegment geometry does not follow the parent CanonicalTrack "
-            "interval identified by its lineage"
-        )
+        errors.append(issue("TARGET_SEGMENT_LINEAGE_MISMATCH", "TargetSegment geometry does not follow the parent CanonicalTrack interval identified by its lineage"))
 
     if not math.isclose(
         actual_line.length,
@@ -539,15 +550,10 @@ def validate_segment_against_parent(
         rel_tol=1e-12,
         abs_tol=GEOMETRY_TOLERANCE,
     ):
-        errors.append(
-            "TargetSegment geometry length differs from reconstructed parent "
-            "track interval"
-        )
+        errors.append(issue("TARGET_SEGMENT_LINEAGE_MISMATCH", "TargetSegment geometry length differs from reconstructed parent track interval"))
 
     if not area_geometry.covers(actual_line):
-        errors.append(
-            "TargetSegment geometry is not fully covered by its TargetArea"
-        )
+        errors.append(issue("TARGET_SEGMENT_OUTSIDE_AREA", "TargetSegment geometry is not fully covered by its TargetArea"))
 
     return errors
 
@@ -650,43 +656,27 @@ def validate_linked_scenario(
         ),
     ):
         for error in validator(document):
-            errors.append(f"{label}: {error}")
+            errors.append(issue(issue_code(error), f"{label}: {error.split(': ', 1)[-1]}"))
 
     if not canonical_track_assessable(canonical_track):
-        errors.append(
-            "canonical_track: linked assessment requires positive-length "
-            "assessable route geometry"
-        )
+        errors.append(issue("TRACK_NOT_ASSESSABLE", "canonical_track: linked assessment requires positive-length assessable route geometry"))
 
     if track_source["activity"] != {"id": activity["id"]}:
-        errors.append(
-            "track_source.activity does not reference the linked Activity"
-        )
+        errors.append(issue("SOURCE_ACTIVITY_MISMATCH", "track_source.activity does not reference the linked Activity"))
 
     if canonical_track["track_source"] != exact_revision_ref(track_source):
-        errors.append(
-            "canonical_track.track_source does not reference the exact linked "
-            "TrackSource revision"
-        )
+        errors.append(issue("TRACK_SOURCE_REVISION_MISMATCH", "canonical_track.track_source does not reference the exact linked TrackSource revision"))
 
     if spatial_assessment["canonical_track"] != exact_revision_ref(
         canonical_track
     ):
-        errors.append(
-            "spatial_assessment.canonical_track does not reference the exact "
-            "linked CanonicalTrack revision"
-        )
+        errors.append(issue("ASSESSMENT_TRACK_REVISION_MISMATCH", "spatial_assessment.canonical_track does not reference the exact linked CanonicalTrack revision"))
 
     if spatial_assessment["target_area"] != exact_revision_ref(target_area):
-        errors.append(
-            "spatial_assessment.target_area does not reference the exact "
-            "linked TargetArea revision"
-        )
+        errors.append(issue("ASSESSMENT_AREA_REVISION_MISMATCH", "spatial_assessment.target_area does not reference the exact linked TargetArea revision"))
 
     if canonical_track["spatial_reference"] != target_area["spatial_reference"]:
-        errors.append(
-            "CanonicalTrack and TargetArea spatial references do not match"
-        )
+        errors.append(issue("SPATIAL_REFERENCE_MISMATCH", "CanonicalTrack and TargetArea spatial references do not match"))
 
     for index, uncertainty in enumerate(
         spatial_assessment.get("coverage_uncertainties", [])
@@ -723,19 +713,13 @@ def validate_linked_scenario(
     expected_ordinals = list(range(len(sorted_segments)))
     actual_ordinals = [item["ordinal"] for item in sorted_segments]
     if actual_ordinals != expected_ordinals:
-        errors.append(
-            "TargetSegment ordinals must be contiguous from zero within the "
-            "linked SpatialAssessment"
-        )
+        errors.append(issue("TARGET_SEGMENT_ORDER_INVALID", "TargetSegment ordinals must be contiguous from zero within the linked SpatialAssessment"))
 
     expected_refs = [
         exact_revision_ref(segment) for segment in sorted_segments
     ]
     if spatial_assessment["target_segment_refs"] != expected_refs:
-        errors.append(
-            "spatial_assessment.target_segment_refs do not exactly match the "
-            "linked TargetSegment revisions in ordinal order"
-        )
+        errors.append(issue("TARGET_SEGMENT_REFERENCE_MISMATCH", "spatial_assessment.target_segment_refs do not exactly match the linked TargetSegment revisions in ordinal order"))
 
     for previous, current in zip(sorted_segments, sorted_segments[1:]):
         if not track_position_ordered(
@@ -743,10 +727,7 @@ def validate_linked_scenario(
             current["start_position"],
             allow_equal=False,
         ):
-            errors.append(
-                "TargetSegments are not strictly ordered and non-overlapping "
-                "by parent CanonicalTrack position"
-            )
+            errors.append(issue("TARGET_SEGMENT_ORDER_INVALID", "TargetSegments are not strictly ordered and non-overlapping by parent CanonicalTrack position"))
             break
 
     segment_geometries: list[Any] = []
@@ -756,26 +737,18 @@ def validate_linked_scenario(
         if segment["spatial_assessment"] != exact_revision_ref(
             spatial_assessment
         ):
-            errors.append(
-                f"{prefix}.spatial_assessment does not reference the exact "
-                "linked SpatialAssessment revision"
-            )
+            errors.append(issue("SEGMENT_ASSESSMENT_REVISION_MISMATCH", f"{prefix}.spatial_assessment does not reference the exact linked SpatialAssessment revision"))
 
         if segment["canonical_track"] != exact_revision_ref(canonical_track):
-            errors.append(
-                f"{prefix}.canonical_track does not reference the exact "
-                "linked CanonicalTrack revision"
-            )
+            errors.append(issue("SEGMENT_TRACK_REVISION_MISMATCH", f"{prefix}.canonical_track does not reference the exact linked CanonicalTrack revision"))
 
         if segment["spatial_reference"] != canonical_track["spatial_reference"]:
-            errors.append(
-                f"{prefix}.spatial_reference does not match CanonicalTrack"
-            )
+            errors.append(issue("SPATIAL_REFERENCE_MISMATCH", f"{prefix}.spatial_reference does not match CanonicalTrack"))
 
         for error in validate_segment_against_parent(
             segment, canonical_track, area_geometry
         ):
-            errors.append(f"{prefix}: {error}")
+            errors.append(issue(issue_code(error), f"{prefix}: {error.split(': ', 1)[-1]}"))
 
         try:
             segment_geometries.append(shape(segment["geometry"]))
@@ -869,6 +842,12 @@ def load_scenario_manifest(
             raise RunnerError(
                 f"semantic scenario {name}: expect_semantic_valid must be boolean"
             )
+        expected_issue_code = scenario.get("expect_semantic_issue_code")
+        if scenario["expect_semantic_valid"] is False:
+            if not isinstance(expected_issue_code, str) or not expected_issue_code:
+                raise RunnerError(f"semantic scenario {name}: expected-invalid scenario requires expect_semantic_issue_code")
+        elif expected_issue_code is not None:
+            raise RunnerError(f"semantic scenario {name}: valid scenario must not specify expect_semantic_issue_code")
 
         for key in (
             "activity",
@@ -946,6 +925,7 @@ def run_scenarios(
                 expected_valid=scenario["expect_semantic_valid"],
                 actual_valid=not errors,
                 errors=errors,
+                expected_issue_code=scenario.get("expect_semantic_issue_code"),
             )
         )
 
@@ -1008,11 +988,53 @@ def run(
     fixtures_root = fixture_manifest_path.parent
 
     entries = load_fixture_manifest(fixtures_root, fixture_manifest_path)
-    local_results = run_local_semantic_checks(fixtures_root, entries)
-
     scenarios = load_scenario_manifest(
         fixtures_root, scenario_manifest_path
     )
+
+    # The semantic runner is independently safe to invoke: every object it
+    # consumes must be a registered Layer A-valid fixture of the right type.
+    repo_schema_dir = repo_root / "schemas"
+    documents = schema_documents(repo_schema_dir)
+    registry = build_registry(documents)
+    registered = {entry["path"]: entry for entry in entries}
+    checked: set[tuple[str, str]] = set()
+
+    def require_layer_a(raw_path: str, expected_schema: str) -> None:
+        entry = registered.get(raw_path)
+        if entry is None:
+            raise RunnerError(f"linked semantic component is not registered in fixture manifest: {raw_path}")
+        fixture_path = resolve_under(fixtures_root, raw_path, label="linked component")
+        schema_path = (fixture_path.parent / entry["schema"]).resolve()
+        expected_path = (repo_schema_dir / expected_schema).resolve()
+        if schema_path != expected_path or entry.get("expect_schema_valid") is not True:
+            raise RunnerError(f"{raw_path}: linked semantic component has wrong schema or is not expected schema-valid")
+        key = (raw_path, expected_schema)
+        if key in checked:
+            return
+        validator = Draft202012Validator(documents[schema_path], registry=registry, format_checker=FormatChecker())
+        errors = list(validator.iter_errors(load_json(fixture_path)))
+        if errors:
+            raise RunnerError(f"{raw_path}: linked semantic component fails Layer A: {errors[0].message}")
+        checked.add(key)
+
+    for entry in entries:
+        if entry.get("expect_semantic_valid") is not None or entry.get("expect_assessable") is not None:
+            fixture_path = resolve_under(fixtures_root, entry["path"], label="local semantic component")
+            require_layer_a(entry["path"], schema_basename_from_manifest_entry(fixture_path, entry["schema"]))
+    for scenario in scenarios:
+        for key, name in (
+            ("activity", "activity.schema.json"),
+            ("track_source", "track-source.schema.json"),
+            ("canonical_track", "canonical-track.schema.json"),
+            ("target_area", "target-area.schema.json"),
+            ("spatial_assessment", "spatial-assessment.schema.json"),
+        ):
+            require_layer_a(scenario[key], name)
+        for segment_path in scenario["target_segments"]:
+            require_layer_a(segment_path, "target-segment.schema.json")
+
+    local_results = run_local_semantic_checks(fixtures_root, entries)
     scenario_results = run_scenarios(fixtures_root, scenarios)
 
     for result in local_results:

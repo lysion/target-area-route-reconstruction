@@ -26,13 +26,25 @@
       "path": "spatial-assessment/invalid-unknown-complete.json",
       "schema": "../../../schemas/spatial-assessment.schema.json",
       "expect_schema_valid": false,
-      "purpose": "unknown must imply incomplete"
+      "purpose": "unknown must imply incomplete",
+      "expect_schema_error": {
+        "instance_path": [
+          "coverage_completeness"
+        ],
+        "validator": "const"
+      }
     },
     {
       "path": "spatial-assessment/invalid-incomplete-without-uncertainty.json",
       "schema": "../../../schemas/spatial-assessment.schema.json",
       "expect_schema_valid": false,
-      "purpose": "incomplete requires auditable CoverageUncertainty"
+      "purpose": "incomplete requires auditable CoverageUncertainty",
+      "expect_schema_error": {
+        "instance_path": [
+          "coverage_uncertainties"
+        ],
+        "validator": "minItems"
+      }
     },
     {
       "path": "target-segment/valid-basic.json",
@@ -45,14 +57,22 @@
       "path": "target-segment/invalid-fraction-one.json",
       "schema": "../../../schemas/target-segment.schema.json",
       "expect_schema_valid": false,
-      "purpose": "TrackPosition fraction 1 must be normalized to next observation at fraction 0"
+      "purpose": "TrackPosition fraction 1 must be normalized to next observation at fraction 0",
+      "expect_schema_error": {
+        "instance_path": [
+          "start_position",
+          "fraction_to_next"
+        ],
+        "validator": "exclusiveMaximum"
+      }
     },
     {
       "path": "target-segment/semantic-invalid-zero-length.json",
       "schema": "../../../schemas/target-segment.schema.json",
       "expect_schema_valid": true,
       "expect_semantic_valid": false,
-      "purpose": "JSON shape is valid but zero-length geometry violates TargetSegment domain semantics"
+      "purpose": "JSON shape is valid but zero-length geometry violates TargetSegment domain semantics",
+      "expect_semantic_issue_code": "TARGET_SEGMENT_ZERO_LENGTH"
     },
     {
       "path": "canonical-track/valid-coordinate-only.json",
@@ -82,13 +102,30 @@
       "path": "canonical-track/invalid-empty-parts.json",
       "schema": "../../../schemas/canonical-track.schema.json",
       "expect_schema_valid": false,
-      "purpose": "CanonicalTrack requires at least one continuity part"
+      "purpose": "CanonicalTrack requires at least one continuity part",
+      "expect_schema_error": {
+        "instance_path": [
+          "parts"
+        ],
+        "validator": "minItems"
+      }
     },
     {
       "path": "canonical-track/invalid-coordinate-range.json",
       "schema": "../../../schemas/canonical-track.schema.json",
       "expect_schema_valid": false,
-      "purpose": "canonical CRS84 longitude/latitude bounds are enforced structurally"
+      "purpose": "canonical CRS84 longitude/latitude bounds are enforced structurally",
+      "expect_schema_error": {
+        "instance_path": [
+          "parts",
+          0,
+          "observations",
+          0,
+          "position",
+          0
+        ],
+        "validator": "maximum"
+      }
     },
     {
       "path": "target-area/valid-polygon.json",
@@ -108,21 +145,29 @@
       "path": "target-area/invalid-linestring.json",
       "schema": "../../../schemas/target-area.schema.json",
       "expect_schema_valid": false,
-      "purpose": "LineString is not a v0.1 TargetArea geometry"
+      "purpose": "LineString is not a v0.1 TargetArea geometry",
+      "expect_schema_error": {
+        "instance_path": [
+          "geometry"
+        ],
+        "validator": "oneOf"
+      }
     },
     {
       "path": "target-area/semantic-invalid-unclosed-ring.json",
       "schema": "../../../schemas/target-area.schema.json",
       "expect_schema_valid": true,
       "expect_semantic_valid": false,
-      "purpose": "JSON structural shape cannot by itself prove polygon ring closure"
+      "purpose": "JSON structural shape cannot by itself prove polygon ring closure",
+      "expect_semantic_issue_code": "TARGET_AREA_RING_UNCLOSED"
     },
     {
       "path": "target-area/semantic-invalid-self-intersection.json",
       "schema": "../../../schemas/target-area.schema.json",
       "expect_schema_valid": true,
       "expect_semantic_valid": false,
-      "purpose": "JSON shape permits a closed ring, but self-intersection violates the TargetArea topology contract"
+      "purpose": "JSON shape permits a closed ring, but self-intersection violates the TargetArea topology contract",
+      "expect_semantic_issue_code": "TARGET_AREA_TOPOLOGY_INVALID"
     },
     {
       "path": "activity/valid-minimal.json",
@@ -142,7 +187,11 @@
       "path": "activity/invalid-source-native-id.json",
       "schema": "../../../schemas/activity.schema.json",
       "expect_schema_valid": false,
-      "purpose": "source-native identifiers are TrackSource provenance, not core Activity fields"
+      "purpose": "source-native identifiers are TrackSource provenance, not core Activity fields",
+      "expect_schema_error": {
+        "instance_path": [],
+        "validator": "additionalProperties"
+      }
     },
     {
       "path": "track-source/valid-local-file.json",
@@ -169,19 +218,37 @@
       "path": "track-source/invalid-missing-origin-namespace.json",
       "schema": "../../../schemas/track-source.schema.json",
       "expect_schema_valid": false,
-      "purpose": "source-native provenance is meaningless without a source namespace"
+      "purpose": "source-native provenance is meaningless without a source namespace",
+      "expect_schema_error": {
+        "instance_path": [
+          "origin"
+        ],
+        "validator": "required"
+      }
     },
     {
       "path": "track-source/invalid-activity-revision-ref.json",
       "schema": "../../../schemas/track-source.schema.json",
       "expect_schema_valid": false,
-      "purpose": "TrackSource belongs to stable Activity identity rather than an invented Activity revision contract"
+      "purpose": "TrackSource belongs to stable Activity identity rather than an invented Activity revision contract",
+      "expect_schema_error": {
+        "instance_path": [
+          "activity"
+        ],
+        "validator": "additionalProperties"
+      }
     },
     {
       "path": "track-source/invalid-missing-media-type.json",
       "schema": "../../../schemas/track-source.schema.json",
       "expect_schema_valid": false,
-      "purpose": "TrackSource must identify the representation type of preserved source evidence"
+      "purpose": "TrackSource must identify the representation type of preserved source evidence",
+      "expect_schema_error": {
+        "instance_path": [
+          "representation"
+        ],
+        "validator": "required"
+      }
     },
     {
       "path": "scenarios/partial-crossing/activity.json",
@@ -577,7 +644,13 @@
       "path": "target-segment/invalid-spatial-reference.json",
       "schema": "../../../schemas/target-segment.schema.json",
       "expect_schema_valid": false,
-      "purpose": "v0.1 canonical spatial reference is fixed to OGC:CRS84, so a cross-object CRS mismatch is rejected at Layer A before semantic validation"
+      "purpose": "v0.1 canonical spatial reference is fixed to OGC:CRS84, so a cross-object CRS mismatch is rejected at Layer A before semantic validation",
+      "expect_schema_error": {
+        "instance_path": [
+          "spatial_reference"
+        ],
+        "validator": "const"
+      }
     },
     {
       "path": "scenarios/partial-incomplete-gap/activity.json",
@@ -625,7 +698,13 @@
       "path": "common/invalid-empty-entity-id.json",
       "schema": "../../../schemas/common-conformance.schema.json",
       "expect_schema_valid": false,
-      "purpose": "empty entity ID is invalid"
+      "purpose": "empty entity ID is invalid",
+      "expect_schema_error": {
+        "instance_path": [
+          "value"
+        ],
+        "validator": "minLength"
+      }
     },
     {
       "path": "common/valid-revision-ref.json",
@@ -637,7 +716,13 @@
       "path": "common/invalid-revision-ref-missing-revision.json",
       "schema": "../../../schemas/common-conformance.schema.json",
       "expect_schema_valid": false,
-      "purpose": "revisionRef without revision_id is invalid"
+      "purpose": "revisionRef without revision_id is invalid",
+      "expect_schema_error": {
+        "instance_path": [
+          "value"
+        ],
+        "validator": "required"
+      }
     },
     {
       "path": "common/valid-spatial-reference.json",
@@ -649,7 +734,13 @@
       "path": "common/invalid-spatial-reference.json",
       "schema": "../../../schemas/common-conformance.schema.json",
       "expect_schema_valid": false,
-      "purpose": "alternate spatial reference identifier is rejected"
+      "purpose": "alternate spatial reference identifier is rejected",
+      "expect_schema_error": {
+        "instance_path": [
+          "value"
+        ],
+        "validator": "const"
+      }
     },
     {
       "path": "common/valid-position-boundary.json",
@@ -661,7 +752,14 @@
       "path": "common/invalid-position-axis-range.json",
       "schema": "../../../schemas/common-conformance.schema.json",
       "expect_schema_valid": false,
-      "purpose": "latitude outside [-90,90] is invalid"
+      "purpose": "latitude outside [-90,90] is invalid",
+      "expect_schema_error": {
+        "instance_path": [
+          "value",
+          1
+        ],
+        "validator": "maximum"
+      }
     },
     {
       "path": "common/valid-timestamp-utc.json",
@@ -673,7 +771,13 @@
       "path": "common/invalid-timestamp-offset.json",
       "schema": "../../../schemas/common-conformance.schema.json",
       "expect_schema_valid": false,
-      "purpose": "offset timestamp without trailing Z is invalid canonical form"
+      "purpose": "offset timestamp without trailing Z is invalid canonical form",
+      "expect_schema_error": {
+        "instance_path": [
+          "value"
+        ],
+        "validator": "pattern"
+      }
     },
     {
       "path": "common/valid-track-position.json",
@@ -685,7 +789,14 @@
       "path": "common/invalid-track-position-fraction-one.json",
       "schema": "../../../schemas/common-conformance.schema.json",
       "expect_schema_valid": false,
-      "purpose": "TrackPosition fraction 1 is non-canonical and invalid"
+      "purpose": "TrackPosition fraction 1 is non-canonical and invalid",
+      "expect_schema_error": {
+        "instance_path": [
+          "value",
+          "fraction_to_next"
+        ],
+        "validator": "exclusiveMaximum"
+      }
     },
     {
       "path": "common/valid-sha256.json",
@@ -697,7 +808,27 @@
       "path": "common/invalid-sha256-uppercase.json",
       "schema": "../../../schemas/common-conformance.schema.json",
       "expect_schema_valid": false,
-      "purpose": "uppercase SHA-256 digest is invalid canonical form"
+      "purpose": "uppercase SHA-256 digest is invalid canonical form",
+      "expect_schema_error": {
+        "instance_path": [
+          "value",
+          "digest"
+        ],
+        "validator": "pattern"
+      }
+    },
+    {
+      "path": "common/invalid-sha256-trailing-newline.json",
+      "schema": "../../../schemas/common-conformance.schema.json",
+      "expect_schema_valid": false,
+      "purpose": "SHA-256 digest must be exactly 64 lowercase hexadecimal characters without trailing newline",
+      "expect_schema_error": {
+        "instance_path": [
+          "value",
+          "digest"
+        ],
+        "validator": "maxLength"
+      }
     }
   ]
 }

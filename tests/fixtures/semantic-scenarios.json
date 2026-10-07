@@ -32,7 +32,8 @@
       "edge_cases": [
         "EC-23"
       ],
-      "purpose": "schema-valid geometry/lineage mismatch must fail semantic validation"
+      "purpose": "schema-valid geometry/lineage mismatch must fail semantic validation",
+      "expect_semantic_issue_code": "TARGET_SEGMENT_LINEAGE_MISMATCH"
     },
     {
       "name": "invalid-assessment-track-reference",
@@ -46,7 +47,8 @@
         "scenarios/partial-crossing/target-segment.json"
       ],
       "edge_cases": [],
-      "purpose": "schema-valid cross-revision reference mismatch must fail semantic validation"
+      "purpose": "schema-valid cross-revision reference mismatch must fail semantic validation",
+      "expect_semantic_issue_code": "ASSESSMENT_TRACK_REVISION_MISMATCH"
     },
     {
       "name": "fully-inside",
@@ -227,7 +229,8 @@
       "spatial_assessment": "scenarios/partial-crossing/spatial-assessment.json",
       "target_segments": [
         "scenarios/partial-crossing/target-segment-invalid-out-of-bounds.json"
-      ]
+      ],
+      "expect_semantic_issue_code": "TRACK_POSITION_OUT_OF_BOUNDS"
     },
     {
       "name": "invalid-assessment-area-reference",
@@ -244,7 +247,8 @@
       "spatial_assessment": "scenarios/partial-crossing/spatial-assessment-invalid-area-ref.json",
       "target_segments": [
         "scenarios/partial-crossing/target-segment.json"
-      ]
+      ],
+      "expect_semantic_issue_code": "ASSESSMENT_AREA_REVISION_MISMATCH"
     },
     {
       "name": "invalid-target-segment-reference-order",
@@ -263,7 +267,8 @@
       "target_segments": [
         "scenarios/repeated-entry/target-segment-0.json",
         "scenarios/repeated-entry/target-segment-1.json"
-      ]
+      ],
+      "expect_semantic_issue_code": "TARGET_SEGMENT_REFERENCE_MISMATCH"
     }
   ]
 }

@@ -18,6 +18,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+from strict_json import load_json as strict_load_json
 
 CRC_TABLE = (
     0x0000, 0xCC01, 0xD801, 0x1400,
@@ -44,8 +45,8 @@ def fit_crc(data: bytes, crc: int = 0) -> int:
 
 def load_json(path: Path) -> Any:
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+        return strict_load_json(path)
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
         raise FixtureError(f"cannot load JSON {path}: {exc}") from exc
 
 
