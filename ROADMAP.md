@@ -132,10 +132,10 @@ The independent-audit re-exit additionally requires ordered interval/multiplicit
 
 ## Milestone 2 — Deterministic Core
 
-**Status:** ACTIVE — Milestone 1 remediation re-review passed
+**Status:** ACTIVE — M2A merged; M2B is the sole immediate implementation checkpoint
 **Release target:** v0.1.0
 
-**M2A checkpoint:** deterministic local FIT/GPX canonical ingestion is implemented on `codex/m2a-canonical-ingestion` for independent review; see [implementation and acceptance record](docs/milestone2a-canonical-ingestion.md). The slice preserves normalized evidence and source continuity and stops before QualityProjection. M2B and the spatial/export/map stages remain unfinished; M2 remains ACTIVE.
+**M2A checkpoint:** DONE after independent review and merge of PR #2. Deterministic local FIT/GPX ingestion now normalizes preserved source evidence into the frozen `CanonicalTrack` shape while retaining source order, continuity boundaries, repeated observations, and missing-position diagnostics. See [implementation and acceptance record](docs/milestone2a-canonical-ingestion.md). M2 remains ACTIVE.
 
 ### Goal
 
@@ -159,6 +159,82 @@ When valid temporal evidence exists, the basic map may also render an optional s
 - derived segment speed/pace calculation when valid temporal evidence is available;
 - quality-aware speed/pace coloring on the map;
 - unit and integration tests.
+
+### Execution checkpoints
+
+These checkpoints sequence the existing Milestone 2 work only. They do not expand the v0.1 scope, change the six frozen core entities, or introduce new domain semantics. If the sequencing or scope needs to change, update this roadmap before implementation.
+
+#### M2A — Canonical ingestion
+
+**Status:** DONE
+
+- FIT ingestion;
+- GPX ingestion;
+- normalization into the frozen `CanonicalTrack`;
+- deterministic source/normalization diagnostics;
+- source continuity and parent-position preservation.
+
+M2A stops before quality classification, spatial assessment, derived speed/pace, GeoJSON, and map output.
+
+#### M2B — Track quality, QualityProjection, and gap-proof verifier
+
+**Status:** NEXT
+
+Implement the quality-layer hand-off already defined in [the quality-layer interface](docs/quality-layer-interface.md):
+
+- deterministic track-quality validation;
+- an immutable supporting `QualityProjection` value/result with exact parent `CanonicalTrack` identity and algorithm/version/parameters;
+- ordered `usable_intervals`;
+- ordered `excluded_intervals` with stable reason codes and evidence references;
+- explicit `gaps` for source discontinuities and quality-excluded geometry;
+- optional `gap_constraints` only when independently justified by supporting evidence;
+- a deterministic verifier that rejects out-of-bounds, overlapping, cross-part, stale, or unsupported quality/gap claims;
+- preservation of original normalized observations and parent indices;
+- mutation-sensitive tests proving that rejected or missing geometry cannot be silently reconnected.
+
+M2B may identify and bound uncertainty. It must not reconstruct a unique missing path, infer TargetArea relation/completeness, or generate TargetSegments.
+
+#### M2C — Spatial relation calculation
+
+**Status:** NOT STARTED
+
+- consume the M2B quality result and verified gap constraints;
+- calculate TargetArea relation under the frozen `inside / partial / outside / unknown` semantics;
+- calculate coverage completeness under the existing target-relative contract;
+- preserve established inside/outside evidence even when unresolved gaps remain;
+- fail closed when a gap can still change the target-relative conclusion.
+
+M2C must not invent new gap evidence or silently interpolate missing geometry.
+
+#### M2D — Target-area segment extraction
+
+**Status:** NOT STARTED
+
+- extract traceable `TargetSegment` results from spatially admitted usable geometry;
+- preserve original parent `CanonicalTrack` lineage and TrackPositions;
+- enforce maximality within each continuous usable interval;
+- preserve repeated visits as distinct occurrences;
+- never span a source continuity break, excluded interval, or unresolved gap.
+
+#### M2E — GeoJSON and basic interactive map
+
+**Status:** NOT STARTED
+
+- export accepted spatial results to GeoJSON;
+- provide a basic interactive map;
+- distinguish confirmed geometry, target segments, and quality/uncertainty state where represented;
+- keep rendering downstream of deterministic analysis rather than creating new inference.
+
+#### M2F — Valid temporal metrics and quality-aware map coloring
+
+**Status:** NOT STARTED
+
+- derive segment speed/pace only where temporal evidence is valid;
+- keep speed/pace unavailable across missing or non-increasing timestamps, continuity breaks, excluded geometry, or unresolved gaps;
+- add quality-aware speed/pace coloring to the basic map;
+- preserve spatial evidence even when temporal metrics are unavailable.
+
+Unit and integration testing remain cross-cutting requirements throughout M2, and the Milestone 2 exit criteria below remain authoritative for the complete release slice.
 
 ### Explicit non-goals
 
@@ -393,7 +469,7 @@ No project decision should rely solely on chat history.
 
 ## Current execution point
 
-**Current milestone:** Milestone 1 — Schemas and Fixtures (remediation). Milestone 2 is blocked pending re-review.
+**Current milestone:** Milestone 2 — Deterministic Core. M2A is DONE after independent review and merge; M2B is the sole immediate implementation checkpoint.
 
 **Milestone 0 outcome: DONE**
 
@@ -459,12 +535,10 @@ Milestone 1 completed:
 
 **Milestone 1 remediation outcome:** DONE after [fresh re-exit review](docs/milestone1-re-exit-review.md) and [branch CI](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37573668670). The frozen v0.1 contract remains unchanged. The strengthened gate verifies 260 schema fixtures, 56 semantic expectations, 29 owned EC representations, 12 raw files/two equivalence groups and 25 unit/integration tests, including adversarial and mutation witnesses. This supersedes the sufficiency of the historical PASS above.
 
-**Active Milestone 2 work, not implemented by this remediation:**
+**Milestone 2 current execution:**
 
-1. implement GPX ingestion against the committed raw-source fixtures;
-2. implement FIT ingestion against the equivalent and no-position FIT fixtures;
-3. normalize both formats into `CanonicalTrack` without changing the frozen schemas;
-4. make the existing source-fixture normalization expectations executable parser tests;
-5. proceed to deterministic spatial assessment and TargetSegment extraction only after parser normalization is stable.
+- **M2A — DONE:** deterministic FIT/GPX canonical ingestion is merged. Raw evidence remains immutable; source ordering, continuity breaks, repeated observations, and parent-position lineage are preserved.
+- **M2B — NEXT:** implement track-quality validation, the supporting `QualityProjection`, explicit gaps, optional independently justified gap constraints, and the deterministic quality/gap verifier.
+- **M2C–M2F — NOT STARTED:** proceed only in the checkpoint order defined above: spatial relation calculation, TargetSegment extraction, GeoJSON/basic map, then valid temporal metrics and quality-aware coloring.
 
-Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut.
+Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut. Any proposed change to this checkpoint order or Milestone 2 scope must update this roadmap before implementation.
