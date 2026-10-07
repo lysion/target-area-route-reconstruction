@@ -1,0 +1,56 @@
+{
+  "schema_version": "0.1.0",
+  "id": "repeated-entry-track",
+  "revision_id": "repeated-entry-track-r1",
+  "track_source": {
+    "id": "repeated-entry-source",
+    "revision_id": "repeated-entry-source-r1"
+  },
+  "spatial_reference": "OGC:CRS84",
+  "parts": [
+    {
+      "observations": [
+        {
+          "position": [
+            111.5,
+            28.25
+          ]
+        },
+        {
+          "position": [
+            112.5,
+            28.25
+          ]
+        },
+        {
+          "position": [
+            113.5,
+            28.25
+          ]
+        },
+        {
+          "position": [
+            113.5,
+            28.75
+          ]
+        },
+        {
+          "position": [
+            112.5,
+            28.75
+          ]
+        },
+        {
+          "position": [
+            111.5,
+            28.75
+          ]
+        }
+      ]
+    }
+  ],
+  "normalizer": {
+    "name": "fixture-normalizer",
+    "version": "0.1.0"
+  }
+}

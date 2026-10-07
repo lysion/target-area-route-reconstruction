@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1.0",
+  "id": "scenario-track",
+  "revision_id": "scenario-track-r1",
+  "track_source": {
+    "id": "scenario-source",
+    "revision_id": "scenario-source-r1"
+  },
+  "spatial_reference": "OGC:CRS84",
+  "parts": [
+    {
+      "observations": [
+        {
+          "position": [
+            -1,
+            0.3636463558725396
+          ]
+        },
+        {
+          "position": [
+            2,
+            -0.32739649147321576
+          ]
+        }
+      ]
+    }
+  ],
+  "normalizer": {
+    "name": "fixture-normalizer",
+    "version": "0.1.0"
+  }
+}

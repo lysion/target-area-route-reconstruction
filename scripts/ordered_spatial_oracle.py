@@ -50,12 +50,29 @@ class NumericalPolicy:
         right: tuple[float, float] | list[float],
         *,
         local_length: float,
+        operand_scale: float = 0.0,
     ) -> bool:
-        allowed = min(self.coordinate_error_cap_deg, local_length / 4)
+        scale = max(operand_scale, *(abs(float(x)) for x in (*left, *right)))
+        allowed = min(self.coordinate_error_cap_deg, 8 * math.ulp(scale), local_length / 4)
         return all(abs(float(a) - float(b)) <= allowed for a, b in zip(left, right))
 
 
 POLICY = NumericalPolicy()
+
+
+def positive_length(coordinates: Any) -> bool:
+    """Distinct adjacent represented positions imply length, without a cutoff."""
+    points = list(coordinates)
+    return any(tuple(a) != tuple(b) for a, b in zip(points, points[1:]))
+
+
+def coordinate_length(coordinates: Any) -> float:
+    points = list(coordinates)
+    return math.fsum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(points, points[1:]))
+
+
+def track_scale(track: dict[str, Any]) -> float:
+    return max(abs(value) for part in track["parts"] for obs in part["observations"] for value in obs["position"])
 
 
 def _position(part: int, edge: int, fraction: float) -> Position:
@@ -70,7 +87,7 @@ def _linear_components(geometry: Any) -> Iterator[LineString]:
     if geometry.is_empty:
         return
     if isinstance(geometry, LineString):
-        if geometry.length > 0:
+        if positive_length(geometry.coords):
             yield geometry
         return
     for component in getattr(geometry, "geoms", ()):
@@ -86,7 +103,7 @@ def observed_edges(track: dict[str, Any]) -> Iterator[tuple[int, int, LineString
                 observations[edge_index]["position"],
                 observations[edge_index + 1]["position"],
             ))
-            if edge.length > 0:
+            if positive_length(edge.coords):
                 yield part_index, edge_index, edge
 
 
@@ -125,9 +142,17 @@ def covered_intervals(track: dict[str, Any], area: Any) -> list[Interval]:
     pieces: list[Interval] = []
     for part_index, edge_index, edge in observed_edges(track):
         edge_pieces: list[Interval] = []
+        left, right = edge.coords
+        axis = max(range(2), key=lambda index: abs(right[index] - left[index]))
+
+        def fraction(point: Any) -> float:
+            # Dominant-axis division avoids length-squared underflow and
+            # gives exact 0/1 for unchanged observation endpoints.
+            return (point[axis] - left[axis]) / (right[axis] - left[axis])
+
         for line in _linear_components(edge.intersection(area)):
-            a = edge.project(Point(line.coords[0])) / edge.length
-            b = edge.project(Point(line.coords[-1])) / edge.length
+            a = fraction(line.coords[0])
+            b = fraction(line.coords[-1])
             low, high = sorted((a, b))
             start = _position(part_index, edge_index, low)
             end = _position(part_index, edge_index, high)
@@ -141,7 +166,24 @@ def covered_intervals(track: dict[str, Any], area: Any) -> list[Interval]:
             merged[-1] = Interval(merged[-1].start, piece.end)
         else:
             merged.append(piece)
-    return merged
+    # Repeated coordinates at either end remain observations in the maximal
+    # interval. Only zero-length edges in the SAME part may extend an interval.
+    extended: list[Interval] = []
+    for interval in merged:
+        start, end = interval.start, interval.end
+        observations = track["parts"][start.part_index]["observations"]
+        while start.fraction_to_next == 0 and start.observation_index > 0:
+            previous = Position(start.part_index, start.observation_index - 1, 0)
+            if not _gap_is_zero_and_covered(track, area, previous, start):
+                break
+            start = previous
+        while end.fraction_to_next == 0 and end.observation_index + 1 < len(observations):
+            following = Position(end.part_index, end.observation_index + 1, 0)
+            if not _gap_is_zero_and_covered(track, area, end, following):
+                break
+            end = following
+        extended.append(Interval(start, end))
+    return extended
 
 
 def position_from_dict(value: dict[str, Any]) -> Position:
@@ -159,20 +201,23 @@ def interpolate(track: dict[str, Any], value: Position) -> tuple[float, float]:
             float(left[1]) + t * (float(right[1]) - float(left[1])))
 
 
-def positions_match(track: dict[str, Any], actual: Position, expected: Position) -> bool:
+def positions_match(track: dict[str, Any], actual: Position, expected: Position, *, interval_length: float) -> bool:
     if (actual.part_index, actual.observation_index) != (expected.part_index, expected.observation_index):
+        return False
+    fraction_scale = max(abs(actual.fraction_to_next), abs(expected.fraction_to_next))
+    if abs(actual.fraction_to_next - expected.fraction_to_next) > 8 * math.ulp(fraction_scale):
         return False
     observations = track["parts"][expected.part_index]["observations"]
     if expected.observation_index + 1 < len(observations):
-        edge_length = LineString((
+        edge_length = coordinate_length((
             observations[expected.observation_index]["position"],
             observations[expected.observation_index + 1]["position"],
-        )).length
+        ))
     else:
         edge_length = 1.0
     if edge_length == 0:
         return actual.fraction_to_next == expected.fraction_to_next
     return POLICY.coordinates_close(
         interpolate(track, actual), interpolate(track, expected),
-        local_length=edge_length,
+        local_length=min(edge_length, interval_length), operand_scale=track_scale(track),
     )

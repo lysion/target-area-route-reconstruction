@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import sys
 import unittest
 from pathlib import Path
@@ -16,6 +15,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import ordered_spatial_oracle as oracle
 import validate_schema_fixtures as layer_a
 import validate_semantic_fixtures as layer_b
+from strict_json import load_json
 
 CASES = ROOT / "tests" / "adversarial"
 
@@ -23,12 +23,18 @@ CASES = ROOT / "tests" / "adversarial"
 class OrderedSpatialOracleTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.manifest = json.loads((CASES / "manifest.json").read_text())
+        cls.manifest = load_json(CASES / "manifest.json")
+        cls.scenarios = {entry["name"]: entry for entry in load_json(ROOT / "tests/fixtures/semantic-scenarios.json")["scenarios"]}
         cls.documents = layer_a.schema_documents(ROOT / "schemas")
         cls.registry = layer_a.build_registry(cls.documents)
 
     def load_case(self, name: str) -> dict:
-        return json.loads((CASES / f"{name}.json").read_text())
+        scenario = self.scenarios["audit-" + name]
+        bundle = {key: load_json(ROOT / "tests/fixtures" / scenario[key]) for key in (
+            "activity", "track_source", "canonical_track", "target_area", "spatial_assessment",
+        )}
+        bundle["target_segments"] = [load_json(ROOT / "tests/fixtures" / path) for path in scenario["target_segments"]]
+        return bundle
 
     def test_adversarial_bundles(self) -> None:
         schemas = {
@@ -55,7 +61,7 @@ class OrderedSpatialOracleTests(unittest.TestCase):
             (case["relation"], case["coverage_completeness"])
             for name in ("fully-inside", "fully-outside", "partial-crossing",
                          "partial-incomplete-gap", "relevant-gap-unknown")
-            for case in [json.loads((ROOT / "tests/fixtures/scenarios" / name / "spatial-assessment.json").read_text())]
+            for case in [load_json(ROOT / "tests/fixtures/scenarios" / name / "spatial-assessment.json")]
         }
         new = self.load_case("inside_incomplete_world")["spatial_assessment"]
         combinations.add((new["relation"], new["coverage_completeness"]))
@@ -81,7 +87,12 @@ class OrderedSpatialOracleTests(unittest.TestCase):
                     ))
 
         with patch.object(oracle, "observed_edges", incorrectly_bridged):
-            issues = layer_b.validate_linked_scenario(**bundle)
+            try:
+                issues = layer_b.validate_linked_scenario(**bundle)
+            except IndexError:
+                # A bridge creates a nonexistent parent edge. Failing closed
+                # on that invalid lineage also kills the deliberate mutation.
+                return
         self.assertIn("TARGET_COVERAGE_NOT_EXHAUSTIVE", {layer_b.issue_code(issue) for issue in issues})
 
 

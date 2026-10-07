@@ -1,0 +1,36 @@
+{
+  "schema_version": "0.1.0",
+  "id": "scenario-area",
+  "revision_id": "scenario-area-r1",
+  "spatial_reference": "OGC:CRS84",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          -180,
+          -90
+        ],
+        [
+          180,
+          -90
+        ],
+        [
+          180,
+          90
+        ],
+        [
+          -180,
+          90
+        ],
+        [
+          -180,
+          -90
+        ]
+      ]
+    ]
+  },
+  "definition_provenance": {
+    "description": "Synthetic target rectangle for linked semantic-validation scenario."
+  }
+}

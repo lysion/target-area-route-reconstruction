@@ -36,10 +36,10 @@ from shapely.geometry import LineString, box, shape
 from shapely.validation import explain_validity
 from strict_json import load_json as strict_load_json
 from jsonschema import Draft202012Validator, FormatChecker
-from validate_schema_fixtures import build_registry, schema_documents
+from validate_schema_fixtures import build_registry, schema_documents, parse_manifest, RunnerError as SchemaRunnerError
 from ordered_spatial_oracle import (
     POLICY, covered_intervals, observed_facts, position_from_dict,
-    positions_match,
+    positions_match, interpolate, positive_length, coordinate_length, track_scale,
 )
 
 
@@ -167,7 +167,7 @@ def canonical_track_assessable(track: dict[str, Any]) -> bool:
         if len(observations) < 2:
             continue
         coordinates = [item["position"] for item in observations]
-        if LineString(coordinates).length > 0:
+        if positive_length(coordinates):
             return True
     return False
 
@@ -247,7 +247,7 @@ def validate_target_segment(segment: dict[str, Any]) -> list[str]:
         errors.append(issue("TARGET_SEGMENT_GEOMETRY_INVALID", f"TargetSegment geometry construction failed: {exc}"))
         return errors
 
-    if geometry.is_empty or geometry.length <= 0:
+    if geometry.is_empty or not positive_length(geometry.coords):
         errors.append(issue("TARGET_SEGMENT_ZERO_LENGTH", "TargetSegment geometry must have positive length"))
 
     return errors
@@ -267,17 +267,10 @@ def load_fixture_manifest(
     fixtures_root: Path,
     manifest_path: Path,
 ) -> list[dict[str, Any]]:
-    manifest = load_json(manifest_path)
-    if not isinstance(manifest, dict):
-        raise RunnerError("fixture manifest root must be an object")
-    if manifest.get("schema_version") != "0.1.0":
-        raise RunnerError(
-            "fixture manifest schema_version must be exactly '0.1.0'"
-        )
-
-    entries = manifest.get("fixtures")
-    if not isinstance(entries, list):
-        raise RunnerError("fixture manifest 'fixtures' must be an array")
+    try:
+        entries = parse_manifest(Path(__file__).resolve().parent.parent, manifest_path)
+    except SchemaRunnerError as exc:
+        raise RunnerError(str(exc)) from exc
 
     for index, entry in enumerate(entries):
         if not isinstance(entry, dict):
@@ -432,19 +425,7 @@ def interpolate_track_position(
     track: dict[str, Any],
     position: dict[str, Any],
 ) -> tuple[float, float]:
-    part = track["parts"][position["part_index"]]["observations"]
-    index = position["observation_index"]
-    fraction = float(position["fraction_to_next"])
-    left = part[index]["position"]
-
-    if fraction == 0:
-        return float(left[0]), float(left[1])
-
-    right = part[index + 1]["position"]
-    return (
-        float(left[0]) + fraction * (float(right[0]) - float(left[0])),
-        float(left[1]) + fraction * (float(right[1]) - float(left[1])),
-    )
+    return interpolate(track, position_from_dict(position))
 
 
 def reconstruct_segment_coordinates(
@@ -508,14 +489,13 @@ def validate_segment_against_parent(
     reconstructed_coordinates = reconstruct_segment_coordinates(
         track, start, end
     )
-    expected_line = LineString(reconstructed_coordinates)
     actual_line = shape(segment["geometry"])
 
     # Vertex sequence is the domain lineage, including repeated observations.
     # Hausdorff distance and total length lose traversal order and multiplicity.
     actual_coordinates = list(actual_line.coords)
     if len(actual_coordinates) != len(reconstructed_coordinates) or any(
-        not POLICY.coordinates_close(actual, expected, local_length=expected_line.length)
+        not POLICY.coordinates_close(actual, expected, local_length=coordinate_length(reconstructed_coordinates), operand_scale=track_scale(track))
         for actual, expected in zip(actual_coordinates, reconstructed_coordinates)
     ):
         errors.append(issue("TARGET_SEGMENT_LINEAGE_MISMATCH", "TargetSegment geometry differs from ordered parent-track regeneration"))
@@ -652,9 +632,13 @@ def validate_linked_scenario(
     # All reliable observed covered portions are known even if an uncertainty
     # can hide more coverage. Compare ordered parameter intervals one by one.
     expected = covered_intervals(canonical_track, area_geometry)
+    def interval_length(interval: Any) -> float:
+        from dataclasses import asdict
+        return coordinate_length(reconstruct_segment_coordinates(canonical_track, asdict(interval.start), asdict(interval.end)))
+
     if len(expected) != len(sorted_segments) or any(
-        not positions_match(canonical_track, position_from_dict(segment["start_position"]), interval.start)
-        or not positions_match(canonical_track, position_from_dict(segment["end_position"]), interval.end)
+        not positions_match(canonical_track, position_from_dict(segment["start_position"]), interval.start, interval_length=interval_length(interval))
+        or not positions_match(canonical_track, position_from_dict(segment["end_position"]), interval.end, interval_length=interval_length(interval))
         for segment, interval in zip(sorted_segments, expected)
         if validate_target_segment(segment) == []
         and not validate_track_position_against_parent(canonical_track, segment["start_position"], label="start_position")

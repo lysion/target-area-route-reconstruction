@@ -269,6 +269,284 @@
         "scenarios/repeated-entry/target-segment-1.json"
       ],
       "expect_semantic_issue_code": "TARGET_SEGMENT_REFERENCE_MISMATCH"
+    },
+    {
+      "name": "audit-nonmaximal_half_of_retraced_inside_part",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_COVERAGE_NOT_EXHAUSTIVE",
+      "activity": "adversarial/nonmaximal_half_of_retraced_inside_part/activity.json",
+      "track_source": "adversarial/nonmaximal_half_of_retraced_inside_part/track-source.json",
+      "canonical_track": "adversarial/nonmaximal_half_of_retraced_inside_part/canonical-track.json",
+      "target_area": "adversarial/nonmaximal_half_of_retraced_inside_part/target-area.json",
+      "spatial_assessment": "adversarial/nonmaximal_half_of_retraced_inside_part/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/nonmaximal_half_of_retraced_inside_part/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "audit-complete_omits_identical_second_part",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_COVERAGE_NOT_EXHAUSTIVE",
+      "activity": "adversarial/complete_omits_identical_second_part/activity.json",
+      "track_source": "adversarial/complete_omits_identical_second_part/track-source.json",
+      "canonical_track": "adversarial/complete_omits_identical_second_part/canonical-track.json",
+      "target_area": "adversarial/complete_omits_identical_second_part/target-area.json",
+      "spatial_assessment": "adversarial/complete_omits_identical_second_part/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/complete_omits_identical_second_part/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "audit-complete_omits_repeated_entry",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_COVERAGE_NOT_EXHAUSTIVE",
+      "activity": "adversarial/complete_omits_repeated_entry/activity.json",
+      "track_source": "adversarial/complete_omits_repeated_entry/track-source.json",
+      "canonical_track": "adversarial/complete_omits_repeated_entry/canonical-track.json",
+      "target_area": "adversarial/complete_omits_repeated_entry/target-area.json",
+      "spatial_assessment": "adversarial/complete_omits_repeated_entry/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/complete_omits_repeated_entry/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "audit-segment_reorders_two_loops",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_SEGMENT_LINEAGE_MISMATCH",
+      "activity": "adversarial/segment_reorders_two_loops/activity.json",
+      "track_source": "adversarial/segment_reorders_two_loops/track-source.json",
+      "canonical_track": "adversarial/segment_reorders_two_loops/canonical-track.json",
+      "target_area": "adversarial/segment_reorders_two_loops/target-area.json",
+      "spatial_assessment": "adversarial/segment_reorders_two_loops/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/segment_reorders_two_loops/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "audit-proven_partial_relabelled_inside",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "ASSESSMENT_RELATION_CONTRADICTS_EVIDENCE",
+      "activity": "adversarial/proven_partial_relabelled_inside/activity.json",
+      "track_source": "adversarial/proven_partial_relabelled_inside/track-source.json",
+      "canonical_track": "adversarial/proven_partial_relabelled_inside/canonical-track.json",
+      "target_area": "adversarial/proven_partial_relabelled_inside/target-area.json",
+      "spatial_assessment": "adversarial/proven_partial_relabelled_inside/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/proven_partial_relabelled_inside/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "audit-proven_partial_relabelled_unknown",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "ASSESSMENT_RELATION_CONTRADICTS_EVIDENCE",
+      "activity": "adversarial/proven_partial_relabelled_unknown/activity.json",
+      "track_source": "adversarial/proven_partial_relabelled_unknown/track-source.json",
+      "canonical_track": "adversarial/proven_partial_relabelled_unknown/canonical-track.json",
+      "target_area": "adversarial/proven_partial_relabelled_unknown/target-area.json",
+      "spatial_assessment": "adversarial/proven_partial_relabelled_unknown/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/proven_partial_relabelled_unknown/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "audit-incomplete_nonmaximal_known_segment",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_COVERAGE_NOT_EXHAUSTIVE",
+      "activity": "adversarial/incomplete_nonmaximal_known_segment/activity.json",
+      "track_source": "adversarial/incomplete_nonmaximal_known_segment/track-source.json",
+      "canonical_track": "adversarial/incomplete_nonmaximal_known_segment/canonical-track.json",
+      "target_area": "adversarial/incomplete_nonmaximal_known_segment/target-area.json",
+      "spatial_assessment": "adversarial/incomplete_nonmaximal_known_segment/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/incomplete_nonmaximal_known_segment/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "audit-positive_inside_track_mislabelled_outside",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "ASSESSMENT_RELATION_CONTRADICTS_EVIDENCE",
+      "activity": "adversarial/positive_inside_track_mislabelled_outside/activity.json",
+      "track_source": "adversarial/positive_inside_track_mislabelled_outside/track-source.json",
+      "canonical_track": "adversarial/positive_inside_track_mislabelled_outside/canonical-track.json",
+      "target_area": "adversarial/positive_inside_track_mislabelled_outside/target-area.json",
+      "spatial_assessment": "adversarial/positive_inside_track_mislabelled_outside/spatial-assessment.json",
+      "target_segments": []
+    },
+    {
+      "name": "audit-positive_inside_track_correctly_labelled",
+      "expect_semantic_valid": true,
+      "activity": "adversarial/positive_inside_track_correctly_labelled/activity.json",
+      "track_source": "adversarial/positive_inside_track_correctly_labelled/track-source.json",
+      "canonical_track": "adversarial/positive_inside_track_correctly_labelled/canonical-track.json",
+      "target_area": "adversarial/positive_inside_track_correctly_labelled/target-area.json",
+      "spatial_assessment": "adversarial/positive_inside_track_correctly_labelled/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/positive_inside_track_correctly_labelled/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "audit-roundoff_at_axis_aligned_boundary",
+      "expect_semantic_valid": true,
+      "activity": "adversarial/roundoff_at_axis_aligned_boundary/activity.json",
+      "track_source": "adversarial/roundoff_at_axis_aligned_boundary/track-source.json",
+      "canonical_track": "adversarial/roundoff_at_axis_aligned_boundary/canonical-track.json",
+      "target_area": "adversarial/roundoff_at_axis_aligned_boundary/target-area.json",
+      "spatial_assessment": "adversarial/roundoff_at_axis_aligned_boundary/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/roundoff_at_axis_aligned_boundary/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "audit-nonaxis_interpolation_roundoff",
+      "expect_semantic_valid": true,
+      "activity": "adversarial/nonaxis_interpolation_roundoff/activity.json",
+      "track_source": "adversarial/nonaxis_interpolation_roundoff/track-source.json",
+      "canonical_track": "adversarial/nonaxis_interpolation_roundoff/canonical-track.json",
+      "target_area": "adversarial/nonaxis_interpolation_roundoff/target-area.json",
+      "spatial_assessment": "adversarial/nonaxis_interpolation_roundoff/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/nonaxis_interpolation_roundoff/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "audit-original_partial_control",
+      "expect_semantic_valid": true,
+      "activity": "adversarial/original_partial_control/activity.json",
+      "track_source": "adversarial/original_partial_control/track-source.json",
+      "canonical_track": "adversarial/original_partial_control/canonical-track.json",
+      "target_area": "adversarial/original_partial_control/target-area.json",
+      "spatial_assessment": "adversarial/original_partial_control/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/original_partial_control/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "audit-terminal_fraction_without_next",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TRACK_POSITION_OUT_OF_BOUNDS",
+      "activity": "adversarial/terminal_fraction_without_next/activity.json",
+      "track_source": "adversarial/terminal_fraction_without_next/track-source.json",
+      "canonical_track": "adversarial/terminal_fraction_without_next/canonical-track.json",
+      "target_area": "adversarial/terminal_fraction_without_next/target-area.json",
+      "spatial_assessment": "adversarial/terminal_fraction_without_next/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/terminal_fraction_without_next/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "audit-segment_crosses_continuity_break",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_SEGMENT_CROSSES_PART",
+      "activity": "adversarial/segment_crosses_continuity_break/activity.json",
+      "track_source": "adversarial/segment_crosses_continuity_break/track-source.json",
+      "canonical_track": "adversarial/segment_crosses_continuity_break/canonical-track.json",
+      "target_area": "adversarial/segment_crosses_continuity_break/target-area.json",
+      "spatial_assessment": "adversarial/segment_crosses_continuity_break/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/segment_crosses_continuity_break/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "audit-ordinals_and_refs_reverse_together",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_SEGMENT_ORDER_INVALID",
+      "activity": "adversarial/ordinals_and_refs_reverse_together/activity.json",
+      "track_source": "adversarial/ordinals_and_refs_reverse_together/track-source.json",
+      "canonical_track": "adversarial/ordinals_and_refs_reverse_together/canonical-track.json",
+      "target_area": "adversarial/ordinals_and_refs_reverse_together/target-area.json",
+      "spatial_assessment": "adversarial/ordinals_and_refs_reverse_together/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/ordinals_and_refs_reverse_together/target-segment-0.json",
+        "adversarial/ordinals_and_refs_reverse_together/target-segment-1.json"
+      ]
+    },
+    {
+      "name": "audit-zero_length_track_assessment",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TRACK_NOT_ASSESSABLE",
+      "activity": "adversarial/zero_length_track_assessment/activity.json",
+      "track_source": "adversarial/zero_length_track_assessment/track-source.json",
+      "canonical_track": "adversarial/zero_length_track_assessment/canonical-track.json",
+      "target_area": "adversarial/zero_length_track_assessment/target-area.json",
+      "spatial_assessment": "adversarial/zero_length_track_assessment/spatial-assessment.json",
+      "target_segments": []
+    },
+    {
+      "name": "audit-identical_multipart_unknown_incomplete",
+      "expect_semantic_valid": true,
+      "activity": "adversarial/identical_multipart_unknown_incomplete/activity.json",
+      "track_source": "adversarial/identical_multipart_unknown_incomplete/track-source.json",
+      "canonical_track": "adversarial/identical_multipart_unknown_incomplete/canonical-track.json",
+      "target_area": "adversarial/identical_multipart_unknown_incomplete/target-area.json",
+      "spatial_assessment": "adversarial/identical_multipart_unknown_incomplete/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/identical_multipart_unknown_incomplete/target-segment-0.json",
+        "adversarial/identical_multipart_unknown_incomplete/target-segment-1.json"
+      ]
+    },
+    {
+      "name": "audit-inside_incomplete_world",
+      "expect_semantic_valid": true,
+      "activity": "adversarial/inside_incomplete_world/activity.json",
+      "track_source": "adversarial/inside_incomplete_world/track-source.json",
+      "canonical_track": "adversarial/inside_incomplete_world/canonical-track.json",
+      "target_area": "adversarial/inside_incomplete_world/target-area.json",
+      "spatial_assessment": "adversarial/inside_incomplete_world/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/inside_incomplete_world/target-segment-0.json",
+        "adversarial/inside_incomplete_world/target-segment-1.json"
+      ]
+    },
+    {
+      "name": "audit-unproven_complete_multipart",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "COVERAGE_COMPLETENESS_UNPROVEN",
+      "activity": "adversarial/unproven_complete_multipart/activity.json",
+      "track_source": "adversarial/unproven_complete_multipart/track-source.json",
+      "canonical_track": "adversarial/unproven_complete_multipart/canonical-track.json",
+      "target_area": "adversarial/unproven_complete_multipart/target-area.json",
+      "spatial_assessment": "adversarial/unproven_complete_multipart/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/unproven_complete_multipart/target-segment-0.json",
+        "adversarial/unproven_complete_multipart/target-segment-1.json"
+      ]
+    },
+    {
+      "name": "audit-repeated_coordinates_maximal",
+      "expect_semantic_valid": true,
+      "activity": "adversarial/repeated_coordinates_maximal/activity.json",
+      "track_source": "adversarial/repeated_coordinates_maximal/track-source.json",
+      "canonical_track": "adversarial/repeated_coordinates_maximal/canonical-track.json",
+      "target_area": "adversarial/repeated_coordinates_maximal/target-area.json",
+      "spatial_assessment": "adversarial/repeated_coordinates_maximal/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/repeated_coordinates_maximal/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "audit-positive_length_underflow",
+      "expect_semantic_valid": true,
+      "activity": "adversarial/positive_length_underflow/activity.json",
+      "track_source": "adversarial/positive_length_underflow/track-source.json",
+      "canonical_track": "adversarial/positive_length_underflow/canonical-track.json",
+      "target_area": "adversarial/positive_length_underflow/target-area.json",
+      "spatial_assessment": "adversarial/positive_length_underflow/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/positive_length_underflow/target-segment-0.json"
+      ]
+    },
+    {
+      "name": "audit-short_covered_interval_cannot_be_halved",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_COVERAGE_NOT_EXHAUSTIVE",
+      "activity": "adversarial/short_covered_interval_cannot_be_halved/activity.json",
+      "track_source": "adversarial/short_covered_interval_cannot_be_halved/track-source.json",
+      "canonical_track": "adversarial/short_covered_interval_cannot_be_halved/canonical-track.json",
+      "target_area": "adversarial/short_covered_interval_cannot_be_halved/target-area.json",
+      "spatial_assessment": "adversarial/short_covered_interval_cannot_be_halved/spatial-assessment.json",
+      "target_segments": [
+        "adversarial/short_covered_interval_cannot_be_halved/target-segment-0.json"
+      ]
     }
   ]
 }

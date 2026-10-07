@@ -1,0 +1,70 @@
+{
+  "schema_version": "0.1.0",
+  "id": "partial-incomplete-gap-track",
+  "revision_id": "partial-incomplete-gap-track-r1",
+  "track_source": {
+    "id": "partial-incomplete-gap-source",
+    "revision_id": "partial-incomplete-gap-source-r1"
+  },
+  "spatial_reference": "OGC:CRS84",
+  "parts": [
+    {
+      "observations": [
+        {
+          "position": [
+            111.5,
+            28.25
+          ]
+        },
+        {
+          "position": [
+            112.5,
+            28.25
+          ]
+        },
+        {
+          "position": [
+            113.5,
+            28.25
+          ]
+        }
+      ]
+    },
+    {
+      "observations": [
+        {
+          "position": [
+            110.5,
+            28.75
+          ]
+        },
+        {
+          "position": [
+            111.5,
+            28.75
+          ]
+        }
+      ]
+    },
+    {
+      "observations": [
+        {
+          "position": [
+            113.5,
+            28.75
+          ]
+        },
+        {
+          "position": [
+            114.5,
+            28.75
+          ]
+        }
+      ]
+    }
+  ],
+  "normalizer": {
+    "name": "fixture-normalizer",
+    "version": "0.1.0"
+  }
+}
