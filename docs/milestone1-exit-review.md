@@ -1,5 +1,7 @@
 # Milestone 1 Exit Review
 
+> Historical record: this PASS was reopened after an independent adversarial audit of commit `141dc092f5a3c7845066156cafd26b3879e99137` found the previous validation oracle insufficient. Current status and corrective work are recorded in [milestone1-remediation.md](milestone1-remediation.md). This document preserves the original decision and evidence.
+
 **Review date:** 2026-10-07  
 **Milestone:** 1 — Schemas and Fixtures  
 **Result:** **PASS — Milestone 1 complete**
