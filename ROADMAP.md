@@ -137,7 +137,7 @@ The independent-audit re-exit additionally requires ordered interval/multiplicit
 
 **M2A checkpoint:** DONE after independent review and merge of PR #2. Deterministic local FIT/GPX ingestion now normalizes preserved source evidence into the frozen `CanonicalTrack` shape while retaining source order, continuity boundaries, repeated observations, and missing-position diagnostics. See [implementation and acceptance record](docs/milestone2a-canonical-ingestion.md).
 
-**M2B checkpoint:** DONE after independent review and merge of PR #3. Track quality now produces an immutable supporting `QualityProjection`, explicit source/quality gaps, optional independently verified constraints, and a deterministic verifier while preserving original parent indices. See [implementation record](docs/milestone2b-quality-projection.md). M2 remains ACTIVE; M2C is ACTIVE.
+**M2B checkpoint:** DONE after independent review and merge of PR #3. Track quality now produces an immutable supporting `QualityProjection`, explicit source/quality gaps, optional independently verified constraints, and a deterministic verifier while preserving original parent indices. See [implementation record](docs/milestone2b-quality-projection.md). M2 remains ACTIVE; M2D is ACTIVE.
 
 ### Goal
 
