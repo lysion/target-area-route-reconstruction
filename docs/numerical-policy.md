@@ -31,3 +31,7 @@ All validation tooling and test fixture readers use `scripts/strict_json.py`. No
 ## Regression witnesses
 
 The formal schema and semantic manifests include diagonal interpolation noise, very short positive routes, a halved tiny covered interval on a long edge, repeated coordinates, boundary overlap, vertex touch, zero-length tracks, same-geometry parts, retracing, reordered visits and incomplete known coverage. The independent unittest layer additionally injects the cross-part-edge mutation and asserts it cannot validate the positive control.
+
+## Production quality distance (M2B)
+
+[M2B's implementation record](milestone2b-quality-projection.md#first-quality-algorithm-and-numerical-policy) separately defines the pinned GeographicLib 2.1 WGS84 inverse endpoint-distance method, metre units, antimeridian/polar behavior, exact UTC fractional-duration arithmetic and a 1 micrometre computational comparison guard. That screening policy does not change this planar fixture oracle, canonical interpolation or the domain definition of positive length. It preserves every tiny/zero-distance candidate edge and never uses the guard to delete observations or manufacture a gap route.
