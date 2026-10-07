@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=69,<81"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "target-area-route-reconstruction"
+version = "0.1.0"
+description = "Deterministic, source-preserving canonical track ingestion"
+requires-python = ">=3.11"
+dependencies = ["fitdecode==0.11.0", "lxml==6.1.3"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+target_area_route_reconstruction = ["spec/*.xsd"]
