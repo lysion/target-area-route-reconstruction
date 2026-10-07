@@ -13,9 +13,11 @@ test intent and ownership are explicit rather than silently omitted.
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
+from strict_json import load_json as strict_load_json
 
 
 class CoverageError(RuntimeError):
@@ -24,14 +26,15 @@ class CoverageError(RuntimeError):
 
 def load_json(path: Path) -> Any:
     try:
-        with path.open("r", encoding="utf-8") as handle:
-            return json.load(handle)
+        return strict_load_json(path)
     except FileNotFoundError as exc:
         raise CoverageError(f"file not found: {path}") from exc
     except json.JSONDecodeError as exc:
         raise CoverageError(
             f"invalid JSON: {path}:{exc.lineno}:{exc.colno}: {exc.msg}"
         ) from exc
+    except ValueError as exc:
+        raise CoverageError(f"invalid JSON: {path}: {exc}") from exc
 
 
 def fail(message: str) -> None:
@@ -45,6 +48,24 @@ def validate(repo_root: Path) -> None:
         repo_root / "tests/fixtures/semantic-scenarios.json"
     )
     nonfile_manifest = load_json(repo_root / "tests/nonfile-contract-cases.json")
+
+    for label, document, array_name in (
+        ("coverage", coverage, "edge_cases"),
+        ("fixtures", fixture_manifest, "fixtures"),
+        ("scenarios", scenario_manifest, "scenarios"),
+        ("non-file", nonfile_manifest, "cases"),
+    ):
+        if not isinstance(document, dict) or document.get("schema_version") != "0.1.0":
+            fail(f"{label} manifest must be an object with schema_version '0.1.0'")
+        values = document.get(array_name)
+        if not isinstance(values, list) or not all(isinstance(item, dict) for item in values):
+            fail(f"{label} manifest {array_name} must be an array of objects")
+    for item in fixture_manifest["fixtures"]:
+        if not isinstance(item.get("path"), str) or not item["path"]:
+            fail("fixture path must be non-empty")
+    for item in scenario_manifest["scenarios"]:
+        if not isinstance(item.get("name"), str) or not item["name"]:
+            fail("scenario name must be non-empty")
 
     if coverage.get("schema_version") != "0.1.0":
         fail("edge-case coverage schema_version must be '0.1.0'")
@@ -65,11 +86,38 @@ def validate(repo_root: Path) -> None:
         "tests/fixtures/" + item["path"]
         for item in fixture_manifest.get("fixtures", [])
     }
-    scenario_names = {
-        item["name"] for item in scenario_manifest.get("scenarios", [])
-    }
-    nonfile_ids = {
-        item["edge_case"] for item in nonfile_manifest.get("cases", [])
+    if len(fixture_paths) != len(fixture_manifest["fixtures"]):
+        fail("duplicate fixture registration")
+    scenarios = scenario_manifest.get("scenarios")
+    nonfile_cases = nonfile_manifest.get("cases")
+    if not isinstance(scenarios, list) or not isinstance(nonfile_cases, list):
+        fail("scenario and non-file manifests must contain arrays")
+    scenario_by_name = {item["name"]: item for item in scenarios}
+    scenario_names = set(scenario_by_name)
+    if len(scenario_names) != len(scenarios):
+        fail("duplicate linked semantic scenario name")
+    nonfile_ids: set[str] = set()
+    nonfile_required = (
+        "edge_case", "assertion", "execution_milestone",
+        "future_test_shape", "reason_not_entity_fixture",
+    )
+    for index, item in enumerate(nonfile_cases):
+        if not isinstance(item, dict):
+            fail(f"non-file case {index} must be an object")
+        for key in nonfile_required:
+            value = item.get(key)
+            if not isinstance(value, str) or not value.strip():
+                fail(f"non-file case {index} requires non-empty {key}")
+        if not re.fullmatch(r"Milestone [0-9]+(?:.*)", item["execution_milestone"]):
+            fail(f"non-file case {index} requires a Milestone execution owner")
+        case_id = item["edge_case"]
+        if case_id in nonfile_ids or case_id not in expected_ids:
+            fail(f"duplicate or unknown non-file edge case: {case_id}")
+        nonfile_ids.add(case_id)
+
+    fixture_by_path = {
+        "tests/fixtures/" + item["path"]: item
+        for item in fixture_manifest.get("fixtures", [])
     }
 
     valid_types = {
@@ -84,6 +132,7 @@ def validate(repo_root: Path) -> None:
         if not isinstance(reps, list) or not reps:
             fail(f"{edge_case}: at least one representation is required")
 
+        seen_reps: set[tuple[str, str]] = set()
         for rep in reps:
             if not isinstance(rep, dict):
                 fail(f"{edge_case}: representation must be an object")
@@ -93,6 +142,10 @@ def validate(repo_root: Path) -> None:
                 fail(f"{edge_case}: unsupported representation type {rep_type!r}")
             if not isinstance(ref, str) or not ref:
                 fail(f"{edge_case}: representation ref must be non-empty")
+            pair = (rep_type, ref)
+            if pair in seen_reps:
+                fail(f"{edge_case}: duplicate representation")
+            seen_reps.add(pair)
 
             if rep_type == "fixture":
                 if ref not in fixture_paths:
@@ -121,6 +174,8 @@ def validate(repo_root: Path) -> None:
 
     negative_names: set[str] = set()
     for item in negatives:
+        if not isinstance(item, dict):
+            fail("negative cross-object case must be an object")
         name = item.get("name")
         layer = item.get("layer")
         ref = item.get("ref")
@@ -137,15 +192,25 @@ def validate(repo_root: Path) -> None:
             scenario_name = ref[len(prefix):]
             if scenario_name not in scenario_names:
                 fail(f"{name}: semantic scenario not found: {scenario_name}")
+            if scenario_by_name[scenario_name].get("expect_semantic_valid") is not False:
+                fail(f"{name}: semantic negative ref points to a valid scenario")
+            if not scenario_by_name[scenario_name].get("expect_semantic_issue_code"):
+                fail(f"{name}: semantic negative ref has no expected issue code")
         elif layer == "schema":
             if ref not in fixture_paths:
                 fail(f"{name}: schema fixture not registered: {ref}")
+            if fixture_by_path[ref].get("expect_schema_valid") is not False:
+                fail(f"{name}: schema negative ref points to a valid fixture")
+            if not fixture_by_path[ref].get("expect_schema_error"):
+                fail(f"{name}: schema negative ref has no expected failure selector")
         else:
             fail(f"{name}: unsupported negative validation layer {layer!r}")
 
     # Scenario edge-case annotations must only reference frozen IDs.
     expected_set = set(expected_ids)
     for scenario in scenario_manifest.get("scenarios", []):
+        if not isinstance(scenario.get("edge_cases", []), list):
+            fail("scenario edge_cases must be an array")
         for edge_case in scenario.get("edge_cases", []):
             if edge_case not in expected_set:
                 fail(

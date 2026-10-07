@@ -1,0 +1,36 @@
+{
+  "schema_version": "0.1.0",
+  "id": "partial-incomplete-gap-area",
+  "revision_id": "partial-incomplete-gap-area-r1",
+  "spatial_reference": "OGC:CRS84",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          112,
+          28
+        ],
+        [
+          113,
+          28
+        ],
+        [
+          113,
+          29
+        ],
+        [
+          112,
+          29
+        ],
+        [
+          112,
+          28
+        ]
+      ]
+    ]
+  },
+  "definition_provenance": {
+    "description": "Synthetic TargetArea for partial + incomplete coverage scenario."
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "schema_version": "0.1.0",
+  "id": "repeated-entry-area",
+  "revision_id": "repeated-entry-area-r1",
+  "spatial_reference": "OGC:CRS84",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          112,
+          28
+        ],
+        [
+          113,
+          28
+        ],
+        [
+          113,
+          29
+        ],
+        [
+          112,
+          29
+        ],
+        [
+          112,
+          28
+        ]
+      ]
+    ]
+  },
+  "definition_provenance": {
+    "description": "Synthetic repeated-entry TargetArea fixture."
+  }
+}

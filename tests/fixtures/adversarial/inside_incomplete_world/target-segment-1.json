@@ -1,0 +1,38 @@
+{
+  "schema_version": "0.1.0",
+  "id": "audit-segment-1",
+  "revision_id": "r1",
+  "spatial_assessment": {
+    "id": "scenario-assessment",
+    "revision_id": "scenario-assessment-r1"
+  },
+  "canonical_track": {
+    "id": "scenario-track",
+    "revision_id": "scenario-track-r1"
+  },
+  "ordinal": 1,
+  "spatial_reference": "OGC:CRS84",
+  "start_position": {
+    "part_index": 1,
+    "observation_index": 0,
+    "fraction_to_next": 0
+  },
+  "end_position": {
+    "part_index": 1,
+    "observation_index": 1,
+    "fraction_to_next": 0
+  },
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        1.0,
+        0.0
+      ]
+    ]
+  }
+}

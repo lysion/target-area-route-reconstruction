@@ -1,5 +1,7 @@
 # Milestone 1 Validation Run
 
+> Historical result, preserved unchanged below. The independent adversarial audit invalidated the sufficiency of this green oracle. See [remediation](milestone1-remediation.md) and the [fresh re-exit review](milestone1-re-exit-review.md) for current evidence.
+
 **Date:** 2026-10-07  
 **Commit:** `74867ba37b6b48ecd7f70a588e3a7e86c2f569b7`  
 **GitHub Actions run:** `37542703555`  

@@ -1,0 +1,135 @@
+{
+  "schema_version": "0.1.0",
+  "cases": [
+    {
+      "name": "nonmaximal_half_of_retraced_inside_part",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_COVERAGE_NOT_EXHAUSTIVE",
+      "scenario": "audit-nonmaximal_half_of_retraced_inside_part"
+    },
+    {
+      "name": "complete_omits_identical_second_part",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_COVERAGE_NOT_EXHAUSTIVE",
+      "scenario": "audit-complete_omits_identical_second_part"
+    },
+    {
+      "name": "complete_omits_repeated_entry",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_COVERAGE_NOT_EXHAUSTIVE",
+      "scenario": "audit-complete_omits_repeated_entry"
+    },
+    {
+      "name": "segment_reorders_two_loops",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_SEGMENT_LINEAGE_MISMATCH",
+      "scenario": "audit-segment_reorders_two_loops"
+    },
+    {
+      "name": "proven_partial_relabelled_inside",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "ASSESSMENT_RELATION_CONTRADICTS_EVIDENCE",
+      "scenario": "audit-proven_partial_relabelled_inside"
+    },
+    {
+      "name": "proven_partial_relabelled_unknown",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "ASSESSMENT_RELATION_CONTRADICTS_EVIDENCE",
+      "scenario": "audit-proven_partial_relabelled_unknown"
+    },
+    {
+      "name": "incomplete_nonmaximal_known_segment",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_COVERAGE_NOT_EXHAUSTIVE",
+      "scenario": "audit-incomplete_nonmaximal_known_segment"
+    },
+    {
+      "name": "positive_inside_track_mislabelled_outside",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "ASSESSMENT_RELATION_CONTRADICTS_EVIDENCE",
+      "scenario": "audit-positive_inside_track_mislabelled_outside"
+    },
+    {
+      "name": "positive_inside_track_correctly_labelled",
+      "expect_semantic_valid": true,
+      "scenario": "audit-positive_inside_track_correctly_labelled"
+    },
+    {
+      "name": "roundoff_at_axis_aligned_boundary",
+      "expect_semantic_valid": true,
+      "scenario": "audit-roundoff_at_axis_aligned_boundary"
+    },
+    {
+      "name": "nonaxis_interpolation_roundoff",
+      "expect_semantic_valid": true,
+      "scenario": "audit-nonaxis_interpolation_roundoff"
+    },
+    {
+      "name": "original_partial_control",
+      "expect_semantic_valid": true,
+      "scenario": "audit-original_partial_control"
+    },
+    {
+      "name": "terminal_fraction_without_next",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TRACK_POSITION_OUT_OF_BOUNDS",
+      "scenario": "audit-terminal_fraction_without_next"
+    },
+    {
+      "name": "segment_crosses_continuity_break",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_SEGMENT_CROSSES_PART",
+      "scenario": "audit-segment_crosses_continuity_break"
+    },
+    {
+      "name": "ordinals_and_refs_reverse_together",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_SEGMENT_ORDER_INVALID",
+      "scenario": "audit-ordinals_and_refs_reverse_together"
+    },
+    {
+      "name": "zero_length_track_assessment",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TRACK_NOT_ASSESSABLE",
+      "scenario": "audit-zero_length_track_assessment"
+    },
+    {
+      "name": "identical_multipart_unknown_incomplete",
+      "expect_semantic_valid": true,
+      "scenario": "audit-identical_multipart_unknown_incomplete"
+    },
+    {
+      "name": "inside_incomplete_world",
+      "expect_semantic_valid": true,
+      "scenario": "audit-inside_incomplete_world"
+    },
+    {
+      "name": "unproven_complete_multipart",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "COVERAGE_COMPLETENESS_UNPROVEN",
+      "scenario": "audit-unproven_complete_multipart"
+    },
+    {
+      "name": "repeated_coordinates_maximal",
+      "expect_semantic_valid": true,
+      "scenario": "audit-repeated_coordinates_maximal"
+    },
+    {
+      "name": "positive_length_underflow",
+      "expect_semantic_valid": true,
+      "scenario": "audit-positive_length_underflow"
+    },
+    {
+      "name": "short_covered_interval_cannot_be_halved",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_COVERAGE_NOT_EXHAUSTIVE",
+      "scenario": "audit-short_covered_interval_cannot_be_halved"
+    },
+    {
+      "name": "incomplete_omits_identical_second_part",
+      "expect_semantic_valid": false,
+      "expect_semantic_issue_code": "TARGET_COVERAGE_NOT_EXHAUSTIVE",
+      "scenario": "audit-incomplete_omits_identical_second_part"
+    }
+  ]
+}

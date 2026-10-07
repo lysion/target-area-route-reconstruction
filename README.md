@@ -18,7 +18,7 @@ The core design intentionally separates platform access, file formats, acquisiti
 
 ## v0.1 scope
 
-The first milestone is deliberately narrow:
+The first release is deliberately narrow:
 
 - local FIT and GPX inputs;
 - an explicit target area;
@@ -85,7 +85,11 @@ Current design artifacts:
 - [Evidence plan](docs/evidence-plan.md)
 - [Real-world evidence record](docs/real-world-cases.md)
 - [Track metric overlays](docs/track-metric-overlays.md)
+- [Normalized evidence / quality interface](docs/quality-layer-interface.md)
+- [Numerical policy](docs/numerical-policy.md)
+- [M1 remediation and before/after evidence](docs/milestone1-remediation.md)
+- [M1 fresh re-exit review](docs/milestone1-re-exit-review.md)
 
 ## Status
 
-Early public development. **Milestone 0: Domain Contract is DONE** and **Milestone 1: Schemas and Fixtures is DONE**. The project is now in **Milestone 2: Deterministic Core**. All six frozen v0.1 core entity schemas are implemented, EC-01 through EC-29 are explicitly represented, and the repository includes 113 schema fixtures, 16 linked semantic scenarios, 13 non-file contract cases, 6 negative cross-object cases, 14 common-definition conformance probes, and a six-file synthetic FIT/GPX raw-source baseline. The final Milestone 1 validation gate is green: 113/113 schema expectations, 33/33 semantic expectations, 29/29 edge cases mapped, 6/6 raw source files verified, and the equivalent GPX/FIT route baseline matched within declared coordinate tolerance. Milestone 2 now begins with FIT/GPX ingestion and normalization into the frozen `CanonicalTrack` contract.
+Early public development. **Milestone 0: Domain Contract is DONE. Milestone 1: Schemas and Fixtures is DONE after adversarial remediation and re-review. Milestone 2: Deterministic Core is ACTIVE.** An independent audit of commit `141dc092f5a3c7845066156cafd26b3879e99137` invalidated the sufficiency of the previous green oracle. The ordered-interval oracle, reason-specific negatives, mutation regressions and independent raw-source checks now pass branch CI. See [the fresh re-exit review](docs/milestone1-re-exit-review.md). The [historical exit review](docs/milestone1-exit-review.md) and [remediation record](docs/milestone1-remediation.md) preserve the original PASS and reopening. Production Milestone 2 implementation has not begun in this remediation branch.

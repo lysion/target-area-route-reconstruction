@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="target-area-route-reconstruction" xmlns="http://www.topografix.com/GPX/1/1">
+<trk><name>Synthetic fixture</name>
+<trkseg>
+<trkpt lat="91.0000000" lon="112.9000000">
+<time>2026-10-07T00:00:00Z</time>
+</trkpt>
+<trkpt lat="28.2050000" lon="112.9050000">
+<time>2026-10-07T00:00:10Z</time>
+</trkpt>
+<trkpt lat="28.2100000" lon="112.9100000">
+<time>2026-10-07T00:00:20Z</time>
+</trkpt>
+</trkseg>
+</trk>
+</gpx>

@@ -146,6 +146,8 @@ Add representative temporal/metric fixtures, including:
 
 These fixtures are optional-capability fixtures and must not redefine minimum spatial-track validity.
 
+The six input shapes are now committed under `tests/fixtures/metrics/` and checked by `tests/test_metric_fixture_inputs.py`. This Milestone 1 evidence defines distinct source conditions; it does not claim validated speed, pause classification, or GPS-jump rejection output. Those algorithms and their output tests remain Milestone 2 work. The `discontinuity` input contains two continuity parts, and the `missing-timestamps` input remains spatially valid without a speed capability.
+
 ### Milestone 2
 
 Implement the first derived track metric pipeline:

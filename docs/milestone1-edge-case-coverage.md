@@ -92,14 +92,14 @@ The spatial-reference case is intentionally a Layer A negative rather than a sch
 
 ## Current coverage counts
 
-At the time this mapping was completed:
+Current remediation mapping:
 
 - frozen edge cases mapped: **29 / 29**;
-- fixture manifest entries: **113**;
-- linked semantic scenarios: **16**;
+- fixture manifest entries: **260**;
+- linked semantic scenarios: **39**;
 - explicit non-file contract cases: **13**;
 - registered negative cross-object cases: **6**;
-- independent common-definition conformance fixtures: **14**.
+- independent common-definition conformance fixtures: **15**.
 
 These counts are implementation status, not a claim that CI has already passed every current case. The repository runners/CI remain the authoritative execution result.
 
@@ -111,4 +111,4 @@ The exit criterion
 
 is now structurally satisfied.
 
-Remaining Milestone 1 work is validation conformance: run/stabilize the Layer A, Layer B, and coverage-map runners; add any missing common-definition conformance tests; then perform the Milestone 1 exit review.
+The coverage gate now rejects missing/empty contract fields, duplicate or malformed cases, and negative registrations pointing to positive fixtures/scenarios. The 29/29 figure means every case has an executable current representation or an explicit owned future contract; it does not mean persistence, reconciliation or acquisition behaviors have been implemented. The fresh [re-exit review](milestone1-re-exit-review.md) owns readiness.

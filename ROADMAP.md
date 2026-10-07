@@ -92,7 +92,7 @@ Milestone 0 is DONE only when:
 
 ## Milestone 1 — Schemas and Fixtures
 
-**Status:** DONE  
+**Status:** DONE — adversarial remediation and fresh re-exit review passed
 **Target:** machine-verifiable v0.1 contracts
 
 ### Goal
@@ -126,11 +126,13 @@ Encode the frozen domain contract into schemas and reproducible test fixtures be
 - all Milestone 0 edge cases have reproducible fixtures or explicit non-file test representations;
 - no schema depends on COROS-specific fields.
 
+The independent-audit re-exit additionally requires ordered interval/multiplicity validation, reason-specific negatives, mandatory Layer A for linked components, mutation-sensitive continuity tests, a documented numerical policy and quality hand-off, strict JSON, independent raw format checks, and a fresh review with green branch CI. Historical PASS records remain preserved.
+
 ---
 
 ## Milestone 2 — Deterministic Core
 
-**Status:** ACTIVE  
+**Status:** ACTIVE — Milestone 1 remediation re-review passed
 **Release target:** v0.1.0
 
 ### Goal
@@ -147,6 +149,7 @@ When valid temporal evidence exists, the basic map may also render an optional s
 - GPX ingestion;
 - normalization into `CanonicalTrack`;
 - track-quality validation;
+- implement the supporting quality result and gap-proof verifier in [the quality-layer interface](docs/quality-layer-interface.md), preserving normalized observations and parent indices;
 - spatial relation calculation;
 - extraction of target-area segments;
 - GeoJSON export;
@@ -388,7 +391,7 @@ No project decision should rely solely on chat history.
 
 ## Current execution point
 
-**Current milestone:** Milestone 2 — Deterministic Core
+**Current milestone:** Milestone 1 — Schemas and Fixtures (remediation). Milestone 2 is blocked pending re-review.
 
 **Milestone 0 outcome: DONE**
 
@@ -411,7 +414,7 @@ Milestone 0 completed:
 
 Encode the frozen domain contract into machine-verifiable schemas and reproducible fixtures without changing domain semantics.
 
-**Milestone 1 outcome: DONE**
+**Milestone 1 historical outcome: PASS, subsequently reopened for remediation**
 
 Milestone 1 completed:
 
@@ -450,11 +453,11 @@ Milestone 1 completed:
 - ran the final Milestone 1 contract workflow green: 113/113 schema expectations, 33/33 semantic expectations, 29/29 edge cases mapped, 6/6 raw source fixtures verified, and 1 FIT/GPX equivalence group verified;
 - closed the Milestone 1 exit review in `docs/milestone1-exit-review.md`.
 
-**Milestone 1 exit review:** PASS.
+**Milestone 1 historical exit review:** PASS. Its sufficiency was invalidated by an independent adversarial audit of commit `141dc092f5a3c7845066156cafd26b3879e99137`; see `docs/milestone1-remediation.md`.
 
-Milestone 1 is complete. The frozen v0.1 contract, schemas, fixtures, semantic scenarios, non-file test contracts, raw FIT/GPX parser-input baseline, and validation gates are all in place.
+**Milestone 1 remediation outcome:** DONE after [fresh re-exit review](docs/milestone1-re-exit-review.md) and [branch CI](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37573668670). The frozen v0.1 contract remains unchanged. The strengthened gate verifies 260 schema fixtures, 56 semantic expectations, 29 owned EC representations, 12 raw files/two equivalence groups and 25 unit/integration tests, including adversarial and mutation witnesses. This supersedes the sufficiency of the historical PASS above.
 
-**Immediate Milestone 2 work:**
+**Active Milestone 2 work, not implemented by this remediation:**
 
 1. implement GPX ingestion against the committed raw-source fixtures;
 2. implement FIT ingestion against the equivalent and no-position FIT fixtures;

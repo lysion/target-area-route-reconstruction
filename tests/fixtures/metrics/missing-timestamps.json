@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1.0",
+  "id": "metric-missing-timestamps",
+  "revision_id": "r1",
+  "track_source": {
+    "id": "metric-source-missing-timestamps",
+    "revision_id": "r1"
+  },
+  "spatial_reference": "OGC:CRS84",
+  "parts": [
+    {
+      "observations": [
+        {
+          "position": [
+            0,
+            0
+          ]
+        },
+        {
+          "position": [
+            0.001,
+            0
+          ]
+        }
+      ]
+    }
+  ],
+  "normalizer": {
+    "name": "fixture-normalizer",
+    "version": "0.1.0"
+  }
+}

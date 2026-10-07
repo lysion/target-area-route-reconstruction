@@ -60,7 +60,12 @@
         "file_type": "activity",
         "record_message_count": 3,
         "positioned_record_count": 3,
-        "timestamped_record_count": 3
+        "timestamped_record_count": 3,
+        "activity_structure": "minimal_message_stream",
+        "message_counts": {
+          "file_id": 1,
+          "record": 3
+        }
       },
       "normalization_expectation": {
         "parse_outcome": "success",
@@ -72,7 +77,7 @@
           3
         ],
         "timestamps_present": true,
-        "position_tolerance_deg": 1e-7,
+        "position_tolerance_deg": 1e-07,
         "positions": [
           [
             112.9,
@@ -173,6 +178,93 @@
         "file_type": "activity",
         "record_message_count": 3,
         "positioned_record_count": 0,
+        "timestamped_record_count": 3,
+        "activity_structure": "minimal_message_stream",
+        "message_counts": {
+          "file_id": 1,
+          "record": 3
+        }
+      },
+      "normalization_expectation": {
+        "parse_outcome": "success_no_usable_track",
+        "canonical_track_present": false,
+        "assessable": false,
+        "spatial_assessment_allowed": false,
+        "forbidden_fallback_relation": "outside"
+      }
+    },
+    {
+      "id": "complete-activity-fit",
+      "path": "fit/complete-activity.fit",
+      "format": "fit",
+      "media_type": "application/octet-stream",
+      "sha256": "6034c2b705205650aa816cad876e4d316b076448b9dc87f9c5a2aa73ecac6192",
+      "source_expectation": {
+        "source_valid": true,
+        "fit_crc_valid": true,
+        "file_type": "activity",
+        "activity_structure": "complete_activity",
+        "message_counts": {
+          "file_id": 1,
+          "record": 3,
+          "lap": 1,
+          "session": 1,
+          "activity": 1
+        },
+        "record_message_count": 3,
+        "positioned_record_count": 3,
+        "timestamped_record_count": 3
+      },
+      "normalization_expectation": {
+        "parse_outcome": "success",
+        "canonical_track_present": true,
+        "assessable": true,
+        "spatial_reference": "OGC:CRS84",
+        "continuity_parts": 1,
+        "observation_counts": [
+          3
+        ],
+        "timestamps_present": true,
+        "position_tolerance_deg": 1e-07,
+        "positions": [
+          [
+            112.9,
+            28.2
+          ],
+          [
+            112.905,
+            28.205
+          ],
+          [
+            112.91,
+            28.21
+          ]
+        ],
+        "timestamps": [
+          "2026-10-07T00:00:00Z",
+          "2026-10-07T00:00:10Z",
+          "2026-10-07T00:00:20Z"
+        ]
+      },
+      "equivalent_group": "complete-route"
+    },
+    {
+      "id": "fit-invalid-position-sentinel",
+      "path": "fit/invalid-position-sentinel.fit",
+      "format": "fit",
+      "media_type": "application/octet-stream",
+      "sha256": "78ac42d3deb73af77a17d4616c9da1700b7555df528b2819e067c781a59c4d16",
+      "source_expectation": {
+        "source_valid": true,
+        "fit_crc_valid": true,
+        "file_type": "activity",
+        "activity_structure": "minimal_message_stream",
+        "message_counts": {
+          "file_id": 1,
+          "record": 3
+        },
+        "record_message_count": 3,
+        "positioned_record_count": 0,
         "timestamped_record_count": 3
       },
       "normalization_expectation": {
@@ -181,6 +273,80 @@
         "assessable": false,
         "spatial_assessment_allowed": false,
         "forbidden_fallback_relation": "outside"
+      }
+    },
+    {
+      "id": "fit-mixed-position",
+      "path": "fit/mixed-position.fit",
+      "format": "fit",
+      "media_type": "application/octet-stream",
+      "sha256": "bdf63e7a3074f4171d061a3a2456b89b6b30f1b92f313f2cb6d14264f7050b38",
+      "source_expectation": {
+        "source_valid": true,
+        "fit_crc_valid": true,
+        "file_type": "activity",
+        "activity_structure": "minimal_message_stream",
+        "message_counts": {
+          "file_id": 1,
+          "record": 3
+        },
+        "record_message_count": 3,
+        "positioned_record_count": 2,
+        "timestamped_record_count": 3
+      },
+      "normalization_expectation": {
+        "parse_outcome": "success_with_position_gap",
+        "positioned_observations": 2,
+        "continuity_requires_quality_decision": true,
+        "spatial_reference": "OGC:CRS84"
+      }
+    },
+    {
+      "id": "gpx-invalid-root",
+      "path": "gpx/invalid-root.gpx",
+      "format": "gpx",
+      "media_type": "application/gpx+xml",
+      "sha256": "6b3b801ddb764cb3aefc27fa86c93a66ac92d2497a653040f86e747dfa750f19",
+      "source_expectation": {
+        "source_valid": false,
+        "failure_class": "invalid_gpx"
+      },
+      "normalization_expectation": {
+        "parse_outcome": "failure",
+        "canonical_track_present": false,
+        "spatial_assessment_allowed": false
+      }
+    },
+    {
+      "id": "gpx-invalid-range",
+      "path": "gpx/invalid-range.gpx",
+      "format": "gpx",
+      "media_type": "application/gpx+xml",
+      "sha256": "f62f79acf6736efa30f121d7e37b04a9cdaabe524a83b7026ab77ff7914aa0b4",
+      "source_expectation": {
+        "source_valid": false,
+        "failure_class": "invalid_gpx"
+      },
+      "normalization_expectation": {
+        "parse_outcome": "failure",
+        "canonical_track_present": false,
+        "spatial_assessment_allowed": false
+      }
+    },
+    {
+      "id": "gpx-invalid-version",
+      "path": "gpx/invalid-version.gpx",
+      "format": "gpx",
+      "media_type": "application/gpx+xml",
+      "sha256": "43aa182f888b1c31e60c20a97a6c9fe9592e55d6a14b11857425f88db6f0d4d4",
+      "source_expectation": {
+        "source_valid": false,
+        "failure_class": "invalid_gpx"
+      },
+      "normalization_expectation": {
+        "parse_outcome": "failure",
+        "canonical_track_present": false,
+        "spatial_assessment_allowed": false
       }
     }
   ],
@@ -192,6 +358,14 @@
         "equivalent-basic-fit"
       ],
       "assertion": "Equivalent GPX and FIT inputs must normalize to compatible ordered positions and identical timestamps within declared FIT coordinate quantization tolerance."
+    },
+    {
+      "group": "complete-route",
+      "members": [
+        "equivalent-basic-gpx",
+        "complete-activity-fit"
+      ],
+      "assertion": "Complete FIT Activity and GPX normalize to compatible ordered positions and identical timestamps within FIT coordinate quantization tolerance."
     }
   ]
 }

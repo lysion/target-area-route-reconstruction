@@ -24,6 +24,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import SchemaError, ValidationError
 from referencing import Registry, Resource
 from referencing.exceptions import NoSuchResource, Unresolvable
+from strict_json import load_json as strict_load_json
 
 
 @dataclass(frozen=True)
@@ -35,10 +36,20 @@ class FixtureResult:
     errors: tuple[ValidationError, ...]
     semantic_expected: bool | None
     assessable_expected: bool | None
+    expected_error: dict[str, Any] | None
 
     @property
     def expectation_matched(self) -> bool:
-        return self.expected_valid == self.actual_valid
+        if self.expected_valid != self.actual_valid:
+            return False
+        if self.expected_valid:
+            return True
+        expected = self.expected_error
+        return expected is not None and any(
+            list(error.absolute_path) == expected["instance_path"]
+            and error.validator == expected["validator"]
+            for error in self.errors
+        )
 
 
 class RunnerError(RuntimeError):
@@ -47,14 +58,15 @@ class RunnerError(RuntimeError):
 
 def load_json(path: Path) -> Any:
     try:
-        with path.open("r", encoding="utf-8") as handle:
-            return json.load(handle)
+        return strict_load_json(path)
     except FileNotFoundError as exc:
         raise RunnerError(f"file not found: {path}") from exc
     except json.JSONDecodeError as exc:
         raise RunnerError(
             f"invalid JSON: {path}:{exc.lineno}:{exc.colno}: {exc.msg}"
         ) from exc
+    except ValueError as exc:
+        raise RunnerError(f"invalid JSON: {path}: {exc}") from exc
 
 
 def normalize_schema_for_registry(path: Path, document: dict[str, Any]) -> dict[str, Any]:
@@ -161,6 +173,7 @@ def validate_fixture(
     expected_valid: bool,
     semantic_expected: bool | None,
     assessable_expected: bool | None,
+    expected_error: dict[str, Any] | None,
     documents: dict[Path, dict[str, Any]],
     registry: Registry,
     format_checker: FormatChecker,
@@ -192,6 +205,7 @@ def validate_fixture(
         errors=errors,
         semantic_expected=semantic_expected,
         assessable_expected=assessable_expected,
+        expected_error=expected_error,
     )
 
 
@@ -233,6 +247,18 @@ def parse_manifest(repo_root: Path, manifest_path: Path) -> list[dict[str, Any]]
                 f"fixture manifest entry {index} 'expect_schema_valid' must be boolean"
             )
 
+        error_expectation = entry.get("expect_schema_error")
+        if expected is False:
+            if not isinstance(error_expectation, dict) or set(error_expectation) != {"instance_path", "validator"}:
+                raise RunnerError(f"{raw_path}: expected-invalid fixture requires expect_schema_error with instance_path and validator")
+            if not isinstance(error_expectation["instance_path"], list) or not all(
+                isinstance(part, str) or type(part) is int
+                for part in error_expectation["instance_path"]
+            ) or not isinstance(error_expectation["validator"], str):
+                raise RunnerError(f"{raw_path}: invalid expect_schema_error selector")
+        elif error_expectation is not None:
+            raise RunnerError(f"{raw_path}: valid fixture must not set expect_schema_error")
+
         if raw_path in seen:
             raise RunnerError(f"duplicate fixture manifest path: {raw_path}")
         seen.add(raw_path)
@@ -255,6 +281,8 @@ def render_result(result: FixtureResult, repo_root: Path, verbose: bool) -> None
                 f"     {json_path(error)}: {error.message} "
                 f"(schema {schema_path(error)})"
             )
+    if not result.expectation_matched and not result.expected_valid:
+        print(f"     expected schema failure: {result.expected_error}")
 
     if verbose:
         annotations: list[str] = []
@@ -309,6 +337,7 @@ def run(repo_root: Path, manifest_path: Path, verbose: bool) -> int:
             expected_valid=entry["expect_schema_valid"],
             semantic_expected=semantic_expected,
             assessable_expected=assessable_expected,
+            expected_error=entry.get("expect_schema_error"),
             documents=documents,
             registry=registry,
             format_checker=format_checker,

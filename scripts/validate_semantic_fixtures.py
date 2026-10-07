@@ -32,16 +32,28 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
-from shapely.geometry import GeometryCollection, LineString, MultiLineString, shape
-from shapely.ops import unary_union
+from shapely.geometry import LineString, box, shape
 from shapely.validation import explain_validity
-
-
-GEOMETRY_TOLERANCE = 1e-12
+from strict_json import load_json as strict_load_json
+from jsonschema import Draft202012Validator, FormatChecker
+from validate_schema_fixtures import build_registry, schema_documents, parse_manifest, RunnerError as SchemaRunnerError
+from ordered_spatial_oracle import (
+    POLICY, covered_intervals, observed_facts, position_from_dict,
+    positions_match, interpolate, positive_length, coordinate_length, track_scale,
+)
 
 
 class RunnerError(RuntimeError):
     """Raised when repository/manifest state prevents trustworthy validation."""
+
+
+def issue(code: str, detail: str) -> str:
+    """Stable machine-readable identity followed by diagnostic prose."""
+    return f"{code}: {detail}"
+
+
+def issue_code(error: str) -> str:
+    return error.split(":", 1)[0]
 
 
 @dataclass(frozen=True)
@@ -52,12 +64,19 @@ class LocalSemanticResult:
     errors: tuple[str, ...]
     expected_assessable: bool | None
     actual_assessable: bool | None
+    expected_issue_code: str | None
 
     @property
     def semantic_expectation_matched(self) -> bool:
         return (
             self.expected_valid is None
-            or self.expected_valid == self.actual_valid
+            or (
+                self.expected_valid == self.actual_valid
+                and (
+                    self.expected_valid
+                    or self.expected_issue_code in {issue_code(error) for error in self.errors}
+                )
+            )
         )
 
     @property
@@ -81,22 +100,27 @@ class ScenarioResult:
     expected_valid: bool
     actual_valid: bool
     errors: tuple[str, ...]
+    expected_issue_code: str | None
 
     @property
     def matched(self) -> bool:
-        return self.expected_valid == self.actual_valid
+        return self.expected_valid == self.actual_valid and (
+            self.expected_valid
+            or self.expected_issue_code in {issue_code(error) for error in self.errors}
+        )
 
 
 def load_json(path: Path) -> Any:
     try:
-        with path.open("r", encoding="utf-8") as handle:
-            return json.load(handle)
+        return strict_load_json(path)
     except FileNotFoundError as exc:
         raise RunnerError(f"file not found: {path}") from exc
     except json.JSONDecodeError as exc:
         raise RunnerError(
             f"invalid JSON: {path}:{exc.lineno}:{exc.colno}: {exc.msg}"
         ) from exc
+    except ValueError as exc:
+        raise RunnerError(f"invalid JSON: {path}: {exc}") from exc
 
 
 def resolve_under(root: Path, raw_path: str, *, label: str) -> Path:
@@ -143,7 +167,7 @@ def canonical_track_assessable(track: dict[str, Any]) -> bool:
         if len(observations) < 2:
             continue
         coordinates = [item["position"] for item in observations]
-        if LineString(coordinates).length > 0:
+        if positive_length(coordinates):
             return True
     return False
 
@@ -172,26 +196,22 @@ def validate_target_area(area: dict[str, Any]) -> list[str]:
 
     for ring_index, ring in enumerate(iter_polygon_rings(geometry_data)):
         if not ring or ring[0] != ring[-1]:
-            errors.append(
-                f"polygon ring {ring_index} is not explicitly closed"
-            )
+            errors.append(issue("TARGET_AREA_RING_UNCLOSED", f"polygon ring {ring_index} is not explicitly closed"))
 
     try:
         geometry = shape(geometry_data)
     except Exception as exc:  # Shapely raises several geometry-specific types.
-        errors.append(f"geometry construction failed: {exc}")
+        errors.append(issue("TARGET_AREA_GEOMETRY_INVALID", f"geometry construction failed: {exc}"))
         return errors
 
     if geometry.is_empty:
-        errors.append("TargetArea geometry is empty")
+        errors.append(issue("TARGET_AREA_GEOMETRY_INVALID", "TargetArea geometry is empty"))
 
     if geometry.area <= 0:
-        errors.append("TargetArea geometry has no positive area")
+        errors.append(issue("TARGET_AREA_GEOMETRY_INVALID", "TargetArea geometry has no positive area"))
 
     if not geometry.is_valid:
-        errors.append(
-            "TargetArea topology is invalid: " + explain_validity(geometry)
-        )
+        errors.append(issue("TARGET_AREA_TOPOLOGY_INVALID", "TargetArea topology is invalid: " + explain_validity(geometry)))
 
     return errors
 
@@ -206,9 +226,7 @@ def validate_spatial_assessment(assessment: dict[str, Any]) -> list[str]:
         if not track_position_ordered(
             affected["start"], affected["end"], allow_equal=True
         ):
-            errors.append(
-                f"coverage_uncertainties[{index}] track range is reversed"
-            )
+            errors.append(issue("COVERAGE_UNCERTAINTY_RANGE_REVERSED", f"coverage_uncertainties[{index}] track range is reversed"))
 
     return errors
 
@@ -219,22 +237,18 @@ def validate_target_segment(segment: dict[str, Any]) -> list[str]:
     end = segment["end_position"]
 
     if start["part_index"] != end["part_index"]:
-        errors.append(
-            "TargetSegment endpoints must belong to one continuity part"
-        )
+        errors.append(issue("TARGET_SEGMENT_CROSSES_PART", "TargetSegment endpoints must belong to one continuity part"))
     elif not track_position_ordered(start, end, allow_equal=False):
-        errors.append(
-            "TargetSegment start_position must precede end_position"
-        )
+        errors.append(issue("TARGET_SEGMENT_ORDER_INVALID", "TargetSegment start_position must precede end_position"))
 
     try:
         geometry = shape(segment["geometry"])
     except Exception as exc:
-        errors.append(f"TargetSegment geometry construction failed: {exc}")
+        errors.append(issue("TARGET_SEGMENT_GEOMETRY_INVALID", f"TargetSegment geometry construction failed: {exc}"))
         return errors
 
-    if geometry.is_empty or geometry.length <= 0:
-        errors.append("TargetSegment geometry must have positive length")
+    if geometry.is_empty or not positive_length(geometry.coords):
+        errors.append(issue("TARGET_SEGMENT_ZERO_LENGTH", "TargetSegment geometry must have positive length"))
 
     return errors
 
@@ -253,17 +267,10 @@ def load_fixture_manifest(
     fixtures_root: Path,
     manifest_path: Path,
 ) -> list[dict[str, Any]]:
-    manifest = load_json(manifest_path)
-    if not isinstance(manifest, dict):
-        raise RunnerError("fixture manifest root must be an object")
-    if manifest.get("schema_version") != "0.1.0":
-        raise RunnerError(
-            "fixture manifest schema_version must be exactly '0.1.0'"
-        )
-
-    entries = manifest.get("fixtures")
-    if not isinstance(entries, list):
-        raise RunnerError("fixture manifest 'fixtures' must be an array")
+    try:
+        entries = parse_manifest(Path(__file__).resolve().parent.parent, manifest_path)
+    except SchemaRunnerError as exc:
+        raise RunnerError(str(exc)) from exc
 
     for index, entry in enumerate(entries):
         if not isinstance(entry, dict):
@@ -301,6 +308,13 @@ def load_fixture_manifest(
                     f"{entry['path']}: semantic expectations require "
                     "expect_schema_valid=true"
                 )
+
+        issue_expectation = entry.get("expect_semantic_issue_code")
+        if semantic_expected is False:
+            if not isinstance(issue_expectation, str) or not issue_expectation:
+                raise RunnerError(f"{entry['path']}: expected-invalid semantic fixture requires expect_semantic_issue_code")
+        elif issue_expectation is not None:
+            raise RunnerError(f"{entry['path']}: semantic issue code requires expect_semantic_valid=false")
 
         resolve_under(
             fixtures_root, entry["path"], label="fixture"
@@ -364,6 +378,7 @@ def run_local_semantic_checks(
                 errors=errors,
                 expected_assessable=expected_assessable,
                 actual_assessable=actual_assessable,
+                expected_issue_code=entry.get("expect_semantic_issue_code"),
             )
         )
 
@@ -391,21 +406,17 @@ def validate_track_position_against_parent(
     parts = track["parts"]
     if part_index >= len(parts):
         return [
-            f"{label}: part_index {part_index} is out of bounds "
-            f"for {len(parts)} part(s)"
+            issue("TRACK_POSITION_OUT_OF_BOUNDS", f"{label}: part_index {part_index} is out of bounds for {len(parts)} part(s)")
         ]
 
     observations = parts[part_index]["observations"]
     if observation_index >= len(observations):
         return [
-            f"{label}: observation_index {observation_index} is out of bounds "
-            f"for part {part_index} with {len(observations)} observation(s)"
+            issue("TRACK_POSITION_OUT_OF_BOUNDS", f"{label}: observation_index {observation_index} is out of bounds for part {part_index} with {len(observations)} observation(s)")
         ]
 
     if fraction > 0 and observation_index + 1 >= len(observations):
-        errors.append(
-            f"{label}: non-zero fraction_to_next requires a next observation"
-        )
+        errors.append(issue("TRACK_POSITION_OUT_OF_BOUNDS", f"{label}: non-zero fraction_to_next requires a next observation"))
 
     return errors
 
@@ -414,19 +425,7 @@ def interpolate_track_position(
     track: dict[str, Any],
     position: dict[str, Any],
 ) -> tuple[float, float]:
-    part = track["parts"][position["part_index"]]["observations"]
-    index = position["observation_index"]
-    fraction = float(position["fraction_to_next"])
-    left = part[index]["position"]
-
-    if fraction == 0:
-        return float(left[0]), float(left[1])
-
-    right = part[index + 1]["position"]
-    return (
-        float(left[0]) + fraction * (float(right[0]) - float(left[0])),
-        float(left[1]) + fraction * (float(right[1]) - float(left[1])),
-    )
+    return interpolate(track, position_from_dict(position))
 
 
 def reconstruct_segment_coordinates(
@@ -462,24 +461,6 @@ def reconstruct_segment_coordinates(
     return coordinates
 
 
-def coordinates_close(
-    left: tuple[float, float],
-    right: tuple[float, float],
-) -> bool:
-    return (
-        math.isclose(
-            left[0], right[0],
-            rel_tol=0.0,
-            abs_tol=GEOMETRY_TOLERANCE,
-        )
-        and math.isclose(
-            left[1], right[1],
-            rel_tol=0.0,
-            abs_tol=GEOMETRY_TOLERANCE,
-        )
-    )
-
-
 def validate_segment_against_parent(
     segment: dict[str, Any],
     track: dict[str, Any],
@@ -508,122 +489,18 @@ def validate_segment_against_parent(
     reconstructed_coordinates = reconstruct_segment_coordinates(
         track, start, end
     )
-    expected_line = LineString(reconstructed_coordinates)
     actual_line = shape(segment["geometry"])
 
-    actual_start = tuple(float(v) for v in actual_line.coords[0])
-    actual_end = tuple(float(v) for v in actual_line.coords[-1])
-
-    if not coordinates_close(
-        actual_start, reconstructed_coordinates[0]
+    # Vertex sequence is the domain lineage, including repeated observations.
+    # Hausdorff distance and total length lose traversal order and multiplicity.
+    actual_coordinates = list(actual_line.coords)
+    if len(actual_coordinates) != len(reconstructed_coordinates) or any(
+        not POLICY.coordinates_close(actual, expected, local_length=coordinate_length(reconstructed_coordinates), operand_scale=track_scale(track))
+        for actual, expected in zip(actual_coordinates, reconstructed_coordinates)
     ):
-        errors.append(
-            "TargetSegment geometry start does not match start_position lineage"
-        )
-    if not coordinates_close(
-        actual_end, reconstructed_coordinates[-1]
-    ):
-        errors.append(
-            "TargetSegment geometry end does not match end_position lineage"
-        )
-
-    if actual_line.hausdorff_distance(expected_line) > GEOMETRY_TOLERANCE:
-        errors.append(
-            "TargetSegment geometry does not follow the parent CanonicalTrack "
-            "interval identified by its lineage"
-        )
-
-    if not math.isclose(
-        actual_line.length,
-        expected_line.length,
-        rel_tol=1e-12,
-        abs_tol=GEOMETRY_TOLERANCE,
-    ):
-        errors.append(
-            "TargetSegment geometry length differs from reconstructed parent "
-            "track interval"
-        )
-
-    if not area_geometry.covers(actual_line):
-        errors.append(
-            "TargetSegment geometry is not fully covered by its TargetArea"
-        )
+        errors.append(issue("TARGET_SEGMENT_LINEAGE_MISMATCH", "TargetSegment geometry differs from ordered parent-track regeneration"))
 
     return errors
-
-
-def linear_components(geometry: Any) -> Any:
-    if geometry.is_empty:
-        return GeometryCollection()
-    if isinstance(geometry, (LineString, MultiLineString)):
-        return geometry
-    if isinstance(geometry, GeometryCollection):
-        lines = [
-            item
-            for item in geometry.geoms
-            if isinstance(item, (LineString, MultiLineString))
-            and not item.is_empty
-            and item.length > 0
-        ]
-        return unary_union(lines) if lines else GeometryCollection()
-    return GeometryCollection()
-
-
-def canonical_part_lines(track: dict[str, Any]) -> list[LineString]:
-    """Build only within-part evidence geometry; never bridge continuity breaks."""
-
-    lines: list[LineString] = []
-    for part in track["parts"]:
-        observations = part["observations"]
-        if len(observations) < 2:
-            continue
-        line = LineString([item["position"] for item in observations])
-        if line.length > GEOMETRY_TOLERANCE:
-            lines.append(line)
-    return lines
-
-
-def derive_relation_for_complete_track(
-    track: dict[str, Any],
-    area_geometry: Any,
-) -> str | None:
-    lines = canonical_part_lines(track)
-    if not lines:
-        return None
-
-    inside_length = 0.0
-    outside_length = 0.0
-
-    for line in lines:
-        inside_length += linear_components(
-            line.intersection(area_geometry)
-        ).length
-        outside_length += linear_components(
-            line.difference(area_geometry)
-        ).length
-
-    if inside_length > GEOMETRY_TOLERANCE:
-        if outside_length > GEOMETRY_TOLERANCE:
-            return "partial"
-        return "inside"
-
-    return "outside"
-
-
-def expected_complete_target_coverage(
-    track: dict[str, Any],
-    area_geometry: Any,
-) -> Any:
-    covered = [
-        linear_components(line.intersection(area_geometry))
-        for line in canonical_part_lines(track)
-    ]
-    covered = [
-        geometry
-        for geometry in covered
-        if not geometry.is_empty and geometry.length > GEOMETRY_TOLERANCE
-    ]
-    return unary_union(covered) if covered else GeometryCollection()
 
 
 def validate_linked_scenario(
@@ -650,43 +527,27 @@ def validate_linked_scenario(
         ),
     ):
         for error in validator(document):
-            errors.append(f"{label}: {error}")
+            errors.append(issue(issue_code(error), f"{label}: {error.split(': ', 1)[-1]}"))
 
     if not canonical_track_assessable(canonical_track):
-        errors.append(
-            "canonical_track: linked assessment requires positive-length "
-            "assessable route geometry"
-        )
+        errors.append(issue("TRACK_NOT_ASSESSABLE", "canonical_track: linked assessment requires positive-length assessable route geometry"))
 
     if track_source["activity"] != {"id": activity["id"]}:
-        errors.append(
-            "track_source.activity does not reference the linked Activity"
-        )
+        errors.append(issue("SOURCE_ACTIVITY_MISMATCH", "track_source.activity does not reference the linked Activity"))
 
     if canonical_track["track_source"] != exact_revision_ref(track_source):
-        errors.append(
-            "canonical_track.track_source does not reference the exact linked "
-            "TrackSource revision"
-        )
+        errors.append(issue("TRACK_SOURCE_REVISION_MISMATCH", "canonical_track.track_source does not reference the exact linked TrackSource revision"))
 
     if spatial_assessment["canonical_track"] != exact_revision_ref(
         canonical_track
     ):
-        errors.append(
-            "spatial_assessment.canonical_track does not reference the exact "
-            "linked CanonicalTrack revision"
-        )
+        errors.append(issue("ASSESSMENT_TRACK_REVISION_MISMATCH", "spatial_assessment.canonical_track does not reference the exact linked CanonicalTrack revision"))
 
     if spatial_assessment["target_area"] != exact_revision_ref(target_area):
-        errors.append(
-            "spatial_assessment.target_area does not reference the exact "
-            "linked TargetArea revision"
-        )
+        errors.append(issue("ASSESSMENT_AREA_REVISION_MISMATCH", "spatial_assessment.target_area does not reference the exact linked TargetArea revision"))
 
     if canonical_track["spatial_reference"] != target_area["spatial_reference"]:
-        errors.append(
-            "CanonicalTrack and TargetArea spatial references do not match"
-        )
+        errors.append(issue("SPATIAL_REFERENCE_MISMATCH", "CanonicalTrack and TargetArea spatial references do not match"))
 
     for index, uncertainty in enumerate(
         spatial_assessment.get("coverage_uncertainties", [])
@@ -705,37 +566,40 @@ def validate_linked_scenario(
 
     area_geometry = shape(target_area["geometry"])
 
-    # A partial relation is already proven by reliable observed geometry:
-    # there must be positive-length observed coverage both inside and outside.
-    # This remains true even when completeness is incomplete because another
-    # unresolved interval may hide additional target coverage.
-    if spatial_assessment["relation"] == "partial":
-        observed_relation = derive_relation_for_complete_track(
-            canonical_track, area_geometry
-        )
-        if observed_relation != "partial":
-            errors.append(
-                "spatial_assessment.relation='partial' is not proven by "
-                "observed within-part geometry"
-            )
+    # Evidence is assessed before the submitted relation. An uncertainty may
+    # leave further coverage unknown, but cannot erase an established partial.
+    facts = observed_facts(canonical_track, area_geometry)
+    complete = spatial_assessment["coverage_completeness"] == "complete"
+    if complete and len(canonical_track["parts"]) > 1:
+        # This fixture interface has no independently verified bound on a
+        # continuity break. No unseen path or lack of movement can be inferred
+        # from its endpoints. A future quality result may supply such proof.
+        errors.append(issue("COVERAGE_COMPLETENESS_UNPROVEN", "complete coverage across continuity parts requires independently validated gap evidence"))
+    if facts.inside and facts.outside:
+        required_relation = "partial"
+    elif complete:
+        required_relation = "inside" if facts.inside else "outside"
+    elif facts.inside:
+        # Without an independently bounded quality corridor, only a TargetArea
+        # covering every canonical CRS84 position proves an unobserved path
+        # cannot leave. Ordinary inside+incomplete needs a later quality result.
+        required_relation = "inside" if area_geometry.covers(box(-180, -90, 180, 90)) else "unknown"
+    else:
+        required_relation = "unknown"
+    if spatial_assessment["relation"] != required_relation:
+        errors.append(issue("ASSESSMENT_RELATION_CONTRADICTS_EVIDENCE", f"observed evidence requires {required_relation!r}, got {spatial_assessment['relation']!r}"))
 
     sorted_segments = sorted(target_segments, key=lambda item: item["ordinal"])
     expected_ordinals = list(range(len(sorted_segments)))
     actual_ordinals = [item["ordinal"] for item in sorted_segments]
     if actual_ordinals != expected_ordinals:
-        errors.append(
-            "TargetSegment ordinals must be contiguous from zero within the "
-            "linked SpatialAssessment"
-        )
+        errors.append(issue("TARGET_SEGMENT_ORDER_INVALID", "TargetSegment ordinals must be contiguous from zero within the linked SpatialAssessment"))
 
     expected_refs = [
         exact_revision_ref(segment) for segment in sorted_segments
     ]
     if spatial_assessment["target_segment_refs"] != expected_refs:
-        errors.append(
-            "spatial_assessment.target_segment_refs do not exactly match the "
-            "linked TargetSegment revisions in ordinal order"
-        )
+        errors.append(issue("TARGET_SEGMENT_REFERENCE_MISMATCH", "spatial_assessment.target_segment_refs do not exactly match the linked TargetSegment revisions in ordinal order"))
 
     for previous, current in zip(sorted_segments, sorted_segments[1:]):
         if not track_position_ordered(
@@ -743,78 +607,44 @@ def validate_linked_scenario(
             current["start_position"],
             allow_equal=False,
         ):
-            errors.append(
-                "TargetSegments are not strictly ordered and non-overlapping "
-                "by parent CanonicalTrack position"
-            )
+            errors.append(issue("TARGET_SEGMENT_ORDER_INVALID", "TargetSegments are not strictly ordered and non-overlapping by parent CanonicalTrack position"))
             break
 
-    segment_geometries: list[Any] = []
     for index, segment in enumerate(sorted_segments):
         prefix = f"target_segments[{index}]"
 
         if segment["spatial_assessment"] != exact_revision_ref(
             spatial_assessment
         ):
-            errors.append(
-                f"{prefix}.spatial_assessment does not reference the exact "
-                "linked SpatialAssessment revision"
-            )
+            errors.append(issue("SEGMENT_ASSESSMENT_REVISION_MISMATCH", f"{prefix}.spatial_assessment does not reference the exact linked SpatialAssessment revision"))
 
         if segment["canonical_track"] != exact_revision_ref(canonical_track):
-            errors.append(
-                f"{prefix}.canonical_track does not reference the exact "
-                "linked CanonicalTrack revision"
-            )
+            errors.append(issue("SEGMENT_TRACK_REVISION_MISMATCH", f"{prefix}.canonical_track does not reference the exact linked CanonicalTrack revision"))
 
         if segment["spatial_reference"] != canonical_track["spatial_reference"]:
-            errors.append(
-                f"{prefix}.spatial_reference does not match CanonicalTrack"
-            )
+            errors.append(issue("SPATIAL_REFERENCE_MISMATCH", f"{prefix}.spatial_reference does not match CanonicalTrack"))
 
         for error in validate_segment_against_parent(
             segment, canonical_track, area_geometry
         ):
-            errors.append(f"{prefix}: {error}")
+            errors.append(issue(issue_code(error), f"{prefix}: {error.split(': ', 1)[-1]}"))
 
-        try:
-            segment_geometries.append(shape(segment["geometry"]))
-        except Exception:
-            pass
+    # All reliable observed covered portions are known even if an uncertainty
+    # can hide more coverage. Compare ordered parameter intervals one by one.
+    expected = covered_intervals(canonical_track, area_geometry)
+    def interval_length(interval: Any) -> float:
+        from dataclasses import asdict
+        return coordinate_length(reconstruct_segment_coordinates(canonical_track, asdict(interval.start), asdict(interval.end)))
 
-    # For a complete route with no unresolved target-relevant uncertainty,
-    # relation and exhaustive target coverage can be derived from within-part
-    # evidence geometry only. Continuity breaks are never bridged.
-    if (
-        spatial_assessment["coverage_completeness"] == "complete"
-        and not spatial_assessment["coverage_uncertainties"]
+    if len(expected) != len(sorted_segments) or any(
+        not positions_match(canonical_track, position_from_dict(segment["start_position"]), interval.start, interval_length=interval_length(interval))
+        or not positions_match(canonical_track, position_from_dict(segment["end_position"]), interval.end, interval_length=interval_length(interval))
+        for segment, interval in zip(sorted_segments, expected)
+        if validate_target_segment(segment) == []
+        and not validate_track_position_against_parent(canonical_track, segment["start_position"], label="start_position")
+        and not validate_track_position_against_parent(canonical_track, segment["end_position"], label="end_position")
     ):
-        derived_relation = derive_relation_for_complete_track(
-            canonical_track, area_geometry
-        )
-        if (
-            derived_relation is not None
-            and derived_relation != spatial_assessment["relation"]
-        ):
-            errors.append(
-                "spatial_assessment.relation disagrees with deterministic "
-                f"single-part geometry: expected {derived_relation!r}"
-            )
-
-        expected_inside = expected_complete_target_coverage(
-            canonical_track, area_geometry
-        )
-        actual_inside = (
-            unary_union(segment_geometries)
-            if segment_geometries
-            else GeometryCollection()
-        )
-
-        if not expected_inside.equals(actual_inside):
-            errors.append(
-                "complete assessment TargetSegments do not exhaustively match "
-                "the TargetArea-covered portion of the linked CanonicalTrack"
-            )
+        errors.append(issue("TARGET_COVERAGE_NOT_EXHAUSTIVE", "TargetSegments do not equal maximal observed covered intervals in parent-track order"))
 
     return errors
 
@@ -869,6 +699,12 @@ def load_scenario_manifest(
             raise RunnerError(
                 f"semantic scenario {name}: expect_semantic_valid must be boolean"
             )
+        expected_issue_code = scenario.get("expect_semantic_issue_code")
+        if scenario["expect_semantic_valid"] is False:
+            if not isinstance(expected_issue_code, str) or not expected_issue_code:
+                raise RunnerError(f"semantic scenario {name}: expected-invalid scenario requires expect_semantic_issue_code")
+        elif expected_issue_code is not None:
+            raise RunnerError(f"semantic scenario {name}: valid scenario must not specify expect_semantic_issue_code")
 
         for key in (
             "activity",
@@ -946,6 +782,7 @@ def run_scenarios(
                 expected_valid=scenario["expect_semantic_valid"],
                 actual_valid=not errors,
                 errors=errors,
+                expected_issue_code=scenario.get("expect_semantic_issue_code"),
             )
         )
 
@@ -1008,11 +845,53 @@ def run(
     fixtures_root = fixture_manifest_path.parent
 
     entries = load_fixture_manifest(fixtures_root, fixture_manifest_path)
-    local_results = run_local_semantic_checks(fixtures_root, entries)
-
     scenarios = load_scenario_manifest(
         fixtures_root, scenario_manifest_path
     )
+
+    # The semantic runner is independently safe to invoke: every object it
+    # consumes must be a registered Layer A-valid fixture of the right type.
+    repo_schema_dir = repo_root / "schemas"
+    documents = schema_documents(repo_schema_dir)
+    registry = build_registry(documents)
+    registered = {entry["path"]: entry for entry in entries}
+    checked: set[tuple[str, str]] = set()
+
+    def require_layer_a(raw_path: str, expected_schema: str) -> None:
+        entry = registered.get(raw_path)
+        if entry is None:
+            raise RunnerError(f"linked semantic component is not registered in fixture manifest: {raw_path}")
+        fixture_path = resolve_under(fixtures_root, raw_path, label="linked component")
+        schema_path = (fixture_path.parent / entry["schema"]).resolve()
+        expected_path = (repo_schema_dir / expected_schema).resolve()
+        if schema_path != expected_path or entry.get("expect_schema_valid") is not True:
+            raise RunnerError(f"{raw_path}: linked semantic component has wrong schema or is not expected schema-valid")
+        key = (raw_path, expected_schema)
+        if key in checked:
+            return
+        validator = Draft202012Validator(documents[schema_path], registry=registry, format_checker=FormatChecker())
+        errors = list(validator.iter_errors(load_json(fixture_path)))
+        if errors:
+            raise RunnerError(f"{raw_path}: linked semantic component fails Layer A: {errors[0].message}")
+        checked.add(key)
+
+    for entry in entries:
+        if entry.get("expect_semantic_valid") is not None or entry.get("expect_assessable") is not None:
+            fixture_path = resolve_under(fixtures_root, entry["path"], label="local semantic component")
+            require_layer_a(entry["path"], schema_basename_from_manifest_entry(fixture_path, entry["schema"]))
+    for scenario in scenarios:
+        for key, name in (
+            ("activity", "activity.schema.json"),
+            ("track_source", "track-source.schema.json"),
+            ("canonical_track", "canonical-track.schema.json"),
+            ("target_area", "target-area.schema.json"),
+            ("spatial_assessment", "spatial-assessment.schema.json"),
+        ):
+            require_layer_a(scenario[key], name)
+        for segment_path in scenario["target_segments"]:
+            require_layer_a(segment_path, "target-segment.schema.json")
+
+    local_results = run_local_semantic_checks(fixtures_root, entries)
     scenario_results = run_scenarios(fixtures_root, scenarios)
 
     for result in local_results:

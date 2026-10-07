@@ -19,14 +19,20 @@
   },
   "end_position": {
     "part_index": 0,
-    "observation_index": 60,
+    "observation_index": 61,
     "fraction_to_next": 0
   },
   "geometry": {
     "type": "LineString",
     "coordinates": [
-      [112.9000, 28.2000],
-      [112.9000, 28.2000]
+      [
+        112.9,
+        28.2
+      ],
+      [
+        112.9,
+        28.2
+      ]
     ]
   }
 }

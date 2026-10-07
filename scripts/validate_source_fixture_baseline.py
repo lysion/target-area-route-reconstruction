@@ -14,10 +14,13 @@ import json
 import math
 import struct
 import sys
-import xml.etree.ElementTree as ET
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+from strict_json import load_json as strict_load_json
+import fitdecode
+from lxml import etree
 
 CRC_TABLE = (
     0x0000, 0xCC01, 0xD801, 0x1400,
@@ -27,6 +30,9 @@ CRC_TABLE = (
 )
 FIT_EPOCH = datetime(1989, 12, 31, tzinfo=timezone.utc)
 GPX_NS = {"g": "http://www.topografix.com/GPX/1/1"}
+GPX_XSD = Path(__file__).resolve().parent.parent / "tests/source-fixtures/spec/gpx-1.1.xsd"
+FIT_MESSAGE_NAMES = {0: "file_id", 18: "session", 19: "lap", 20: "record", 34: "activity"}
+FIT_INVALID_SINT32 = 0x7FFFFFFF
 
 
 class FixtureError(RuntimeError):
@@ -44,8 +50,8 @@ def fit_crc(data: bytes, crc: int = 0) -> int:
 
 def load_json(path: Path) -> Any:
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+        return strict_load_json(path)
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
         raise FixtureError(f"cannot load JSON {path}: {exc}") from exc
 
 
@@ -55,14 +61,22 @@ def sha256(path: Path) -> str:
 
 def read_gpx(path: Path, source_valid: bool) -> dict[str, Any]:
     try:
-        root = ET.parse(path).getroot()
-    except ET.ParseError as exc:
+        parser = etree.XMLParser(resolve_entities=False, no_network=True, huge_tree=False)
+        document = etree.parse(str(path), parser)
+        root = document.getroot()
+    except etree.XMLSyntaxError as exc:
         if source_valid:
             raise FixtureError(f"{path}: expected valid GPX, parse failed: {exc}") from exc
         return {"source_valid": False, "failure_class": "malformed_xml"}
 
+    schema = etree.XMLSchema(etree.parse(str(GPX_XSD)))
+    if not schema.validate(document):
+        if source_valid:
+            raise FixtureError(f"{path}: GPX 1.1 XSD validation failed: {schema.error_log}")
+        return {"source_valid": False, "failure_class": "invalid_gpx"}
+
     if not source_valid:
-        raise FixtureError(f"{path}: expected malformed GPX but XML parsed successfully")
+        raise FixtureError(f"{path}: expected invalid GPX but GPX 1.1 XSD accepted it")
 
     tracks = root.findall("g:trk", GPX_NS)
     segments = root.findall(".//g:trkseg", GPX_NS)
@@ -108,6 +122,8 @@ def read_fit(path: Path) -> dict[str, Any]:
         raise FixtureError(f"{path}: unsupported FIT header size {header_size}")
     if data[8:12] != b".FIT":
         raise FixtureError(f"{path}: missing FIT signature")
+    if header_size == 14 and struct.unpack_from("<H", data, 12)[0] != fit_crc(data[:12]):
+        raise FixtureError(f"{path}: FIT header CRC mismatch")
 
     payload_size = struct.unpack_from("<I", data, 4)[0]
     expected_size = header_size + payload_size + 2
@@ -177,6 +193,10 @@ def read_fit(path: Path) -> dict[str, Any]:
     timestamps = []
     positioned = 0
     timestamped = 0
+    message_counts: dict[str, int] = {}
+    for number, _ in messages:
+        name = FIT_MESSAGE_NAMES.get(number, f"message_{number}")
+        message_counts[name] = message_counts.get(name, 0) + 1
 
     for record in records:
         if 253 in record:
@@ -186,16 +206,48 @@ def read_fit(path: Path) -> dict[str, Any]:
                 .isoformat()
                 .replace("+00:00", "Z")
             )
-        if 0 in record and 1 in record:
+        if 0 in record and 1 in record and record[0] != FIT_INVALID_SINT32 and record[1] != FIT_INVALID_SINT32:
             positioned += 1
             lat = record[0] * 180.0 / (2**31)
             lon = record[1] * 180.0 / (2**31)
-            positions.append((lon, lat))
+            if -90 <= lat <= 90 and -180 <= lon <= 180:
+                positions.append((lon, lat))
+            else:
+                raise FixtureError(f"{path}: positioned FIT record outside canonical coordinate bounds")
+
+    # Independent FIT implementation checks protocol, field base types and
+    # invalid sentinels; our fixture reader and generator must agree with it.
+    try:
+        with fitdecode.FitReader(str(path), check_crc=fitdecode.CrcCheck.RAISE,
+                                 error_handling=fitdecode.ErrorHandling.RAISE) as reader:
+            independent = [frame for frame in reader if isinstance(frame, fitdecode.FitDataMessage)]
+    except Exception as exc:
+        raise FixtureError(f"{path}: independent FIT decoder rejected file: {exc}") from exc
+    independent_counts = dict(Counter(frame.name for frame in independent))
+    if independent_counts != message_counts:
+        raise FixtureError(f"{path}: FIT message counts disagree with independent decoder")
+    independent_positions = []
+    for frame in independent:
+        if frame.name != "record":
+            continue
+        try:
+            lat_raw, lon_raw = frame.get_value("position_lat"), frame.get_value("position_long")
+        except KeyError:
+            continue
+        if lat_raw is not None and lon_raw is not None:
+            independent_positions.append((lon_raw * 180.0 / 2**31, lat_raw * 180.0 / 2**31))
+    if independent_positions != positions:
+        raise FixtureError(f"{path}: FIT positions disagree with independent decoder")
+
+    required_activity_messages = {"file_id", "record", "lap", "session", "activity"}
+    activity_structure = "complete_activity" if required_activity_messages <= message_counts.keys() else "minimal_message_stream"
 
     return {
         "source_valid": True,
         "fit_crc_valid": True,
         "file_type": "activity" if file_type == 4 else str(file_type),
+        "activity_structure": activity_structure,
+        "message_counts": message_counts,
         "record_message_count": len(records),
         "positioned_record_count": positioned,
         "timestamped_record_count": timestamped,
@@ -216,17 +268,23 @@ def assert_subset(actual: dict[str, Any], expected: dict[str, Any], label: str) 
 def main() -> int:
     repo_root = Path(__file__).resolve().parent.parent
     root = repo_root / "tests/source-fixtures"
-    manifest = load_json(root / "manifest.json")
-    fixtures = manifest.get("fixtures", [])
-    if not isinstance(fixtures, list) or not fixtures:
-        print("ERROR: source fixture manifest has no fixtures", file=sys.stderr)
-        return 2
-
     observed: dict[str, dict[str, Any]] = {}
 
     try:
+        manifest = load_json(root / "manifest.json")
+        if not isinstance(manifest, dict) or manifest.get("schema_version") != "0.1.0":
+            raise FixtureError("source fixture manifest must be an object with schema_version '0.1.0'")
+        fixtures = manifest.get("fixtures", [])
+        if not isinstance(fixtures, list) or not fixtures:
+            raise FixtureError("source fixture manifest has no fixtures")
+        seen_ids: set[str] = set()
+        seen_paths: set[str] = set()
         for entry in fixtures:
             fixture_id = entry["id"]
+            if fixture_id in seen_ids or entry["path"] in seen_paths:
+                raise FixtureError("duplicate source fixture ID or path")
+            seen_ids.add(fixture_id)
+            seen_paths.add(entry["path"])
             path = root / entry["path"]
             if not path.is_file():
                 raise FixtureError(f"{fixture_id}: missing file {path}")
