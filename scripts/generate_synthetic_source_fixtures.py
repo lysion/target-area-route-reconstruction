@@ -2,8 +2,9 @@
 """Generate deterministic, privacy-safe raw FIT/GPX test fixtures.
 
 This is test-fixture tooling, not the production Milestone 2 parser.
-The FIT writer emits only the minimal subset needed by the synthetic fixtures:
-FileId plus Record messages using standard FIT definition/data messages.
+The FIT writer retains the original minimal FileId/Record examples and also
+emits one representative Activity file with Lap, Session, and Activity summary
+messages. It is fixture tooling, not production parsing.
 """
 
 from __future__ import annotations
@@ -77,24 +78,26 @@ def file_id_block(created: datetime) -> bytes:
 
 def build_fit(
     records: list[tuple[datetime, float | None, float | None]],
+    *,
+    complete_activity: bool = False,
+    force_position_fields: bool = False,
 ) -> bytes:
     created = records[0][0]
     data = bytearray(file_id_block(created))
 
-    positioned = all(lat is not None and lon is not None for _, lat, lon in records)
-    if positioned:
+    with_positions = force_position_fields or any(lat is not None and lon is not None for _, lat, lon in records)
+    if with_positions:
         fields = [(253, 4, 0x86), (0, 4, 0x85), (1, 4, 0x85)]
         data.extend(definition_message(1, 20, fields))
         for timestamp, lat, lon in records:
-            assert lat is not None and lon is not None
             data.extend(
                 data_message(
                     1,
                     struct.pack(
                         "<Iii",
                         fit_timestamp(timestamp),
-                        semicircles(lat),
-                        semicircles(lon),
+                        semicircles(lat) if lat is not None else 0x7FFFFFFF,
+                        semicircles(lon) if lon is not None else 0x7FFFFFFF,
                     ),
                 )
             )
@@ -106,10 +109,33 @@ def build_fit(
                 data_message(1, struct.pack("<I", fit_timestamp(timestamp)))
             )
 
-    header = bytearray([12, 0x20])
+    if complete_activity:
+        start = fit_timestamp(records[0][0])
+        end = fit_timestamp(records[-1][0])
+        elapsed_ms = (end - start) * 1000
+        summary_fields = [
+            (253, 4, 0x86),  # timestamp
+            (254, 2, 0x84),  # message_index
+            (2, 4, 0x86),    # start_time
+            (7, 4, 0x86),    # total_elapsed_time, scaled by 1000
+            (8, 4, 0x86),    # total_timer_time, scaled by 1000
+        ]
+        for local, global_number in ((2, 19), (3, 18)):
+            data.extend(definition_message(local, global_number, summary_fields))
+            data.extend(data_message(local, struct.pack("<IHIII", end, 0, start, elapsed_ms, elapsed_ms)))
+        activity_fields = [
+            (253, 4, 0x86), (0, 4, 0x86), (1, 2, 0x84),
+            (2, 1, 0x00), (3, 1, 0x00), (4, 1, 0x00),
+        ]
+        data.extend(definition_message(4, 34, activity_fields))
+        data.extend(data_message(4, struct.pack("<IIHBBB", end, elapsed_ms, 1, 0, 26, 1)))
+
+    header = bytearray([14 if complete_activity else 12, 0x20])
     header.extend(struct.pack("<H", 2100))
     header.extend(struct.pack("<I", len(data)))
     header.extend(b".FIT")
+    if complete_activity:
+        header.extend(struct.pack("<H", fit_crc(header)))
 
     without_crc = bytes(header) + bytes(data)
     return without_crc + struct.pack("<H", fit_crc(without_crc))
@@ -182,6 +208,25 @@ def write_fixtures(root: Path) -> None:
     )
     (root / "fit" / "no-position.fit").write_bytes(
         build_fit([(t, None, None) for t, _, _ in basic])
+    )
+    (root / "fit" / "complete-activity.fit").write_bytes(
+        build_fit(basic, complete_activity=True)
+    )
+    (root / "fit" / "invalid-position-sentinel.fit").write_bytes(
+        build_fit([(t, None, None) for t, _, _ in basic], force_position_fields=True)
+    )
+    (root / "fit" / "mixed-position.fit").write_bytes(
+        build_fit([basic[0], (basic[1][0], None, None), basic[2]])
+    )
+    original_gpx = (root / "equivalent" / "basic.gpx").read_text(encoding="utf-8")
+    (root / "gpx" / "invalid-root.gpx").write_text(
+        original_gpx.replace("<gpx ", "<notgpx ").replace("</gpx>", "</notgpx>"), encoding="utf-8"
+    )
+    (root / "gpx" / "invalid-range.gpx").write_text(
+        original_gpx.replace('lat="28.2000000"', 'lat="91.0000000"', 1), encoding="utf-8"
+    )
+    (root / "gpx" / "invalid-version.gpx").write_text(
+        original_gpx.replace('version="1.1"', 'version="1.0"', 1), encoding="utf-8"
     )
 
 
