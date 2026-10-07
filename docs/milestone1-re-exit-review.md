@@ -3,7 +3,7 @@
 **Date:** 2026-10-07  
 **Audited baseline:** `141dc092f5a3c7845066156cafd26b3879e99137`  
 **Implementation reviewed:** `87c29f8` (following the remediation commits)  
-**Decision:** local review PASS; branch CI pending. M1 remains ACTIVE / remediation and M2 BLOCKED until CI verifies the branch.
+**Decision:** PASS — M1 DONE; M2 ACTIVE. Local verification and [GitHub Actions run 37573668670](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37573668670) passed on branch commit `fd54404e791065ac2ba26a0d1b5ffaf155fcccfe`. The subsequent closure commit changes milestone/review documentation only and must retain green PR checks.
 
 This review supersedes the readiness conclusion of the [historical exit review](milestone1-exit-review.md), which remains intact. It evaluates the strengthened oracle and actual adversarial outcomes, not green fixture counts alone. Detailed before/after evidence and deliberate fixture corrections are in [the remediation record](milestone1-remediation.md).
 
@@ -25,11 +25,11 @@ This review supersedes the readiness conclusion of the [historical exit review](
 | Independent raw conformance | Pinned fitdecode; offline official GPX 1.1 XSD via pinned lxml; complete Activity summaries, sentinel and mixed-position cases | PASS |
 | Source/platform independence | No FIT/GPX/device fields added to core; original raw bytes retained; parsers remain M2 | PASS |
 | Frozen domain unchanged | Six entity schemas unchanged; shared hash definition tightened to existing meaning; no new/superseding ADR needed | PASS |
-| Final branch CI green | Pending remote execution; do not close milestone until verified | PENDING |
+| Branch CI green | Run 37573668670 passed every workflow step on `fd54404`; final closure commit is also checked on [PR #1](https://github.com/lysion/target-area-route-reconstruction/pull/1/checks) | PASS |
 
 ## Local CI-equivalent validation
 
-Fresh isolated Python **3.11.16**, using the workflow's `requirements-dev.txt`: jsonschema **4.26.0**, Shapely **2.1.2** / GEOS **3.13.1**, fitdecode **0.11.0**, lxml **6.1.3**. The actual GitHub Actions runner must additionally verify the committed branch.
+Fresh isolated Python **3.11.16**, using the workflow's `requirements-dev.txt`: jsonschema **4.26.0**, Shapely **2.1.2** / GEOS **3.13.1**, fitdecode **0.11.0**, lxml **6.1.3**. The actual GitHub Actions Ubuntu runner with setup-python 3.11 additionally passed the same five validation steps on the committed branch.
 
 | Command | Result |
 |---|---|
@@ -54,4 +54,4 @@ M2 also owns actual quality rejection, stable source-to-normalized diagnostic ma
 
 The original holes, MultiPolygon, point touch, positive-length boundary overlap, repeated entry, strict segment ordering, exact revision references, no-timestamp evidence and zero-length assessment rejection still behave correctly after remediation. Raw regeneration is deterministic across all 12 files. Valid diagonal/tiny inputs are accepted while missing multiplicity and shortened intervals are rejected.
 
-PR and final CI evidence will be added after remote execution. No merge is authorized by this review.
+[PR #1](https://github.com/lysion/target-area-route-reconstruction/pull/1) is ready for review. Its checks track the final branch head; the implementation/review run is linked above. No merge is authorized by this review.

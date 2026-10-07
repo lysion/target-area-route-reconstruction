@@ -2,7 +2,7 @@
 
 **Opened:** 2026-10-07  
 **Base commit:** `141dc092f5a3c7845066156cafd26b3879e99137`  
-**Status:** ACTIVE; Milestone 2 BLOCKED
+**Status:** CLOSED after re-review; Milestone 1 DONE, Milestone 2 ACTIVE
 
 The independent adversarial audit found that the previous Milestone 1 green gate was insufficient to prove the frozen v0.1 contract. It demonstrated acceptance of omitted or reordered repeated traversals, nonmaximal known segments, and a wrong relation under incomplete coverage. It also demonstrated a valid diagonal clipping result rejected because of floating-point noise, negative fixtures passing for unrelated reasons, linked semantic objects bypassing schema validation, and raw FIT/GPX baseline weaknesses.
 
@@ -56,4 +56,4 @@ The six promised metric input classes are now registered and tested. Validated s
 
 ## Validation and closure
 
-Run the four documented validators and `python -m unittest discover -s tests -p 'test_*.py'`. The [fresh re-exit review](milestone1-re-exit-review.md) records exact final results, execution environment and CI evidence. M1 remains ACTIVE and M2 BLOCKED until that review and branch CI pass. The historical PASS is never erased.
+The four documented validators and `python -m unittest discover -s tests -p 'test_*.py'` passed locally and in [branch CI](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37573668670). The [fresh re-exit review](milestone1-re-exit-review.md) records exact results, execution environment and CI evidence. M1 is DONE again and M2 ACTIVE. The historical PASS and this reopening are preserved; no production M2 work or merge is part of the remediation.

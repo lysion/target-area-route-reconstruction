@@ -92,7 +92,7 @@ Milestone 0 is DONE only when:
 
 ## Milestone 1 — Schemas and Fixtures
 
-**Status:** ACTIVE — remediation after independent audit
+**Status:** DONE — adversarial remediation and fresh re-exit review passed
 **Target:** machine-verifiable v0.1 contracts
 
 ### Goal
@@ -132,7 +132,7 @@ The independent-audit re-exit additionally requires ordered interval/multiplicit
 
 ## Milestone 2 — Deterministic Core
 
-**Status:** BLOCKED — pending Milestone 1 re-review
+**Status:** ACTIVE — Milestone 1 remediation re-review passed
 **Release target:** v0.1.0
 
 ### Goal
@@ -455,9 +455,9 @@ Milestone 1 completed:
 
 **Milestone 1 historical exit review:** PASS. Its sufficiency was invalidated by an independent adversarial audit of commit `141dc092f5a3c7845066156cafd26b3879e99137`; see `docs/milestone1-remediation.md`.
 
-Milestone 1 is active for remediation. The frozen v0.1 contract remains in force. A new exit review must establish that the validation oracle and fixture baseline enforce it before Milestone 2 begins.
+**Milestone 1 remediation outcome:** DONE after [fresh re-exit review](docs/milestone1-re-exit-review.md) and [branch CI](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37573668670). The frozen v0.1 contract remains unchanged. The strengthened gate verifies 260 schema fixtures, 56 semantic expectations, 29 owned EC representations, 12 raw files/two equivalence groups and 25 unit/integration tests, including adversarial and mutation witnesses. This supersedes the sufficiency of the historical PASS above.
 
-**Deferred Milestone 2 work, after Milestone 1 re-review:**
+**Active Milestone 2 work, not implemented by this remediation:**
 
 1. implement GPX ingestion against the committed raw-source fixtures;
 2. implement FIT ingestion against the equivalent and no-position FIT fixtures;
