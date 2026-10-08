@@ -80,6 +80,39 @@ def main():
         assert 'data-layer="gap_endpoint"' in html
         assert "Missing GPS sections are not drawn" in html
         assert html == core.render_geojson_map(exported.geojson_json)
+        # Installed M2F proof: run the new exporter and offline coloring renderer
+        # using real FIT/GPX data, not only source-tree tests or import checks.
+        metric_export = core.export_temporal_geojson(
+            bundle=assembled.bundle, proof=result.proof, **arguments
+        )
+        assert metric_export.outcome == "produced", metric_export
+        metric_fc = json.loads(metric_export.geojson_json)
+        assert metric_fc["features"][:len(geojson["features"])] == geojson["features"]
+        temporal = metric_fc["metadata"]["temporal_overlay"]
+        assert temporal["algorithm"]["version"] == "0.1.0"
+        metric_features = [
+            feature for feature in metric_fc["features"]
+            if feature["properties"]["layer"] == "target_metric_edge"
+        ]
+        assert all(feature["geometry"]["type"] == "LineString" for feature in metric_features)
+        assert all(feature["properties"]["metric"]["status"] != "valid" or
+                   feature["properties"]["metric"]["duration_s"] > 0
+                   for feature in metric_features)
+        assert all(feature["properties"]["metric"]["status"] == "valid" or
+                   feature["properties"]["metric"]["speed_mps"] is None
+                   for feature in metric_features)
+        assert temporal["counts"]["valid"] + temporal["counts"]["unavailable"] == len(metric_features)
+        metric_html = core.render_geojson_map(metric_export.geojson_json)
+        assert 'data-layer="target_metric_edge"' in metric_html
+        assert 'id="metric-mode"' in metric_html
+        assert "metricColor(" in metric_html
+        assert metric_html == core.render_geojson_map(metric_export.geojson_json)
+        pace_export = core.export_temporal_geojson(
+            bundle=assembled.bundle, proof=result.proof,
+            metric_mode="pace_s_per_km", **arguments
+        )
+        assert pace_export.outcome == "produced", pace_export
+        assert json.loads(pace_export.geojson_json)["metadata"]["temporal_overlay"]["mode"] == "pace_s_per_km"
         # Exercise installed M2D modules and offline JSON schemas, not just
         # successful imports that might accidentally read the checkout.
         for schema in ("common", "canonical-track", "target-area", "spatial-assessment", "target-segment"):
@@ -104,7 +137,7 @@ def main():
     invalid = core.ingest_file(fixtures / "gpx/invalid-version.gpx", source_kind="gpx",
                                track_source={"id": "wheel-source", "revision_id": "r1"})
     assert invalid.outcome == "failure", invalid
-    print("Installed wheel: 3 M2A→M2E FIT/GPX-to-GeoJSON/map cases, deterministic HTML, 9 JSON/snapshot/export attacks, 5 packaged schemas + invalid-GPX XSD rejection PASS")
+    print("Installed wheel: 3 M2A→M2F FIT/GPX-to-temporal-GeoJSON/map cases, M2E identity preservation, 9 JSON/snapshot/export attacks, 5 packaged schemas + invalid-GPX XSD rejection PASS")
 
 
 if __name__ == "__main__":
