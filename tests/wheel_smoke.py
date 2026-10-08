@@ -41,10 +41,14 @@ def main():
         verified = core.verify_spatial_relation(result.proof, **arguments)
         assert verified.outcome == "valid", verified
         assert result.to_json() == core.prove_spatial_relation(**arguments).to_json()
+        assembled = core.assemble_spatial_entities(proof=result.proof, **arguments)
+        assert assembled.outcome == "produced", assembled
+        assert core.verify_spatial_entities(assembled.bundle, proof=result.proof, **arguments).outcome == "valid"
+        assert assembled.to_json() == core.assemble_spatial_entities(proof=result.proof, **arguments).to_json()
     invalid = core.ingest_file(fixtures / "gpx/invalid-version.gpx", source_kind="gpx",
                                track_source={"id": "wheel-source", "revision_id": "r1"})
     assert invalid.outcome == "failure", invalid
-    print("Installed wheel: 3 end-to-end cases + invalid-GPX XSD rejection PASS")
+    print("Installed wheel: 3 ingest/quality/M2C/M2D cases + invalid-GPX XSD rejection PASS")
 
 
 if __name__ == "__main__":
