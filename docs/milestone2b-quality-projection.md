@@ -1,5 +1,7 @@
 # M2B — deterministic quality projection and gap verification
 
+> **HISTORICAL ORIGINAL M2B ACCEPTANCE REOPENED:** independent Codex audit of M2 exit found that the `0.1.0` quality verifier accepted equivalent nonmaximal adjacent `usable_intervals` while M2D treated those intervals as maximality boundaries. New `QualityAlgorithm 0.1.1` adds a versioned canonical-run invariant; see [M2 Codex remediation](milestone2-codex-remediation.md). Do not interpret old statuses below as current M2 exit acceptance.
+
 **Status:** implementation handoff for independent review. ROADMAP remains M2B ACTIVE; M2C is NOT STARTED.
 
 **Base:** remote main `05e96912a605d6ed6d4e2af2c9561d851ef8ec69`. Both M2A merge `f22b060c8df93d8442e2dab3bf1ec3462d53cee0` and the sequencing commit are ancestors. Branch: `codex/m2b-quality-projection`.
