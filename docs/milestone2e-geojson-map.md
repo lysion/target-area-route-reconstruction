@@ -1,6 +1,6 @@
 # M2E — Verified GeoJSON export and basic interactive map
 
-**Status:** ACTIVE — first GeoJSON export slice implemented on `codex/m2e-geojson-map`; M2E not DONE. Basic interactive map not yet implemented.
+**Status:** ACTIVE — first GeoJSON export slice implemented on `codex/m2e-geojson-map`; M2E not DONE. Initial offline interactive SVG map implemented; independent review and expanded adversarial coverage still pending.
 
 **Baseline:** M2D PR #8 independently accepted and merged; ADR-0012 Accepted; M2A–M2D are DONE. M2E does not change any frozen core schema, evidence/revision policy or spatial classification.
 
@@ -37,7 +37,7 @@ The RFC 7946 FeatureCollection includes a documented `metadata` foreign member w
 
 `include_outside` is a strict boolean controlling only diagnostic outside geometry. No omitted outside feature changes relation, completeness or TargetSegment membership.
 
-## Next implementation slice: basic interactive map
+## Basic interactive map — first implementation slice
 
 Build a lightweight interactive HTML map from **accepted** GeoJSON:
 
@@ -69,3 +69,7 @@ Build a lightweight interactive HTML map from **accepted** GeoJSON:
 M2B supplies no useful local gap-reachability bound; no inferred centerline can be plotted. M2C's longitude interpolation is planar CRS84, including 179°→−179° linearly, not geodesic/periodic; map rendering must not silently reinterpret it as a newly proven route. No persistent dataset/revision index exists before M3.
 
 This document is a milestone implementation record, not permission to change the frozen six-entity contract.
+
+## Initial map implementation
+
+`render_geojson_map(geojson_json, title=...)` produces self-contained HTML with an interactive SVG vector viewport, pan/zoom/reset, layer visibility and per-feature provenance inspection. No remote basemap or network dependency is required. JSON provenance is escaped in the inert application/json script and only rendered into the DOM via textContent. SVG elements are constructed from coordinate arrays, not untrusted HTML. The map is not a substitute for verified export authority: callers should render only the result of `export_geojson`. The first map smoke tests do not yet constitute the independent M2E acceptance gate.
