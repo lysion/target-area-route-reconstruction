@@ -34,8 +34,9 @@ const elements = {
     status: new Element("span"),
     detail: details,
     reset: new Element("button"),
+    "metric-mode": new Element("select"),
 };
-const checkboxes = ["target_area", "target_segment", "observed_outside", "gap_endpoint"]
+const checkboxes = ["target_area", "target_segment", "target_metric_edge", "observed_outside", "gap_endpoint"]
     .map(layer => {const checkbox = new Element("input"); checkbox.dataset.layer = layer; return checkbox;});
 const document = {
     getElementById(id) {assert.ok(elements[id], "Missing DOM node " + id); return elements[id];},
