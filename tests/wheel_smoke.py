@@ -49,6 +49,37 @@ def main():
         assert assembled.outcome == "produced", assembled
         assert core.verify_spatial_entities(assembled.bundle, proof=result.proof, **arguments).outcome == "valid"
         assert assembled.to_json() == core.assemble_spatial_entities(proof=result.proof, **arguments).to_json()
+        # M2E release gate: exercise both new public modules from the installed
+        # (non-editable) wheel against real FIT and GPX fixture ingestion.
+        exported = core.export_geojson(bundle=assembled.bundle, proof=result.proof, **arguments)
+        assert exported.outcome == "produced", exported.issues
+        geojson = json.loads(exported.geojson_json)
+        assert geojson["type"] == "FeatureCollection"
+        assert geojson["metadata"]["relation"] == result.proof.relation
+        assert geojson["metadata"]["coverage_completeness"] == expected_completeness
+        target_features = [
+            feature for feature in geojson["features"]
+            if feature["properties"]["layer"] == "target_segment"
+        ]
+        assert len(target_features) == len(assembled.bundle.segments)
+        assert [f["geometry"] for f in target_features] == [
+            segment["geometry"] for segment in assembled.bundle.segments
+        ]
+        # A gap can only create Point endpoints; never a missing-route LineString.
+        assert all(
+            feature["geometry"]["type"] == "Point"
+            for feature in geojson["features"]
+            if feature["properties"]["layer"] == "gap_endpoint"
+        )
+        assert not any(
+            feature["properties"]["layer"] == "gap"
+            for feature in geojson["features"]
+        )
+        html = core.render_geojson_map(exported.geojson_json)
+        assert '<svg id="map"' in html and 'id="evidence"' in html
+        assert 'data-layer="gap_endpoint"' in html
+        assert "Missing GPS sections are not drawn" in html
+        assert html == core.render_geojson_map(exported.geojson_json)
         # Exercise installed M2D modules and offline JSON schemas, not just
         # successful imports that might accidentally read the checkout.
         for schema in ("common", "canonical-track", "target-area", "spatial-assessment", "target-segment"):
@@ -58,6 +89,11 @@ def main():
         forged = replace(bundle, assessment_json='{"relation":"outside",' + bundle.assessment_json[1:])
         checked = core.verify_spatial_entities(forged, proof=result.proof, **arguments)
         assert [i.code for i in checked.issues] == ["M2D_DUPLICATE_JSON_MEMBER"], checked
+        rejected_export = core.export_geojson(
+            bundle=forged, proof=result.proof, **arguments
+        )
+        assert rejected_export.outcome == "invalid_input", rejected_export
+        assert rejected_export.geojson_json is None
         segments = list(bundle.segments)
         segments[0]["geometry"]["coordinates"][0][0] = math.nextafter(
             segments[0]["geometry"]["coordinates"][0][0], math.inf)
@@ -68,7 +104,7 @@ def main():
     invalid = core.ingest_file(fixtures / "gpx/invalid-version.gpx", source_kind="gpx",
                                track_source={"id": "wheel-source", "revision_id": "r1"})
     assert invalid.outcome == "failure", invalid
-    print("Installed wheel: 3 M2A→M2D cases, 6 JSON/snapshot attacks, 5 packaged schemas + invalid-GPX XSD rejection PASS")
+    print("Installed wheel: 3 M2A→M2E FIT/GPX-to-GeoJSON/map cases, deterministic HTML, 9 JSON/snapshot/export attacks, 5 packaged schemas + invalid-GPX XSD rejection PASS")
 
 
 if __name__ == "__main__":

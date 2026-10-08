@@ -43,6 +43,11 @@ jobs:
       - name: Run contract mutation regressions
         run: python -m unittest discover -s tests -p 'test_*.py'
 
+      - name: Verify M2E JavaScript interactions (Node.js required)
+        run: |
+          node --version
+          python -m unittest discover -s tests -p 'test_m2e_dom_runtime.py'
+
       - name: Verify patch whitespace
         run: git diff-tree --check HEAD^ HEAD
 
