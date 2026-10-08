@@ -1,6 +1,6 @@
 # M2E — Verified GeoJSON export and basic interactive map
 
-**Status:** ACTIVE — first GeoJSON export slice implemented on `codex/m2e-geojson-map`; M2E not DONE. Initial offline interactive SVG map implemented; independent review and expanded adversarial coverage still pending.
+**Status:** ACTIVE — GeoJSON export, offline interactive vector map, adversarial/DOM tests and isolated-wheel M2E smoke implemented in PR #11. Final-head CI and independent acceptance required before M2E DONE.
 
 **Baseline:** M2D PR #8 independently accepted and merged; ADR-0012 Accepted; M2A–M2D are DONE. M2E does not change any frozen core schema, evidence/revision policy or spatial classification.
 
@@ -72,4 +72,10 @@ This document is a milestone implementation record, not permission to change the
 
 ## Initial map implementation
 
-`render_geojson_map(geojson_json, title=...)` produces self-contained HTML with an interactive SVG vector viewport, pan/zoom/reset, layer visibility and per-feature provenance inspection. No remote basemap or network dependency is required. JSON provenance is escaped in the inert application/json script and only rendered into the DOM via textContent. SVG elements are constructed from coordinate arrays, not untrusted HTML. The map is not a substitute for verified export authority: callers should render only the result of `export_geojson`. The first map smoke tests do not yet constitute the independent M2E acceptance gate.
+`render_geojson_map(geojson_json, title=...)` produces self-contained HTML with an interactive SVG vector viewport, pan/zoom/reset, layer visibility and per-feature provenance inspection. No remote basemap or network dependency is required. JSON provenance is escaped in the inert application/json script and only rendered into the DOM via textContent. SVG elements are constructed from coordinate arrays, not untrusted HTML. The map is not a substitute for verified export authority: callers should render only the result of `export_geojson`. Additional adversarial probes cover geometry nesting, closed polygon rings and holes, MultiPolygon, forged/revision-stale payloads, hostile provenance and non-inferred gap endpoints. A Node.js DOM-runtime test executes real map JavaScript controls (click, toggles, wheel zoom, pointer drag, reset) from verified production output. The isolated installed-wheel smoke now runs M2A→M2E for real FIT/GPX fixtures outside the checkout; these tests remain distinct from the final independent review decision.
+
+## Review preflight record
+
+Preflight CI run [37775118596](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37775118596) on head `12ab153853f587283cc4c65f34e06f42c6d23a95`: 245 unit tests passed; isolated wheel confirmed 3 real FIT/GPX→M2E export/map cases and forged-authority rejection. Review found that the earlier wheel check terminated at M2D; this was repaired before preflight PASS. The subsequent CI change makes Node.js map interaction testing a separately named mandatory step. Final-head CI must be checked again after all changes; preflight PASS does not automatically approve a later head.
+
+**Independent acceptance rule:** PR #11 remains unmerged until review checks the exact final commit, upstream authority gates, semantic no-gap-chord invariant, projection exhaustiveness and occurrence order, map injection defenses, Node DOM controls, and noneditable installed-wheel M2E output. No M2F behavior is authorized here.
