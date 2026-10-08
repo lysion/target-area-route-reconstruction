@@ -11,6 +11,7 @@ import hashlib
 import json
 import math
 from dataclasses import asdict
+from decimal import Decimal
 from functools import lru_cache
 from importlib.resources import files
 
@@ -19,8 +20,9 @@ from referencing import Registry, Resource
 
 
 M2D_NAME = "target-area-route-reconstruction.spatial-assembly"
-M2D_VERSION = "0.1.0"
+M2D_VERSION = "0.1.1"
 IDENTITY_POLICY = "m2d-prereference-seed-v1"
+SNAPSHOT_POLICY = "m2d-canonical-payload-v1"
 
 
 def canonical_json(value):
@@ -93,17 +95,78 @@ def schema_issues(name, instance):
 
 
 def strict_load(text):
+    """Decode unambiguous UTF-8 JSON, without last-member-wins authority."""
+    if type(text) is not str:
+        raise BundleJSONError("M2D_BUNDLE_MALFORMED")
     def illegal_constant(value):
-        raise ValueError("M2D_NONFINITE_JSON")
-    value = json.loads(text, parse_constant=illegal_constant)
+        raise BundleJSONError("M2D_NONFINITE_JSON")
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise BundleJSONError("M2D_DUPLICATE_JSON_MEMBER")
+            result[key] = value
+        return result
+    def binary64(number):
+        value = float(number)
+        if not math.isfinite(value):
+            raise BundleJSONError("M2D_NONFINITE_JSON")
+        if value == 0 and Decimal(number) != 0:
+            raise BundleJSONError("M2D_JSON_NUMBER_UNREPRESENTABLE")
+        return value
+    value = json.loads(text, parse_constant=illegal_constant,
+                       object_pairs_hook=unique_object, parse_float=binary64)
     def walk(item):
         if isinstance(item, float) and not math.isfinite(item):
-            raise ValueError("M2D_NONFINITE_JSON")
+            raise BundleJSONError("M2D_NONFINITE_JSON")
+        if isinstance(item, str):
+            item.encode("utf-8", errors="strict")
         if isinstance(item, dict):
             for k, v in item.items():
+                walk(k)
                 walk(v)
         elif isinstance(item, list):
             for v in item:
                 walk(v)
     walk(value)
     return value
+
+
+class BundleJSONError(ValueError):
+    """Stable parse category, independent of decoder exception prose."""
+    def __init__(self, code):
+        self.code = code
+        super().__init__(code)
+
+
+def exact_proof_metadata(proof, quality):
+    """Additional type-sensitive provenance check AFTER the mandatory M2C gate.
+
+    Python dataclass equality equates False/0 and 8/8.0. This check does not
+    clip, classify or decide any new spatial fact.
+    """
+    from ._spatial_inputs import algorithm
+    if canonical_json(asdict(proof.algorithm)) != canonical_json(asdict(algorithm())):
+        return False
+    if canonical_json(asdict(proof.authority.quality_algorithm)) != canonical_json(asdict(quality.algorithm)):
+        return False
+    return all(canonical_json(asdict(item.gap)) == canonical_json(asdict(quality.gaps[item.gap_index]))
+               for item in proof.gap_relevance)
+
+
+def geometry_matches_parent(actual, expected, track):
+    """Bounded *semantic* comparison; immutable payload identity is separate.
+
+    Mirror the documented M1 coordinate budget, not its implementation. Vertex
+    count/order is exact; no tolerance determines positive length. The M1
+    independent oracle and hand-computed witnesses test this shared primitive.
+    """
+    a, b = actual["coordinates"], expected["coordinates"]
+    if actual["type"] != "LineString" or len(a) != len(b):
+        return False
+    if all(point == a[0] for point in a[1:]):
+        return False
+    length = math.fsum(math.hypot(y[0] - x[0], y[1] - x[1]) for x, y in zip(b, b[1:]))
+    scale = max(abs(v) for part in track["parts"] for obs in part["observations"] for v in obs["position"])
+    return all(abs(x - y) <= min(1e-12, 8 * math.ulp(max(scale, *map(abs, p), *map(abs, q))), length / 4)
+               for p, q in zip(a, b) for x, y in zip(p, q))

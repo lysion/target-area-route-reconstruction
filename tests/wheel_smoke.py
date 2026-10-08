@@ -1,6 +1,10 @@
 """Copy outside the checkout and run using an isolated installed-wheel Python."""
 
 import sys
+import json
+import math
+from dataclasses import replace
+from importlib.resources import files
 from pathlib import Path
 
 import target_area_route_reconstruction as core
@@ -45,10 +49,26 @@ def main():
         assert assembled.outcome == "produced", assembled
         assert core.verify_spatial_entities(assembled.bundle, proof=result.proof, **arguments).outcome == "valid"
         assert assembled.to_json() == core.assemble_spatial_entities(proof=result.proof, **arguments).to_json()
+        # Exercise installed M2D modules and offline JSON schemas, not just
+        # successful imports that might accidentally read the checkout.
+        for schema in ("common", "canonical-track", "target-area", "spatial-assessment", "target-segment"):
+            resource = files(core).joinpath("spec", schema + ".schema.json")
+            assert json.loads(resource.read_text())["$schema"].endswith("2020-12/schema")
+        bundle = assembled.bundle
+        forged = replace(bundle, assessment_json='{"relation":"outside",' + bundle.assessment_json[1:])
+        checked = core.verify_spatial_entities(forged, proof=result.proof, **arguments)
+        assert [i.code for i in checked.issues] == ["M2D_DUPLICATE_JSON_MEMBER"], checked
+        segments = list(bundle.segments)
+        segments[0]["geometry"]["coordinates"][0][0] = math.nextafter(
+            segments[0]["geometry"]["coordinates"][0][0], math.inf)
+        forged = replace(bundle, segment_json=tuple(json.dumps(s) for s in segments))
+        checked = core.verify_spatial_entities(forged, proof=result.proof, **arguments)
+        assert "M2D_CANONICAL_SNAPSHOT_MISMATCH" in [i.code for i in checked.issues], checked
+        assert "M2D_GEOMETRY_REGEN_MISMATCH" not in [i.code for i in checked.issues], checked
     invalid = core.ingest_file(fixtures / "gpx/invalid-version.gpx", source_kind="gpx",
                                track_source={"id": "wheel-source", "revision_id": "r1"})
     assert invalid.outcome == "failure", invalid
-    print("Installed wheel: 3 ingest/quality/M2C/M2D cases + invalid-GPX XSD rejection PASS")
+    print("Installed wheel: 3 M2A→M2D cases, 6 JSON/snapshot attacks, 5 packaged schemas + invalid-GPX XSD rejection PASS")
 
 
 if __name__ == "__main__":

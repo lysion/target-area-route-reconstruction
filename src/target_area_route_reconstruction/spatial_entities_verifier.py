@@ -10,8 +10,9 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from ._m2d_common import (
-    M2D_NAME, M2D_VERSION, IDENTITY_POLICY, digest, position_dict,
-    position_key, regenerate, schema_issues,
+    M2D_NAME, M2D_VERSION, IDENTITY_POLICY, SNAPSHOT_POLICY, digest, position_dict,
+    position_key, regenerate, schema_issues, canonical_json, strict_load,
+    BundleJSONError, exact_proof_metadata, geometry_matches_parent,
 )
 from .models import TrackPosition
 from .spatial_verifier import verify_spatial_relation
@@ -83,6 +84,25 @@ def _expected_uncertainties(proof):
 
 def verify_spatial_entities(bundle, *, proof, evidence, quality_projection,
                             quality_policy, target_area, target_reference):
+    """Check semantic lineage AND the versioned immutable assembly payload.
+
+    This is not a general-purpose validator for arbitrary schema-valid spatial
+    entities. No exception becomes successful empty coverage.
+    """
+    try:
+        return _verify_spatial_entities(
+            bundle, proof=proof, evidence=evidence, quality_projection=quality_projection,
+            quality_policy=quality_policy, target_area=target_area,
+            target_reference=target_reference)
+    except Exception:
+        # Fail closed even on unexpected engine/resource/internal failures.
+        # Deliberately do not catch process-control BaseExceptions.
+        return SpatialEntityVerification("invalid", (
+            SpatialEntityIssue("M2D_VERIFICATION_FAILURE"),))
+
+
+def _verify_spatial_entities(bundle, *, proof, evidence, quality_projection,
+                             quality_policy, target_area, target_reference):
     upstream = verify_spatial_relation(
         proof, evidence=evidence, quality_projection=quality_projection,
         quality_policy=quality_policy, target_area=target_area,
@@ -91,15 +111,27 @@ def verify_spatial_entities(bundle, *, proof, evidence, quality_projection,
     if upstream.outcome != "valid":
         return SpatialEntityVerification("invalid", (
             SpatialEntityIssue("M2D_SPATIAL_PROOF_INVALID"),))
+    if not exact_proof_metadata(proof, quality_projection):
+        return SpatialEntityVerification("invalid", (
+            SpatialEntityIssue("M2D_PROOF_METADATA_MISMATCH"),))
     if not proof.assessable:
         return SpatialEntityVerification("valid" if bundle is None else "invalid",
             () if bundle is None else (SpatialEntityIssue("M2D_NONASSESSABLE_ENTITIES"),))
-    if not isinstance(bundle, SpatialEntityBundle):
+    if (type(bundle) is not SpatialEntityBundle
+            or type(bundle.assessment_json) is not str
+            or type(bundle.segment_json) is not tuple
+            or any(type(s) is not str for s in bundle.segment_json)):
         return SpatialEntityVerification("invalid", (SpatialEntityIssue("M2D_BUNDLE_MALFORMED"),))
-    try:
-        assessment, segments = bundle.assessment, bundle.segments
-    except (ValueError, TypeError, OverflowError, KeyError):
-        return SpatialEntityVerification("invalid", (SpatialEntityIssue("M2D_BUNDLE_MALFORMED"),))
+    decoded = []
+    for path, raw in (("assessment", bundle.assessment_json),
+                      *((f"segments/{n}", raw) for n, raw in enumerate(bundle.segment_json))):
+        try:
+            decoded.append(strict_load(raw))
+        except BundleJSONError as exc:
+            return SpatialEntityVerification("invalid", (SpatialEntityIssue(exc.code, path),))
+        except (ValueError, TypeError, OverflowError, RecursionError):
+            return SpatialEntityVerification("invalid", (SpatialEntityIssue("M2D_BUNDLE_MALFORMED", path),))
+    assessment, segments = decoded[0], tuple(decoded[1:])
     issues = []
     def fail(code, path=""):
         issues.append(SpatialEntityIssue(code, path))
@@ -121,7 +153,7 @@ def verify_spatial_entities(bundle, *, proof, evidence, quality_projection,
     if (assessment["relation"] != proof.relation
             or assessment["coverage_completeness"] != proof.coverage_completeness):
         fail("M2D_RELATION_OR_COMPLETENESS_CHANGED")
-    if assessment["coverage_uncertainties"] != _expected_uncertainties(proof):
+    if canonical_json(assessment["coverage_uncertainties"]) != canonical_json(_expected_uncertainties(proof)):
         fail("M2D_UNCERTAINTY_MISMATCH")
 
     actual_algorithm = assessment["algorithm"]
@@ -129,12 +161,13 @@ def verify_spatial_entities(bundle, *, proof, evidence, quality_projection,
         "name": M2D_NAME, "version": M2D_VERSION,
         "parameters": {
             "identity_policy": IDENTITY_POLICY,
+            "snapshot_policy": SNAPSHOT_POLICY,
             "m2c_proof_digest": digest(proof.to_dict()),
             "m2c_algorithm": asdict(proof.algorithm),
             "quality_projection_digest": proof.authority.quality_projection_digest,
         },
     }
-    if actual_algorithm != expected_algorithm:
+    if canonical_json(actual_algorithm) != canonical_json(expected_algorithm):
         fail("M2D_ALGORITHM_MISMATCH")
 
     expected_ranges = _expected_ranges(proof, quality_projection)
@@ -156,7 +189,7 @@ def verify_spatial_entities(bundle, *, proof, evidence, quality_projection,
         if (item["ordinal"] != n or item["start_position"] != info["start_position"]
                 or item["end_position"] != info["end_position"]):
             fail("M2D_MAXIMALITY_OR_LINEAGE_MISMATCH", path)
-        if item["geometry"] != info["geometry"]:
+        if not geometry_matches_parent(item["geometry"], info["geometry"], evidence.canonical_track):
             fail("M2D_GEOMETRY_REGEN_MISMATCH", path)
         if item["canonical_track"] != parent or item["spatial_reference"] != "OGC:CRS84":
             fail("M2D_SEGMENT_PARENT_MISMATCH", path)
@@ -187,6 +220,18 @@ def verify_spatial_entities(bundle, *, proof, evidence, quality_projection,
         })
     if assessment["target_segment_refs"] != expected_refs:
         fail("M2D_SEGMENT_REFERENCES_MISMATCH")
+    # Schema-legal extensions and numeric substitutions must not reuse a
+    # revision whose seed never bound that content. Compare the whole expected
+    # payload, after independent authority/coverage/geometry/reference checks.
+    expected_assessment = {
+        "schema_version": "0.1.0", **assessment_ref,
+        "canonical_track": parent, "target_area": target,
+        "relation": proof.relation, "coverage_completeness": proof.coverage_completeness,
+        "coverage_uncertainties": _expected_uncertainties(proof),
+        "target_segment_refs": expected_refs, "algorithm": expected_algorithm,
+    }
+    if canonical_json(assessment) != canonical_json(expected_assessment):
+        fail("M2D_CANONICAL_SNAPSHOT_MISMATCH", "assessment")
     for n, item in enumerate(segments):
         if n >= len(expected_refs):
             break
@@ -194,4 +239,11 @@ def verify_spatial_entities(bundle, *, proof, evidence, quality_projection,
         if (item["id"] != ref["id"] or item["revision_id"] != ref["revision_id"]
                 or item["spatial_assessment"] != assessment_ref):
             fail("M2D_RECIPROCAL_REFERENCES_MISMATCH", f"segments/{n}")
+        expected_segment = {
+            "schema_version": "0.1.0", **ref, **expected_data[n],
+            "spatial_assessment": assessment_ref, "canonical_track": parent,
+            "spatial_reference": "OGC:CRS84",
+        }
+        if canonical_json(item) != canonical_json(expected_segment):
+            fail("M2D_CANONICAL_SNAPSHOT_MISMATCH", f"segments/{n}")
     return SpatialEntityVerification("invalid" if issues else "valid", tuple(issues))

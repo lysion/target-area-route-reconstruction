@@ -8,8 +8,8 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from ._m2d_common import (
-    IDENTITY_POLICY, M2D_NAME, M2D_VERSION, canonical_json, digest,
-    position_dict, position_key, regenerate, schema_issues,
+    IDENTITY_POLICY, M2D_NAME, M2D_VERSION, SNAPSHOT_POLICY, canonical_json, digest,
+    position_dict, position_key, regenerate, schema_issues, exact_proof_metadata,
 )
 from .spatial_verifier import verify_spatial_relation
 from .spatial_entities_models import (
@@ -145,6 +145,7 @@ def _assemble(track, projection, proof):
             "version": M2D_VERSION,
             "parameters": {
                 "identity_policy": IDENTITY_POLICY,
+                "snapshot_policy": SNAPSHOT_POLICY,
                 "m2c_proof_digest": digest(proof.to_dict()),
                 "m2c_algorithm": asdict(proof.algorithm),
                 "quality_projection_digest": proof.authority.quality_projection_digest,
@@ -157,16 +158,27 @@ def _assemble(track, projection, proof):
 def assemble_spatial_entities(*, proof, evidence, quality_projection,
                               quality_policy, target_area, target_reference):
     """Consume only a valid exact M2C proof; fail closed on every mismatch."""
-    verification = verify_spatial_relation(
-        proof, evidence=evidence, quality_projection=quality_projection,
-        quality_policy=quality_policy, target_area=target_area,
-        target_reference=target_reference,
-    )
+    try:
+        verification = verify_spatial_relation(
+            proof, evidence=evidence, quality_projection=quality_projection,
+            quality_policy=quality_policy, target_area=target_area,
+            target_reference=target_reference,
+        )
+    except Exception:
+        return SpatialAssemblyResult("invalid_input", issues=(
+            SpatialEntityIssue("M2D_AUTHORITY_CHECK_FAILED"),))
     if verification.outcome != "valid":
         return SpatialAssemblyResult("invalid_input", issues=(
             SpatialEntityIssue("M2D_SPATIAL_PROOF_INVALID"),
             *(SpatialEntityIssue(i.code, i.path) for i in verification.issues),
         ))
+    try:
+        if not exact_proof_metadata(proof, quality_projection):
+            return SpatialAssemblyResult("invalid_input", issues=(
+                SpatialEntityIssue("M2D_PROOF_METADATA_MISMATCH"),))
+    except Exception:
+        return SpatialAssemblyResult("invalid_input", issues=(
+            SpatialEntityIssue("M2D_AUTHORITY_CHECK_FAILED"),))
     if not proof.assessable:
         return SpatialAssemblyResult("non_assessable", issues=(
             SpatialEntityIssue("NO_POSITIVE_LENGTH_USABLE_GEOMETRY"),))
@@ -192,6 +204,9 @@ def assemble_spatial_entities(*, proof, evidence, quality_projection,
                 *check.issues,
             ))
         return SpatialAssemblyResult("produced", bundle)
-    except (ValueError, TypeError, OverflowError, IndexError, KeyError) as exc:
+    except (ValueError, TypeError, OverflowError, IndexError, KeyError, RecursionError):
         return SpatialAssemblyResult("assembly_failure", issues=(
             SpatialEntityIssue("M2D_ASSEMBLY_NUMERICAL_OR_STRUCTURAL_FAILURE"),))
+    except Exception:
+        return SpatialAssemblyResult("assembly_failure", issues=(
+            SpatialEntityIssue("M2D_ASSEMBLY_FAILURE"),))

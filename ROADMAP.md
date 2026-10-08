@@ -228,9 +228,9 @@ M2C must not invent new gap evidence, infer a unique missing path, silently inte
 
 #### M2D — Target-area segment extraction and SpatialAssessment assembly
 
-**Status:** ACTIVE — open-ended CoverageUncertainty representation repaired by accepted ADR-0011
+**Status:** ACTIVE — implementation ready for independent re-review in PR #8; M2E remains NOT STARTED
 
-The implementation preflight on `632e9c7` reproduced valid assessable M2C proofs with an absent leading/trailing endpoint. Frozen `trackRange` requires two concrete parent TrackPositions; no accepted anchor convention represents the absent extent. See [minimal reproducer and blocker record](docs/milestone2d-target-segments.md) and [Proposed ADR-0011](docs/decisions/0011-open-ended-coverage-uncertainty.md). ADR-0011 was accepted as a pre-release v0.1.0 erratum in PR #7, and the amended schema and regressions are merged. This paragraph preserves the original blocker history; entity implementation is now authorized in M2D. M2E remains NOT STARTED.
+The implementation preflight on `632e9c7` reproduced valid assessable M2C proofs with an absent leading/trailing endpoint. Frozen `trackRange` requires two concrete parent TrackPositions; no accepted anchor convention represents the absent extent. See [minimal reproducer and blocker record](docs/milestone2d-target-segments.md) and [ADR-0011](docs/decisions/0011-open-ended-coverage-uncertainty.md). ADR-0011 was accepted as a pre-release v0.1.0 erratum in PR #7, and the amended schema and regressions are merged. This paragraph preserves the original blocker history; entity implementation is now authorized in M2D. M2E remains NOT STARTED.
 
 - consume only an assessable, verified M2C supporting result;
 - extract traceable `TargetSegment` results from the target-relative parent intervals proved by M2C;
@@ -242,6 +242,8 @@ The implementation preflight on `632e9c7` reproduced valid assessable M2C proofs
 - after required TargetSegments exist, assemble the frozen `SpatialAssessment` entity with exact CanonicalTrack, TargetArea, algorithm and segment references;
 - enforce the frozen schema requirement that `inside` and `partial` assessments reference at least one `TargetSegment`, while `outside` references none;
 - for an M2C non-assessable result, create neither `TargetSegment` nor `SpatialAssessment`.
+
+PR #8 admission hardening and the proposed versioned canonical-snapshot policy are recorded in [the implementation record](docs/milestone2d-implementation.md) and [ADR-0012](docs/decisions/0012-m2d-canonical-assembly-snapshots.md). The [support-boundary matrix](docs/v0.1-support-boundaries.md) separates required admission checks from later work. No M2E implementation is authorized before independent acceptance.
 
 M2D must not reclassify relation/completeness by inventing new spatial evidence. If M2C proof material is insufficient to construct schema-valid, exhaustive segments and assessment references, fail closed rather than fabricating references.
 
