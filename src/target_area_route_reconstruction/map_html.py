@@ -17,7 +17,9 @@ def render_geojson_map(geojson_json: str, *, title: str = "Target area route map
     collection = strict_load(geojson_json)
     if not isinstance(collection, dict) or collection.get("type") != "FeatureCollection":
         raise ValueError("M2E_MAP_INVALID_GEOJSON")
-    if type(title) is not str:\n        raise ValueError("M2E_MAP_INVALID_TITLE")\n    features = collection.get("features")
+    if type(title) is not str:
+        raise ValueError("M2E_MAP_INVALID_TITLE")
+    features = collection.get("features")
     if not isinstance(features, list):
         raise ValueError("M2E_MAP_INVALID_FEATURES")
     allowed = {"target_area", "target_segment", "observed_outside", "gap_endpoint"}
