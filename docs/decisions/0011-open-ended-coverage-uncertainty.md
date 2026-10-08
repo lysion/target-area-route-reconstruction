@@ -1,71 +1,77 @@
 # ADR-0011 — Explicit open-ended CoverageUncertainty ranges
 
-**Status:** Proposed — NOT accepted or implemented
+**Status:** Accepted — pre-release v0.1.0 representation erratum
 
 **Date:** 2026-10-08
 
-**Checkpoint:** M2D contract blocker
+**Checkpoint:** M2D contract unblock
 
-**Evidence:** `tests/test_m2d_contract.py`, `tests/m2d-contract/`
+**Evidence:** `tests/test_m2d_contract.py`, `tests/m2d-contract/`; blocker record in `docs/milestone2d-target-segments.md`
 
-## Context and confirmed failure
+## Context
 
-Accepted M2A/M2B/M2C preserve leading and trailing source gaps without inventing a positioned endpoint. With positive outside observed geometry, a local target and no gap constraint, both cases produce a verified assessable `unknown + incomplete` proof. The gap has respectively `start=None` or `end=None`.
+M2A/M2B/M2C accept real leading and trailing source gaps without fabricating positioned observations. A verified M2C proof can be assessable with `unknown + incomplete`, with an unresolved gap `start=None` (leading) or `end=None` (trailing).
 
-The frozen SpatialAssessment schema requires every CoverageUncertainty to contain `affected_track_range`, referring to `common.schema.json#/$defs/trackRange`. That value requires two non-null TrackPositions on the parent. Its definition is an inclusive ordered interval, not a source-boundary anchor. `docs/schema-conventions.md` sections 5, 12 and 19 forbid missing-value sentinels, give TrackPosition concrete parent-location semantics, and prohibit hiding necessary core semantics in extensions.
+The original SpatialAssessment CoverageUncertainty referenced shared `trackRange`, which required two real TrackPositions. That range correctly represents closed observed-parent intervals, but cannot losslessly identify an absent leading/trailing source neighbor. Copying null fails Layer A; omitting fails `required`; repeating the known endpoint yields a schema-valid *false-green point range*, not the original uncertainty. A fabricated sentinel or virtual observation is prohibited.
 
-Faithfully copying either accepted gap into the assessment fails Layer A at:
+The blocker was independently confirmed in PR #6. FIT and GPX controls demonstrate the same failure. The issue is a serialized representation mismatch, not a change to the accepted spatial classification or source gap evidence.
 
-- `/coverage_uncertainties/0/affected_track_range/start`, keyword `type` (leading);
-- `/coverage_uncertainties/0/affected_track_range/end`, keyword `type` (trailing).
+## Decision
 
-Omitting the absent endpoint fails `required`. A real two-ended gap passes the same assessment probe, demonstrating that the failure is specifically the missing endpoint, not malformed unrelated fields. FIT missing-position runs reproduce the same issue as GPX empty leading/trailing parts.
+Keep the six entity identities, original source evidence, TrackPosition, and shared `common.schema.json#/$defs/trackRange` unchanged.
 
-This is a representation gap between accepted supporting evidence and the frozen entity schema. ADR-0004 assessability and ADR-0007 uncertainty requirements remain sound. The problem does not authorize changing relation, completeness, source evidence or segment lineage.
+Within `spatial-assessment.schema.json` only, add a dedicated closed-object `$defs.coverageUncertaintyRange` used by `coverage_uncertainties[].affected_track_range`. It requires exactly the fields `start` and `end`, with exactly three mutually exclusive valid variants:
 
-## Existing-contract alternatives examined
-
-1. **Duplicate the known endpoint (`start == end`).** This can pass current schema and M1 local semantic checks. It represents a point interval on observed evidence, not the open prefix/suffix in the M2C gap. No accepted ADR, schema convention or fixture assigns an open-ended meaning to that point interval. Treating it as an anchor would need a new explicit representation convention; it is not an existing authorized mapping.
-2. **Use the whole observed track.** This supplies real endpoints but describes a different interval; it does not represent the unknown leading/trailing extent. Attaching the original null endpoint in prose/parameters does not change the core range's defined meaning.
-3. **Store the gap in provenance or extensions only.** Provenance may retain the exact source cause/evidence references, but it does not override required range semantics. An extension cannot supply missing core-required meaning.
-4. **Use a negative/out-of-range index, terminal fraction, or virtual CanonicalTrack part.** These violate TrackPosition bounds or mutate parent evidence. The test demonstrates that an apparently schema-valid sentinel fails parent validation.
-5. **Drop the uncertainty, mark complete, or make the track non-assessable.** These contradict the already verified M2C facts and ADR-0004/0007.
-6. **Keep M2D permanently unable to assemble these legal assessable proofs.** Explicit failure is correct while blocked, but cannot satisfy M2D acceptance for the committed leading/trailing cases.
-
-The conclusion is not that no JSON object can pass the current schema. Point-anchor substitutions can pass it. The missing contract is a **lossless, explicitly defined representation of the open affected extent**. Green schema validation alone cannot authorize that reinterpretation.
-
-## Proposed amendment (requires independent acceptance)
-
-Introduce a dedicated shared supporting value, tentatively `coverageUncertaintyRange`, used only by CoverageUncertainty. Preserve existing `trackRange` and TrackPosition semantics for closed observed intervals and TargetSegment lineage.
-
-The proposed range has required `start` and `end` fields and exactly three forms:
-
-| Form | start | end | Meaning |
+| Variant | start | end | Meaning |
 |---|---|---|---|
-| bounded | TrackPosition | TrackPosition | Existing ordered affected extent |
-| leading | null | TrackPosition | Unpositioned source prefix before the known parent neighbor |
-| trailing | TrackPosition | null | Unpositioned source suffix after the known parent neighbor |
+| bounded | TrackPosition | TrackPosition | Both real parent neighbors exist; positions are ordered |
+| leading | null | TrackPosition | No positioned source neighbor on the leading side |
+| trailing | TrackPosition | null | No positioned source neighbor on the trailing side |
 
-Both-null is invalid for this assessable-entity interface. Null explicitly means **no positioned source neighbor is available**, not negative/positive infinity, an infinite duration, a route coordinate, a TrackPosition, or proof of motion. This is evidence extent, never geometry.
+Both-null, omitted endpoints, and extra properties are invalid.
 
-The corresponding proposed schema amendment would change only CoverageUncertainty's range reference to this dedicated definition, with a closed object and a mutually exclusive bounded/leading/trailing union. This PR deliberately contains no such schema change.
+Null has one narrow meaning: **no positioned source neighbor is available on that side of the gap**. It is not a virtual TrackPosition, a coordinate, positive/negative infinity, a zero-length interval, a movement claim, or a route reconstruction. Leading/trailing are evidence extents, not spatial geometry. Ordinary `trackRange` remains two-ended and non-null everywhere else.
 
-Required semantic verification after approval:
+## Semantic and authority checks
 
-- every present endpoint is a valid original-parent TrackPosition;
-- bounded endpoints are ordered and match the exact verified unresolved M2C gap;
-- leading/trailing absence and present neighbor exactly match the M2C gap and M2A source diagnostics;
-- no arbitrary interior null endpoint or both-null range is accepted;
-- every unresolved target-relevant gap appears exactly once, and irrelevant/resolved gaps appear zero times;
-- source versus quality causes and exact evidence/algorithm provenance survive;
-- absent endpoints authorize no extra TargetSegment, interpolation or boundary-crossing geometry.
+Layer A checks the exact three shape variants and rejects both-null, omitted, malformed, and extra-property forms.
 
-This preserves six entity identities/ownership and all frozen evidence/spatial invariants. It changes public schema nullability/instance meaning, so schema change-control is still required even though the domain already allows the source state.
+Layer B validates every present TrackPosition against its parent; bounded endpoints are ordered. Because a standalone SpatialAssessment does not contain the authoritative M2B/M2C gap record, only an M2D verifier receiving the exact verified M2C proof can establish the full cross-layer claim:
 
-## Compatibility and acceptance gate
+- each unresolved target-relevant gap is represented exactly once;
+- the null side and existing neighbor match the same original M2C Gap and M2A provenance;
+- resolved or target-irrelevant gaps produce no CoverageUncertainty;
+- source vs quality causes and algorithm/evidence provenance remain distinguishable;
+- a point-anchor substitute is rejected even if it is schema-valid;
+- absent endpoints must never authorize TargetSegment, interpolation, or other geometry.
 
-Do not widen `schema_version=0.1.0` silently. Before implementation, review an explicit schema-version/compatibility decision under `docs/schema-conventions.md` section 3: select a new contract version for the amended representation, retain validation of historical 0.1.0 instances, and specify version dispatch for entities and packaged schemas. No version number is adopted by this Proposed ADR.
+This distinction is deliberate: schema validity alone does not prove evidence equivalence.
 
-Acceptance must update ROADMAP and the schema conventions, add reason-specific schema/semantic fixtures for all three forms, update schema/package copies and their conformance checks, and preserve all existing closed-range history. Only then may M2D resume entity assembly against the accepted contract. The blocker tests will then need a deliberate legacy/new-version split, not deletion or weakening.
+## Schema compatibility/version decision
 
-No implementation of this proposal, segment extraction, missing-route reconstruction, M2E, or M7 is authorized by this document. M2D remains blocked until an independently accepted amendment or equally explicit, reviewed alternative mapping resolves the gap.
+This is an **explicit pre-release erratum** to the unreleased v0.1.0 schema family, not a silent amendment to a released contract. M2D is still blocked before the first v0.1.0 release, and M3 durable entity persistence has not begun.
+
+For this one correction, **retain `schema_version = 0.1.0`**; do not introduce premature parallel version dispatch or a non-existent migration obligation. Previously valid bounded v0.1.0 instances remain valid, with unchanged meaning. The accepted instance set only expands to include leading/trailing uncertainty that the frozen domain already permitted.
+
+Record the exception in `docs/schema-conventions.md`, amend the runtime packaged schema and validators, preserve the original failure history, and add exact positive/negative contract and production hand-off regression tests.
+
+After the first public release, any change to accepted instance semantics or compatibility must make an explicit new schema-version decision; this erratum must not be cited as a precedent for silent changes.
+
+## Consequences and non-goals
+
+ADR-0004 and ADR-0007 relation/completeness semantics, the M2C proof, quality-gating, parent observation identity, and TargetSegment geometry remain unchanged. This decision neither infers a missing track nor authorizes M2D to change relation, completeness, or observational evidence.
+
+M2D may resume only after the amended contract and regressions pass. Production TargetSegment assembly, exact reciprocal revisions, independent verifier, and mutation tests remain separate M2D obligations.
+
+## Alternatives rejected
+
+- Repeating the known endpoint as both ends: falsely converts a missing prefix/suffix into a positioned point range.
+- Widening general `trackRange` nullability: contaminates unrelated parent-lineage semantics.
+- Dropping or hiding uncertainty in an extension/provenance: invalidates required core meaning.
+- Forging a sentinel observation or out-of-bounds TrackPosition: violates parent evidence.
+- Changing M2C relation/completeness or treating the case non-assessable: contradicts the independently verified proof.
+- Introducing pre-release version dispatch solely for this compatible correction: unnecessary complexity before any released/persisted v0.1 entity.
+
+## Acceptance evidence
+
+PR #6 records the failing original contract. The follow-up amendment must run Layer A/B fixtures, the production-derived FIT/GPX probes, all accepted M1/M2 regressions, and the isolated wheel check, with no frozen semantic regression.
