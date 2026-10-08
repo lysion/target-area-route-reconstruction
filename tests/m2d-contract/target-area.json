@@ -1,0 +1,13 @@
+{
+  "schema_version": "0.1.0",
+  "id": "m2d-contract-target",
+  "revision_id": "r1",
+  "spatial_reference": "OGC:CRS84",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[[0, 0], [2, 0], [2, 2], [0, 2], [0, 0]]]
+  },
+  "definition_provenance": {
+    "description": "Synthetic local target for open-ended uncertainty contract reproduction"
+  }
+}
