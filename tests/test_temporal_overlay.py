@@ -46,7 +46,7 @@ class M2FTemporalOverlayTests(unittest.TestCase):
             self.assertEqual(info["status"], "valid")
             self.assertAlmostEqual(info["duration_s"], 10)
             self.assertAlmostEqual(info["pace_s_per_km"], 1000 / info["speed_mps"])
-            self.assertEqual(edge["properties"]["metric_algorithm"]["version"], "0.1.0")
+            self.assertEqual(edge["properties"]["metric_algorithm"]["version"], "0.1.1")
         # All accepted M2E features remain unchanged in output and order.
         self.assertEqual(json.loads(output.geojson_json)["features"][:len(json.loads(base.geojson_json)["features"])],
                          json.loads(base.geojson_json)["features"])
