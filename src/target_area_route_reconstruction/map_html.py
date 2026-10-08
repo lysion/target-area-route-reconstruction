@@ -160,9 +160,11 @@ else if(g.type==="MultiPolygon")g.coordinates.forEach(p=>p.forEach(r=>r.forEach(
 data.features.forEach(f=>collect(f.geometry));
 const valid=coords.filter(p=>Array.isArray(p)&&p.length===2&&p.every(Number.isFinite));
 if(valid.length!==coords.length)throw Error("Invalid coordinate");
-let x0=Math.min(...valid.map(p=>p[0])),x1=Math.max(...valid.map(p=>p[0]));
-let y0=Math.min(...valid.map(p=>p[1])),y1=Math.max(...valid.map(p=>p[1]));
-if(!valid.length){x0=0;x1=1;y0=0;y1=1;}
+let x0=0,x1=1,y0=0,y1=1;
+if(valid.length){
+ x0=x1=valid[0][0]; y0=y1=valid[0][1];
+ for(const p of valid){x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1]);}
+}
 const dx=Math.max(x1-x0,1e-9),dy=Math.max(y1-y0,1e-9),scale=Math.min(940/dx,640/dy);
 const project=p=>[500+(p[0]-(x0+x1)/2)*scale,350-(p[1]-(y0+y1)/2)*scale];
 const node=(tag,attrs)=>{const el=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,String(v)));return el;};
