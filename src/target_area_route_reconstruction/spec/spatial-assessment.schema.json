@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SpatialAssessment",
+  "description": "Algorithmic assessment of one CanonicalTrack revision against one TargetArea revision under the frozen v0.1 domain contract.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "revision_id",
+    "canonical_track",
+    "target_area",
+    "relation",
+    "coverage_completeness",
+    "coverage_uncertainties",
+    "target_segment_refs",
+    "algorithm"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "common.schema.json#/$defs/schemaVersion"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/entityId"
+    },
+    "revision_id": {
+      "$ref": "common.schema.json#/$defs/revisionId"
+    },
+    "canonical_track": {
+      "$ref": "common.schema.json#/$defs/revisionRef",
+      "description": "Exact CanonicalTrack revision assessed."
+    },
+    "target_area": {
+      "$ref": "common.schema.json#/$defs/revisionRef",
+      "description": "Exact TargetArea revision assessed."
+    },
+    "relation": {
+      "type": "string",
+      "enum": [
+        "inside",
+        "partial",
+        "outside",
+        "unknown"
+      ]
+    },
+    "coverage_completeness": {
+      "type": "string",
+      "enum": [
+        "complete",
+        "incomplete"
+      ]
+    },
+    "coverage_uncertainties": {
+      "type": "array",
+      "description": "Unresolved target-relevant uncertainties that prevent complete target-coverage reconstruction.",
+      "items": {
+        "$ref": "#/$defs/coverageUncertainty"
+      },
+      "uniqueItems": true
+    },
+    "target_segment_refs": {
+      "type": "array",
+      "description": "Ordered TargetSegment revisions known for this assessment. Ordering follows parent-track position.",
+      "items": {
+        "$ref": "common.schema.json#/$defs/revisionRef"
+      },
+      "uniqueItems": true
+    },
+    "algorithm": {
+      "$ref": "common.schema.json#/$defs/softwareProvenance",
+      "description": "Spatial assessment algorithm and reproducibility provenance."
+    },
+    "extensions": {
+      "$ref": "common.schema.json#/$defs/extensions"
+    }
+  },
+  "$defs": {
+    "coverageUncertainty": {
+      "type": "object",
+      "description": "Target-relative unresolved evidence that prevents the assessment from being complete.",
+      "required": [
+        "affected_track_range",
+        "relevance",
+        "provenance"
+      ],
+      "properties": {
+        "affected_track_range": {
+          "$ref": "#/$defs/coverageUncertaintyRange"
+        },
+        "relevance": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "description": "Why this unresolved interval or quality issue can affect TargetArea coverage."
+        },
+        "provenance": {
+          "$ref": "common.schema.json#/$defs/softwareProvenance",
+          "description": "Algorithm/procedure provenance for the unresolved judgment."
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions"
+        }
+      },
+      "additionalProperties": false
+    },
+    "coverageUncertaintyRange": {
+      "type": "object",
+      "description": "Target-relative affected extent: two positioned neighbors, missing leading neighbor, or missing trailing neighbor. Null marks a source neighbor unavailable, never a position or geometry.",
+      "required": [
+        "start",
+        "end"
+      ],
+      "properties": {
+        "start": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/trackPosition"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "end": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/trackPosition"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "description": "bounded",
+          "properties": {
+            "start": {
+              "$ref": "common.schema.json#/$defs/trackPosition"
+            },
+            "end": {
+              "$ref": "common.schema.json#/$defs/trackPosition"
+            }
+          }
+        },
+        {
+          "description": "leading",
+          "properties": {
+            "start": {
+              "type": "null"
+            },
+            "end": {
+              "$ref": "common.schema.json#/$defs/trackPosition"
+            }
+          }
+        },
+        {
+          "description": "trailing",
+          "properties": {
+            "start": {
+              "$ref": "common.schema.json#/$defs/trackPosition"
+            },
+            "end": {
+              "type": "null"
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "coverage_completeness": {
+            "const": "incomplete"
+          }
+        },
+        "required": [
+          "coverage_completeness"
+        ]
+      },
+      "then": {
+        "properties": {
+          "coverage_uncertainties": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "coverage_completeness": {
+            "const": "complete"
+          }
+        },
+        "required": [
+          "coverage_completeness"
+        ]
+      },
+      "then": {
+        "properties": {
+          "coverage_uncertainties": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "relation": {
+            "const": "unknown"
+          }
+        },
+        "required": [
+          "relation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "coverage_completeness": {
+            "const": "incomplete"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "relation": {
+            "const": "outside"
+          }
+        },
+        "required": [
+          "relation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "coverage_completeness": {
+            "const": "complete"
+          },
+          "target_segment_refs": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "relation": {
+            "enum": [
+              "inside",
+              "partial"
+            ]
+          }
+        },
+        "required": [
+          "relation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "target_segment_refs": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}
