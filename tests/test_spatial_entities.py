@@ -146,6 +146,27 @@ class M2DEntityTests(unittest.TestCase):
             _, result = self.build(args)
             self.assertIsNone(result.bundle)
 
+    def test_quality_exclusion_gap_remains_unresolved(self):
+        from test_quality_projection import metric, POLICY
+        args = arguments(metric("gps-jump"), rectangle(.2, -1, .8, 1), POLICY)
+        proof, result = self.build(args)
+        self.assertEqual((proof.relation, proof.coverage_completeness),
+                         ("unknown", "incomplete"))
+        self.assertEqual(result.bundle.segments, ())
+        u = result.bundle.assessment["coverage_uncertainties"]
+        self.assertEqual(len(u), 1)
+        self.assertEqual(u[0]["provenance"]["parameters"]["gap_kind"], "quality_exclusion")
+        self.assertEqual(u[0]["provenance"]["parameters"]["gap_causes"],
+                         ["IMPLIED_SPEED_EXCEEDS_POLICY"])
+
+    def test_all_positive_geometry_excluded_yields_no_entities(self):
+        from test_quality_projection import metric
+        args = arguments(metric("gps-jump"), policy=QualityPolicy(max_implied_speed_mps=1))
+        proof, result = self.build(args)
+        self.assertFalse(proof.assessable)
+        self.assertEqual(result.outcome, "non_assessable")
+        self.assertIsNone(result.bundle)
+
     def test_stale_proof_and_quality_are_rejected(self):
         args = arguments(route([(1, 1), (1.5, 1)]))
         proof, result = self.build(args)
