@@ -50,33 +50,47 @@ A `failed`, `non_assessable`, `unsupported` or `unavailable` stage must be persi
 
 ## 3. Versioned directed evidence manifest
 
-Before M3 implementation, document a canonical encoding and hash algorithm for each manifest node, preserving strict JSON raw input rules. A provisional logical record (NOT a frozen new M0 entity or finalized SQL table) is:
+Before M3 implementation, freeze the strict canonical encoding and hash algorithm for every manifest node. **Two distinct signed append-only receipts are required**, because the original byte intake exists before later target-specific derivations. SourceAdmission alone is NOT a commitment to any later derived snapshot.
 
 ```text
-CustodyRoot:
-  source_ref: {id, revision_id}
+SourceAdmissionReceipt (signed, append-only, chained):
+  canonical_track_source_snapshot: full frozen TrackSource object
+  full_track_source_sha256: SHA256(canonical(full TrackSource))
+  original_activity_ref: TrackSource.activity     # mandatory, not optional
   raw: {sha256, byte_length, immutable_blob_locator}
-  admission_receipt_id / immutable_anchor
   source_kind, intake_provenance, intake_outcome
+  receipt_sequence, previous_receipt_hash, signer_key_id, signature
 
-DerivedSnapshot:
-  type, schema_version
-  outcome + structured issues
-  content_digest and canonical_serialization_method
-  parent_snapshot_digests[]   # ordered, typed, verified
-  input_refs[]                # exact id + revision + where relevant content digest
+DerivedSnapshot (immutable typed DAG node):
+  type, schema_version, outcome + structured issues
+  payload_digest: SHA256(canonical(payload))
+  parent_snapshot_digests[]       # ordered, typed, verified; includes root receipt
+  input_refs[]                    # exact id + revision + content digest
   algorithm: {name, version, exact_parameters}
-  execution_environment      # e.g. parser, normalizer, GeographicLib, Shapely, GEOS
+  executable_artifact_manifests[] # actual wheel/module/native-binary digest + OS/ABI
+  verification_record             # verifier outcome/engine + its artifact digest
   immutable_payload_location
-  verification_record         # verifier identity/version/status, separately bound
+
+GraphCommitReceipt (signed, append-only, chained):
+  source_admission_receipt_digest
+  graph_root_manifest_digest: SHA256(canonical(closed typed DAG manifest))
+  graph_manifest_location
+  exact_target_area_snapshot_digest, policy_digest, algorithm_artifact_set_digest
+  ordered_verified_derived_node_digests[] / closure digest
+  outcome, committed_at, receipt_sequence, previous_receipt_hash
+  signer_key_id, signature
 ```
 
-**The receipt and every node must be bound to the same root source**. A target-specific result also requires the *exact TargetArea definition content digest*, not merely a reusable area name or revision string. The graph is acyclic; derived outputs never become observations or authenticate their own ancestors. Persist only explicit user decisions as separate auditable actions (ADR-0009); manual overrides cannot silently rewrite algorithm outcomes.
+**Critical binding rule:** the signer validates a closed, acyclic derivation manifest, its original SourceAdmission, full TrackSource payload (including Activity, origin and representation), every raw/target/policy/algorithm input and all required independent verifiers **before** signing/publishing GraphCommit. The **graph-root manifest digest is published into the separately protected signed append-only trust anchor**; it is not merely a mutable `sha256` column next to the cached graph. If the user requests an accepted assessment, reload resolves an **explicit expected GraphCommit receipt ID/digest** from the trusted log or from a separately trusted caller. It cannot simply choose the most convenient currently present, internally valid graph.
+
+The original bytes can legitimately generate multiple different *separately signed* commits under distinct TargetArea revisions, quality policies, algorithm builds or runs. Those are **different immutable derived results**, not indistinguishable replacements. Each commit is bound to its exact request/policy/target selectors; never choose a result using only source hash or closest geometry. If the requested selectors match multiple authorized histories, return all identities or an explicit ambiguity requiring a caller choice, not a silent last-write-wins selection. A coordinated rewrite of TargetArea + policy + all descendants now fails because it cannot reproduce the **externally signed original graph-root manifest digest** without the independent signer.
+
+**The signed SourceAdmission AND the signed GraphCommit and every typed node must be bound to the same complete TrackSource revision, source Activity reference and original raw bytes**. A target-specific result additionally requires the *exact TargetArea definition content digest*, not merely an area name or revision string. A stable graph/manifest **commit identity** and exact caller selectors are required for unambiguous reload. The graph is acyclic; derived outputs never become observations or authenticate their own ancestors. Persist explicit user decisions and later cross-source reconciliations as independently append-only auditable records (ADR-0009/0008); neither can mutate TrackSource.activity or silently rewrite algorithm results.
 
 Revision rules:
 
 - `(id, revision_id)` points to **one immutable content**; identical replay is idempotent, different content is a conflict. Check source and target revisions **independently**.
-- Parser/normalizer, M2B, M2C, M2D and M2F algorithm/version/parameters and relevant runtime libraries are part of exact reproducibility authority; upgrading any one may require a new snapshot/revision without rewriting previous evidence.
+- Parser/normalizer, M2B, M2C, M2D and M2F algorithm/version/parameters and relevant runtime libraries are part of exact reproducibility authority. **Names and semantic versions are insufficient:** bind a signed or separately anchored immutable **executable artifact manifest** with SHA-256 hashes of Python wheels, project modules, independent verifier implementations, dependency lock, native GEOS/shared libraries and required OS/ABI/runtime build identity. A same-version-but-rebuilt/patched binary is a distinct artifact and must never silently validate old commitments. Upgrading any one yields a new derived snapshot/GraphCommit rather than rewriting previous evidence.
 - CanonicalTrack IDs derived from a TrackSource reference are **not** necessarily stable cross-source or cross-revision Activity identifiers. TargetSegment IDs include assessment seed and are **not** persistent physical road-link IDs; M7/M8 must create a separate network identity model.
 - `SHA-256(raw_bytes)` content identity is not the same thing as a source revision, Activity identity, entity schema version, algorithm version or snapshot digest.
 - A cache hit is allowed **only** for exact immutable root and complete dependency closure; a matching coordinate sequence or approximate activity metadata is insufficient.
@@ -85,12 +99,13 @@ Revision rules:
 
 Reload is a graph-verification operation, not `SELECT ...; json.loads(...)`:
 
-1. Load the trusted original custody receipt **from its declared immutable anchor**; verify source reference/revision, raw locator, byte count and computed raw SHA-256. Any mismatch is `integrity_failure`, quarantined and never upgraded to `success`.
-2. Load the original preserved bytes. On an appropriate existing parser/runtime (or a declared historical compatible executable), **independently re-ingest those bytes** with the exact stored TrackSource reference, source kind and parser/normalizer version, and reconcile complete `IngestionResult` including diagnostics, ordered `observation_sources`, failure outcomes and CanonicalTrack content/revision. Never accept a self-consistently rewritten track merely because its embedded hash/revision was recomputed.
-3. Load graph nodes in topological order, comparing the stored **canonical bytes/digests**, exact parent digests, refs, policy/parameters and accepted algorithm versions to the trusted root and preceding verified nodes. For each applicable stage invoke the M2B/M2C/M2D independent verifier **in addition to** checking digest lineage. A non-authoritative map is never a substitute for a valid proof.
-4. Where full replay is unavailable because an old parser/GEOS version is not installed, produce explicit `historical_unverified` or `engine_unavailable`; retain original blobs and snapshots, but **do not** label the old output currently verified or silently recompute it under a new algorithm into the same identity. Offer separately recorded migration/reprocessing.
-5. Cache/reuse only an exact root-verified closed dependency graph whose verification state is valid for the requested operation. On a failed/partial reload, preserve raw and historical audit evidence, refuse downstream success, and report the exact failed node/path.
-6. Re-derivation after repair or migration produces **new versioned nodes** with provenance to the original immutable root. Previous snapshots remain readable as historical evidence. No in-place mutation or fabricated reconciliation.
+1. From the independent checkpoint and trusted Ed25519 public key, verify the monotonic append-only **signed receipt chain** (sequence, previous entry hash, checkpoint log head and signer rotation). Require a **specific signed GraphCommit ID/digest** and signed SourceAdmission ID/digest for the requested output; a mutable DB-selected manifest digest or an older truncated log is not authority.
+2. Verify SourceAdmission's complete frozen TrackSource bytes/digest, `activity`, `origin`, `representation`, raw byte locator, byte count and independently recomputed SHA-256. Changed Activity affiliation **without a distinct signed reconciliation record** or changed source revision is an integrity/identity conflict. Preserve original source associations even after separately audited reconciliation.
+3. Verify **GraphCommit.graph_root_manifest_digest** by canonicalizing the *entire* closed DAG, typed parent and node hashes, exact request selectors, complete TargetArea payload hash, quality parameters, null/negative outcomes, verification records and executable artifact manifest. A coordinated replacement of ALL descendants (even if self-consistent and based on genuine unchanged raw) must be rejected against the **already signed expected graph digest**. Enforce no missing/extra parent edges and no substituted newer commit.
+4. Load original bytes and re-ingest with the **exact attested parser/normalizer executable artifact hashes** and full original TrackSource reference; reconcile full `IngestionResult`, diagnostics, `observation_sources`, failures and CanonicalTrack. Check typed downstream nodes in topological order using stored canonical digests, source/target/policy selectors, required algorithm/runtime binary hashes and M2B/M2C/M2D independent verifiers; non-authoritative map never substitutes for proof.
+5. If the exact historical implementation or native library binary with its committed digest is unavailable, return `historical_unverified` / `engine_unavailable` (or `artifact_digest_mismatch` when installed code differs). A patch/rebuild with the same version string is **not equivalent**. Retain old evidence but never silently verify/rewrite under the latest version.
+6. Cache/reuse only a specific signed GraphCommit whose **complete closure** and requested selectors passed. On any root/manifest/receipt mismatch, quarantine the exact failed node and refuse authoritative downstream use. A newly desired policy, area or engine must produce **a newly signed append-only GraphCommit**, not mutate or silently replace the previous commit.
+7. Re-derivation, parser migration or explicit Activity reconciliation produces fresh signed records referencing original immutable history. Never hide or delete the prior SourceAdmission or graph receipt.
 
 ## 5. Transaction, idempotency and interrupted work
 
