@@ -132,12 +132,12 @@ The independent-audit re-exit additionally requires ordered interval/multiplicit
 
 ## Milestone 2 — Deterministic Core
 
-**Status:** ACTIVE — M2A, M2B and M2C are DONE; M2D is the sole immediate checkpoint, blocked on open-ended uncertainty representation
+**Status:** ACTIVE — M2A, M2B and M2C are DONE; M2D is the sole immediate implementation checkpoint, resumed after ADR-0011
 **Release target:** v0.1.0
 
 **M2A checkpoint:** DONE after independent review and merge of PR #2. Deterministic local FIT/GPX ingestion now normalizes preserved source evidence into the frozen `CanonicalTrack` shape while retaining source order, continuity boundaries, repeated observations, and missing-position diagnostics. See [implementation and acceptance record](docs/milestone2a-canonical-ingestion.md).
 
-**M2B checkpoint:** DONE after independent review and merge of PR #3. Track quality now produces an immutable supporting `QualityProjection`, explicit source/quality gaps, optional independently verified constraints, and a deterministic verifier while preserving original parent indices. See [implementation record](docs/milestone2b-quality-projection.md). M2 remains ACTIVE; M2D is BLOCKED pending review of the open-ended uncertainty contract.
+**M2B checkpoint:** DONE after independent review and merge of PR #3. Track quality now produces an immutable supporting `QualityProjection`, explicit source/quality gaps, optional independently verified constraints, and a deterministic verifier while preserving original parent indices. See [implementation record](docs/milestone2b-quality-projection.md). M2 remains ACTIVE; M2D is ACTIVE after the accepted ADR-0011 contract erratum.
 
 ### Goal
 
@@ -228,9 +228,9 @@ M2C must not invent new gap evidence, infer a unique missing path, silently inte
 
 #### M2D — Target-area segment extraction and SpatialAssessment assembly
 
-**Status:** BLOCKED — leading/trailing M2C gaps have no lossless frozen CoverageUncertainty range encoding
+**Status:** ACTIVE — open-ended CoverageUncertainty representation repaired by accepted ADR-0011
 
-The implementation preflight on `632e9c7` reproduced valid assessable M2C proofs with an absent leading/trailing endpoint. Frozen `trackRange` requires two concrete parent TrackPositions; no accepted anchor convention represents the absent extent. See [minimal reproducer and blocker record](docs/milestone2d-target-segments.md) and [Proposed ADR-0011](docs/decisions/0011-open-ended-coverage-uncertainty.md). No schema amendment is accepted or implemented. Entity implementation is stopped pending change-control; M2D remains the sole current checkpoint and M2E is NOT STARTED.
+The implementation preflight on `632e9c7` reproduced valid assessable M2C proofs with an absent leading/trailing endpoint. Frozen `trackRange` requires two concrete parent TrackPositions; no accepted anchor convention represents the absent extent. See [minimal reproducer and blocker record](docs/milestone2d-target-segments.md) and [Proposed ADR-0011](docs/decisions/0011-open-ended-coverage-uncertainty.md). ADR-0011 was accepted as a pre-release v0.1.0 erratum in PR #7, and the amended schema and regressions are merged. This paragraph preserves the original blocker history; entity implementation is now authorized in M2D. M2E remains NOT STARTED.
 
 - consume only an assessable, verified M2C supporting result;
 - extract traceable `TargetSegment` results from the target-relative parent intervals proved by M2C;
@@ -629,7 +629,7 @@ No project decision should rely solely on chat history.
 
 ## Current execution point
 
-**Current milestone:** Milestone 2 — Deterministic Core. M2A, M2B and M2C are DONE after independent review and merge; M2D is the sole immediate checkpoint, blocked on open-ended uncertainty representation.
+**Current milestone:** Milestone 2 — Deterministic Core. M2A, M2B and M2C are DONE after independent review and merge; M2D is the sole immediate implementation checkpoint, active after ADR-0011.
 
 **Milestone 0 outcome: DONE**
 
@@ -700,7 +700,7 @@ Milestone 1 completed:
 - **M2A — DONE:** deterministic FIT/GPX canonical ingestion is merged. Raw evidence remains immutable; source ordering, continuity breaks, repeated observations, and parent-position lineage are preserved.
 - **M2B — DONE:** deterministic track-quality validation, supporting `QualityProjection`, explicit source/quality gaps, domain-only gap proof support, and the independent quality/gap verifier are merged after independent acceptance.
 - **M2C — DONE:** deterministic spatial relation/completeness proof is merged after independent review in PR #4. It preserves exact M2A/M2B/TargetArea authority, explicit non-assessability, ordered parent-interval evidence, stationary evidence and target-relative gap relevance. The current domain-only bound remains insufficient for useful local short-gap proof and no missing route is reconstructed.
-- **M2D — BLOCKED:** resolve the open-ended CoverageUncertainty representation through reviewed change-control, then extract exhaustive maximal TargetSegments from an accepted verified M2C proof result, then assemble the frozen SpatialAssessment with exact bidirectional revision references. Non-assessable M2C results produce neither entity.
+- **M2D — ACTIVE:** ADR-0011 and the open-ended CoverageUncertainty contract repair are merged; now extract exhaustive maximal TargetSegments from an accepted verified M2C proof result, then assemble the frozen SpatialAssessment with exact bidirectional revision references. Non-assessable M2C results produce neither entity.
 - **M2E–M2F — NOT STARTED:** proceed only after M2D: GeoJSON/basic map, then valid temporal metrics and quality-aware coloring.
 - **Cross-cutting before M2 DONE:** installed-wheel/outside-checkout CI smoke, an explicit v0.1 FIT/GPX support matrix, explicit quality-policy ownership, and release documentation for quality/gap limitations.
 
