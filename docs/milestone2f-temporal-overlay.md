@@ -1,5 +1,7 @@
 # M2F — Valid temporal speed/pace and quality-aware map coloring
 
+> **HISTORICAL ACCEPTANCE REOPENED:** the original temporal overlay `0.1.0` was independently challenged after M2 exit: M2B `SPEED_NUMERICALLY_INDETERMINATE` was discarded by M2F and shown as solid, as if it passed the configured cap. New version `0.1.1` in [Codex remediation](milestone2-codex-remediation.md) distinguishes actual per-parent-edge screening result and records clip-time allocation semantics. This is under new review; the original PR #13 PASS below remains a dated historical record, not current acceptance.
+
 **Status:** DONE — final-head `4694362686a9905902a52a396ee981cdebfcd34e` passed full [CI 37779156527](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37779156527), independent [re-review 5456795395](https://github.com/lysion/target-area-route-reconstruction/pull/13#pullrequestreview-5456795395) returned PASS, and PR #13 merged as `a2ab7fe871806982d2e69bf87240b4842dbe4a06`.
 
 **Entry evidence:** M2E PR #11 merged and accepted, M2E closeout PR #12 merged; M2A–M2E DONE on main. No schema, M2C relation, M2D revision or M2E verified export changes are authorized in M2F.
