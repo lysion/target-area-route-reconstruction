@@ -312,36 +312,45 @@ These obligations are not separate checkpoints, but they must be closed before M
 
 ## Milestone 3 — Persistent Runtime
 
-**Status:** NOT STARTED  
+**Status:** NOT STARTED — mandatory [immutable evidence-custody / verifiable-reload contract](docs/milestone3-evidence-custody-contract.md) and [F3–F6 owned action gates](docs/post-m2-f3-f6-action-plan.md) documented; design requirements are **not** implemented persistence.
 **Release target:** v0.2.0
 
 ### Goal
 
-Make long-running reconstruction tasks resumable, auditable, and idempotent.
+Make long-running reconstruction tasks resumable, auditable, and idempotent. **The first requirement is a trustworthy, independently anchored binding of immutable original bytes to the complete derived evidence graph; merely writing six entity JSON objects into SQLite is not an acceptable M3 result.**
 
-### Work
+### Design entry gate (required before tables or runtime caches)
 
-- introduce persistent state, initially SQLite unless evidence supports another choice;
-- persist activities, durable raw TrackSource evidence, parse state, assessments, and provenance;
-- content hashing and duplicate detection;
-- preserve a durable evidence chain from raw TrackSource bytes/content hash -> exact TrackSource revision -> CanonicalTrack revision -> QualityProjection/evidence fingerprint -> downstream derived artifacts;
-- on reload/reuse, verify stored content hashes and revision bindings so a self-consistent reconstructed snapshot cannot silently substitute for the preserved source evidence;
-- cache-first behavior;
-- resume after interruption;
-- explicit failure states;
-- manual overrides as separate auditable evidence;
-- if derived metrics are persisted, retain algorithm/version, source-track version, parameters, and quality provenance.
+- Define what makes an original TrackSource byte stream and its **intake receipt** immutable, and who can modify the receipt/anchor. SQLite UNIQUE fields and digest columns alone do not prove tamper resistance when both source and hash can be rewritten. State the bounded threat model; do not claim provider authenticity.
+- Define **source ref + revision → exactly one original byte digest and custody receipt**; allow identical-blob reuse across distinct source refs without collapsing distinct Activities (ADR-0008). Reject same ref/revision with different bytes or receipt as a hard conflict.
+- Define **complete, versioned immutable snapshot lineage**: raw bytes/receipt → full M2A IngestionResult, diagnostics, observation_sources, parser/normalizer → M2B QualityProjection and policy/diagnostics → verified M2C SpatialRelationProof and TargetArea content → M2D SpatialAssessment + all ordered TargetSegments and reciprocal references → non-authoritative M2E and optional M2F per-original-edge metrics. Bind every node to its exact parent snapshots, content digest, algorithm/parameters/runtime versions and success/failure outcome.
+- Freeze independently verifiable **reload-before-reuse** semantics: compare against externally trusted receipt and untouched raw bytes, re-ingest with exact parser/normalizer semantics, validate canonical snapshot plus typed dependency graph and existing independent M2B/M2C/M2D verifiers. Never trust self-consistently rehashed derived JSON as proof of raw-byte provenance. Historic engine unavailability must explicitly report `historical_unverified`, not silently reprocess the old revision.
+- Agree atomic staging/transaction and manual-override boundaries, idempotency/conflict rules and deterministic migration behavior. New algorithm versions create new snapshots; old evidence is not rewritten.
 
-M3 provides integrity/custody of evidence after it enters the system. It does not claim universal cryptographic authenticity of the upstream provider or prove that a user-imported file was genuine before ingestion.
+**Normative design and C01–C15 attack matrix:** [Milestone 3 evidence-custody/reload contract](docs/milestone3-evidence-custody-contract.md).
 
-### Exit criteria
+### Work (implementation required; not yet delivered)
 
-- repeated ingestion does not duplicate facts;
-- interrupted work resumes without reprocessing completed inputs;
-- cached raw sources are preferred over reacquisition;
-- source, parser, algorithm, and target-area versions are traceable;
-- every persisted CanonicalTrack and derived quality/spatial artifact can be traced to the exact durable TrackSource revision and content hash used to produce it;
-- silent replacement/tampering of persisted raw evidence or substitution of a merely self-consistent synthetic snapshot is detected rather than accepted as the original custody chain.
+- **M3A / raw custody:** persist original byte blobs in content-addressed storage; record separately protected append-only source/revision custody receipts, original SHA-256 and byte length; track explicit invalid/no-position input as first-class outcomes, never success-shaped emptiness.
+- **M3B / immutable derivation graph:** persist full result and diagnostic snapshots (M2A–M2F when produced), typed parent digests and exact TargetArea identity/content; implement restart/reload validation with raw re-ingestion and independent per-stage checks, including tampered raw, co-forged canonical/digest and mixed parent snapshots.
+- **M3C / runtime lifecycle:** SQLite or justified alternative, idempotent imports, exact cache/reuse closure, no implicit Activity cross-source merge, interrupted resume, concurrent identity conflict, atomic assessment/segment publication, explicit failure/quarantine states and independently auditable manual overrides.
+- **M3D / reliability:** implement [F5 strict JSON parity](docs/post-m2-f3-f6-action-plan.md) across fixture/runtime/persistence inputs before treating stored JSON as verified; implement [F6 bounded input/work and indexed scans](docs/post-m2-f3-f6-action-plan.md) with fragmentation benchmarks and clean resource-limit outcomes before claiming scalable multi-source runs.
+- **F3 preservation:** preserve raw FIT timer events/sparse Record gaps as source evidence and **document that v0.1 continuity and `complete` are not true-route certification**. Do **not** silently introduce pause/time-gap inferred geometry; assign optional event-aware/sparse-interval policy design to M5 or a separately versioned quality algorithm.
+- **F4 derivation provenance:** on persisted M2F store `duration_basis`, proportional clip allocation method, exact original edge, `speed_screen_result/reason`, full-parent cap scope, metric null reason and temporal algorithm/version; never relabel allocated border-crossing time or clip speed as device-observed fact.
+
+M3 guarantees integrity/custody **after evidence enters the system**, not the authenticity of an external provider or user-uploaded file before admission, nor security against a party who can rewrite both bytes and a separately trusted immutable receipt.
+
+### Exit criteria (all required; do not substitute green M2 CI)
+
+- Exact immutable raw bytes and independently trusted source-revision custody receipt survive process restart; **same id/revision with different bytes is rejected**, while two source refs for an identical blob remain logically separate.
+- Complete source, parser, normalizer, quality-policy/diagnostics, spatial proof, target content/revision, segment/snapshot, optional M2F status/time semantics and negative/unavailable outcomes can be reloaded **with all original lineage**.
+- After reload, recomputed raw digest/receipt, **re-ingested M2A output**, full typed dependency manifest and independently verified M2B/M2C/M2D results all agree before cache reuse. Co-forged hashes/revisions, swapped source/area/proof and changed raw fail closed against separately trusted custody; mismatched or unavailable historical engines produce explicit unverified outcomes, not implicit success.
+- A fresh FIT and GPX source reproduce deterministic accepted evidence through M2A–M2F where supported; restart in a **separate process**, reload, verify and compare without importing repository source-tree code. Corrupted/no-position/missing-time cases preserve exact negative evidence and original source identity.
+- Repeated import and concurrent attempts do not duplicate facts or silently overwrite a revision; staged crash at raw/receipt/DB and at assessment/segment commit boundaries resumes or rolls back with no partially trusted graph; cached verified raw is preferred to reacquisition.
+- **F5 gate:** strict raw JSON duplicate-member, underflow, nonfinite, Unicode and malformed-number behavior agrees for scripts, runtime and stored snapshot loader, with explicit negative fixtures and no silent coercion.
+- **F6 gate:** record 200/400/800/1600-part producer+verifier fragmentation benchmark and environment; eliminate avoidable quadratic scans before bulk claims, impose configurable byte/observation/interval/target/output/time/memory budgets, and test explicit rollback/failure without silent truncation.
+- **F3/F4 gates:** replay FIT timer pause/long sparse interval as an acknowledged coverage limitation; persisted clipped-time metrics retain derived-time allocation + original-parent screen scope after restart and never become certified physical observations.
+- Pass independent tampering, cross-revision, replay, concurrent-conflict, crash-recovery, migration, resource-limit and installed-wheel tests [C01–C15](docs/milestone3-evidence-custody-contract.md). Document the trust root and what happens if it is itself compromised.
 
 ---
 
