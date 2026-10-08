@@ -1,6 +1,6 @@
 # M2D — TargetSegment extraction and SpatialAssessment assembly
 
-**Status:** ACTIVE, draft implementation in PR #8; not independently accepted.
+**Status:** ACTIVE — IMPLEMENTATION READY FOR INDEPENDENT REVIEW in PR #8; not independently accepted or merged.
 
 **Contract baseline:** ADR-0011 accepted in PR #7 after the original PR #6 blocker. The original `docs/milestone2d-target-segments.md` remains the historical stop/reproducer record. It is not the current M2D completion status.
 
@@ -56,4 +56,24 @@ The parent interpolation/serialization and hashing primitives are intentionally 
 - M2E GeoJSON/map and M2F temporal metrics remain out of scope.
 - Useful local short-gap bounds and missing-route reconstruction remain unsupported.
 - First v0.1.0 implementation targets ordinary CRS84 planar interpolation as M2C explicitly declares.
-- This is **a draft implementation**, not M2D DONE, until complete CI, adversarial mutation witnesses and independent review pass.
+- This implementation has passed the documented branch CI and adversarial mutation gate but is **not M2D DONE** until independent review accepts PR #8. M2E is NOT STARTED.
+
+## Validation at implementation handoff
+
+The final code-bearing change passed [Contract validation CI run 37733440399](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37733440399):
+
+| Gate | Result |
+|---|---:|
+| Entire unittest suite | 190/190 |
+| M1 schema fixture expectations | 260/260 |
+| Semantic expectations | 56/56 |
+| Frozen edge-case mapping | 29/29 |
+| Raw source baseline | 12/12; 2 equivalence groups |
+| Independent M1 geometry oracle on production M2D output | 19 valid scenarios |
+| Actual production-code mutants killed by unmodified witnesses | 10/10 |
+| Isolated installed-wheel M2A→M2B→M2C→M2D | 3 end-to-end cases + invalid GPX rejection |
+| Earlier ADR-0011 open-gap acceptance tests | retained and passing |
+
+Explicit negative coverage includes stale upstream proof/references, corrupted reciprocal revisions, altered relation, missing/duplicate traversals, mutated segment geometry, omitted target-relevant uncertainty and false point-anchor substitution for a leading gap. Distinct visited occurrences and stationary/repeated observations remain ordered.
+
+**Review gate:** PR #8 must remain open for independent acceptance. A passing CI does not independently certify the implementation or authorize M2E.
