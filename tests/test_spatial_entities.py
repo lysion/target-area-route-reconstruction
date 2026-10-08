@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 import copy
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
 import unittest
 from dataclasses import replace
 from pathlib import Path
@@ -213,6 +218,77 @@ class M2DEntityTests(unittest.TestCase):
             result = assemble_spatial_entities(proof=proof, **args)
         self.assertEqual(result.outcome, "assembly_failure")
         self.assertIn("M2D_ASSEMBLY_VERIFICATION_FAILED", [i.code for i in result.issues])
+
+    def test_ten_real_production_mutations_are_killed(self):
+        """Run original positive integration witnesses against mutated package copies.
+
+        A mutant is killed only by a test assertion, never by an import crash.
+        """
+        import target_area_route_reconstruction.spatial_entities as producer
+        import target_area_route_reconstruction._m2d_common as shared
+        producer_source = Path(producer.__file__).read_text()
+        shared_source = Path(shared.__file__).read_text()
+        mutations = [
+            ("spatial_entities.py",
+             "elif position_key(current_end) == position_key(start):",
+             "elif False and position_key(current_end) == position_key(start):",
+             "test_inside_maximal_and_parent_vertices"),
+            ("spatial_entities.py",
+             "    return tuple(output)",
+             "    return ((output[0][0], output[-1][1]),) if len(output) > 1 else tuple(output)",
+             "test_repeated_entries_and_independent_parts"),
+            ("spatial_entities.py",
+             "    return tuple(output)",
+             "    return tuple(output[:1])",
+             "test_repeated_entries_and_independent_parts"),
+            ("spatial_entities.py",
+             "                output.append((current_start, current_end))",
+             "                pass  # mutant drops target coverage",
+             "test_inside_maximal_and_parent_vertices"),
+            ("spatial_entities.py",
+             "    return tuple(output)",
+             "    return tuple(output + output)",
+             "test_inside_maximal_and_parent_vertices"),
+            ("_m2d_common.py",
+             "        points.append(list(observations[index][\"position\"]))",
+             "        pass  # mutant erases interior parent observations",
+             "test_inside_maximal_and_parent_vertices"),
+            ("spatial_entities.py",
+             '        "relation": proof.relation,',
+             '        "relation": "outside",',
+             "test_partial_fraction_clip_and_no_reclassification"),
+            ("spatial_entities.py",
+             '        "coverage_completeness": proof.coverage_completeness,',
+             '        "coverage_completeness": "complete",',
+             "test_partial_incomplete_retains_known_segment"),
+            ("spatial_entities.py",
+             "        if not item.target_coverage_unresolved:",
+             "        if True or not item.target_coverage_unresolved:",
+             "test_partial_incomplete_retains_known_segment"),
+            ("spatial_entities.py",
+             "    if not proof.assessable:",
+             "    if False and not proof.assessable:",
+             "test_nonassessable_yields_no_entities"),
+        ]
+        for filename, old, new, witness in mutations:
+            with self.subTest(filename=filename, witness=witness, replacement=new):
+                source = shared_source if filename.startswith("_") else producer_source
+                self.assertEqual(source.count(old), 1, (filename, old))
+                with tempfile.TemporaryDirectory() as directory:
+                    package = Path(directory) / "target_area_route_reconstruction"
+                    shutil.copytree(Path(producer.__file__).parent, package,
+                                    ignore=shutil.ignore_patterns("__pycache__"))
+                    (package / filename).write_text(source.replace(old, new))
+                    env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1",
+                           "PYTHONPATH": os.pathsep.join((directory, str(ROOT / "tests")))}
+                    run = subprocess.run(
+                        [sys.executable, "-m", "unittest",
+                         "test_spatial_entities.M2DEntityTests." + witness],
+                        env=env, capture_output=True, text=True, timeout=40,
+                    )
+                    self.assertEqual(run.returncode, 1, run.stdout + run.stderr)
+                    self.assertIn("AssertionError", run.stderr)
+                    self.assertIn("Ran 1 test", run.stderr)
 
 
 if __name__ == "__main__":
