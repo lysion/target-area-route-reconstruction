@@ -193,13 +193,20 @@ class M2DContractTests(unittest.TestCase):
         affected["invented"] = "not-a-range"
         self.assertIn((("coverage_uncertainties", 0, "affected_track_range"), "additionalProperties"), self.failures(candidate))
 
+    def test_packaged_schema_matches_acceptance_contract(self):
+        from importlib.resources import files
+        packaged = files("target_area_route_reconstruction").joinpath(
+            "spec", "spatial-assessment.schema.json"
+        ).read_bytes()
+        self.assertEqual(packaged, (ROOT / "schemas/spatial-assessment.schema.json").read_bytes())
+
     def test_malformed_missing_neighbor_cannot_be_a_sentinel(self):
         _, proof = self.verified((FIXTURES / "trailing-gap.gpx").read_bytes())
         candidate = self.candidate(proof)
         affected = candidate["coverage_uncertainties"][0]["affected_track_range"]
         affected["end"] = {"part_index": -1, "observation_index": 0, "fraction_to_next": 0}
         self.assertTrue(self.failures(candidate))
-        affected["end"] = {"part_index": 0, "observation_index": 1, "fraction_to_next": float("nan")}
+        affected["end"] = {"part_index": 0, "observation_index": 1, "fraction_to_next": "not-a-number"}
         self.assertTrue(self.failures(candidate))
 
 
