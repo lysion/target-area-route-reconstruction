@@ -11,6 +11,9 @@ import tempfile
 import unittest
 from dataclasses import replace
 from pathlib import Path
+from importlib.resources import files
+
+from shapely.geometry import shape
 from unittest.mock import patch
 
 from target_area_route_reconstruction import (
@@ -22,6 +25,7 @@ from target_area_route_reconstruction.spatial_entities_models import SpatialEnti
 from test_spatial_relation import arguments, route, rectangle
 from test_quality_projection import metric, POLICY, ROOT, ingest_parts
 from strict_json import load_json
+from validate_semantic_fixtures import validate_segment_against_parent
 
 
 class M2DEntityTests(unittest.TestCase):
@@ -204,8 +208,45 @@ class M2DEntityTests(unittest.TestCase):
                 self.assertEqual((proof.relation, proof.coverage_completeness),
                                  (expected["relation"], expected["coverage_completeness"]))
                 self.assertEqual(len(result.bundle.segments), len(item["target_segments"]))
+                # Independent M1 oracle, not the shared M2D regeneration helper.
+                for segment in result.bundle.segments:
+                    self.assertEqual(validate_segment_against_parent(
+                        segment, evidence.canonical_track, shape(area["geometry"])), [])
                 count += 1
         self.assertEqual(count, 19)
+
+    def test_no_false_anchor_in_leading_uncertainty(self):
+        raw = (ROOT / "tests/m2d-contract/leading-gap.gpx").read_bytes()
+        evidence = ingest_bytes(raw, source_kind="gpx",
+                                track_source={"id":"leading-source","revision_id":"r1"})
+        args = arguments(evidence)
+        proof, result = self.build(args)
+        modified = result.bundle.assessment
+        affected = modified["coverage_uncertainties"][0]["affected_track_range"]
+        self.assertIsNone(affected["start"])
+        affected["start"] = copy.deepcopy(affected["end"])
+        result_check = verify_spatial_entities(
+            self.tamper(result.bundle, assessment=modified), proof=proof, **args)
+        self.assertIn("M2D_UNCERTAINTY_MISMATCH",
+                      [i.code for i in result_check.issues])
+
+    def test_packed_schema_files_equal_frozen_contracts(self):
+        for name in ("spatial-assessment", "target-segment"):
+            self.assertEqual(
+                files("target_area_route_reconstruction").joinpath(
+                    "spec", name + ".schema.json").read_bytes(),
+                (ROOT / "schemas" / (name + ".schema.json")).read_bytes())
+
+    def test_full_domain_inside_incomplete_gap_remains_unreconstructed(self):
+        args = arguments(
+            route([(0, 0), (1, 0)], [(2, 0), (3, 0)]),
+            rectangle(-180, -90, 180, 90),
+            QualityPolicy(include_domain_bounds=True))
+        proof, result = self.build(args)
+        self.assertEqual((proof.relation, proof.coverage_completeness),
+                         ("inside", "incomplete"))
+        self.assertEqual(len(result.bundle.segments), 2)
+        self.assertEqual(len(result.bundle.assessment["coverage_uncertainties"]), 1)
 
     def test_mutated_producer_coverage_is_rejected_by_independent_verifier(self):
         # Retain one of two covered visits: this is still schema-valid
