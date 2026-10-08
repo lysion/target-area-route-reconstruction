@@ -1,5 +1,7 @@
 # Track Metric Overlays
 
+**Implementation status (2026-10-08):** First evidence-bounded per-edge speed/pace and quality-aware map coloring delivered in independently reviewed [M2F](milestone2f-temporal-overlay.md) (PR #13). This is a derived, nonpersistent overlay with no implicit speed threshold. The prospective discussion and other metric types below remain design notes, not additional accepted M2F features.
+
 This note records a planned extension to the deterministic core: visually encoding track metrics such as speed or pace along the route.
 
 The capability is intentionally separated from the Milestone 0 domain contract.
