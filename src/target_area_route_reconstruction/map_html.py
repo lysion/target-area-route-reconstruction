@@ -17,7 +17,7 @@ def render_geojson_map(geojson_json: str, *, title: str = "Target area route map
     collection = strict_load(geojson_json)
     if not isinstance(collection, dict) or collection.get("type") != "FeatureCollection":
         raise ValueError("M2E_MAP_INVALID_GEOJSON")
-    features = collection.get("features")
+    if type(title) is not str:\n        raise ValueError("M2E_MAP_INVALID_TITLE")\n    features = collection.get("features")
     if not isinstance(features, list):
         raise ValueError("M2E_MAP_INVALID_FEATURES")
     allowed = {"target_area", "target_segment", "observed_outside", "gap_endpoint"}
@@ -27,6 +27,34 @@ def render_geojson_map(geojson_json: str, *, title: str = "Target area route map
         props = feature.get("properties")
         if not isinstance(props, dict) or props.get("layer") not in allowed:
             raise ValueError("M2E_MAP_INVALID_LAYER")
+    # Reject malformed or invented geometry before any HTML is emitted.
+    # This map is not a new authority source; only verified M2E export
+    # should be passed here. Structural checks prevent accidental false lines.
+    for feature in features:
+        geom = feature.get("geometry")
+        if not isinstance(geom, dict):
+            raise ValueError("M2E_MAP_INVALID_GEOMETRY")
+        layer = feature["properties"]["layer"]
+        expected = {"target_area": {"Polygon", "MultiPolygon"},
+                    "target_segment": {"LineString"},
+                    "observed_outside": {"LineString"},
+                    "gap_endpoint": {"Point"}}[layer]
+        if geom.get("type") not in expected:
+            raise ValueError("M2E_MAP_LAYER_GEOMETRY_MISMATCH")
+        def check_coords(node):
+            if isinstance(node, list) and len(node) == 2 and all(
+                type(v) in (int, float) for v in node
+            ):
+                import math
+                if not all(math.isfinite(v) for v in node):
+                    raise ValueError("M2E_MAP_NONFINITE_COORDINATE")
+                if not (-180 <= node[0] <= 180 and -90 <= node[1] <= 90):
+                    raise ValueError("M2E_MAP_COORDINATE_OUT_OF_RANGE")
+                return 1
+            if not isinstance(node, list) or not node:
+                raise ValueError("M2E_MAP_INVALID_COORDINATES")
+            return sum(check_coords(child) for child in node)
+        check_coords(geom.get("coordinates"))
     # Escape script closing tags and HTML metacharacters even inside JSON strings.
     payload = json.dumps(collection, ensure_ascii=True, separators=(",", ":"), allow_nan=False)
     payload = payload.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
