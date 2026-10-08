@@ -102,11 +102,16 @@ def _metrics(left, right, obs0, obs1, first_fraction, second_fraction):
         return {**empty, "status": "metric_unavailable"}
 
 
-def _edges(collection, bundle, evidence):
+def _edges(collection, bundle, evidence, quality_policy):
     """Add only parent-edge subsets of independently verified M2D segments."""
     observations_by_part = [p["observations"] for p in evidence.canonical_track["parts"]]
     appended, stationary = [], []
     counts = {"valid": 0, "unavailable": 0, "stationary": 0}
+    # M2B's optional caller-owned speed rule is the *only* speed-plausibility
+    # screening signal. A successful UTC calculation is not GPS validation.
+    speed_screen = ("explicit_m2b_policy_enabled"
+                    if quality_policy.max_implied_speed_mps is not None
+                    else "not_screened")
     for segment in bundle.segments if bundle is not None else ():
         coordinates = segment["geometry"]["coordinates"]
         positions = _positions(segment)
@@ -143,6 +148,7 @@ def _edges(collection, bundle, evidence):
                     "evidence_class": "derived_from_quality_admitted_observed_edge",
                     "metric_algorithm": ALGORITHM,
                     "metric": metric,
+                    "speed_screen": speed_screen,
                     **provenance,
                 },
             })
@@ -151,6 +157,9 @@ def _edges(collection, bundle, evidence):
         "algorithm": ALGORITHM,
         "method": "WGS84 geodesic / strictly increasing original-edge UTC",
         "quality": "admitted_by_explicit_M2B_policy_not_GPS_truth",
+        "speed_screen": speed_screen,
+        "speed_cap_mps": quality_policy.max_implied_speed_mps,
+        "valid_status_means": "monotone_original_UTC_and_finite_arithmetic_only_not_motion_truth",
         "counts": counts,
         "stationary_observations": stationary,
         "missing_metric_semantics": "neutral_display_no_interpolation",
@@ -180,7 +189,7 @@ def export_temporal_geojson(*, bundle, proof, evidence, quality_projection,
         return base
     try:
         collection = json.loads(base.geojson_json)
-        _edges(collection, bundle, evidence)
+        _edges(collection, bundle, evidence, quality_policy)
         collection["metadata"]["temporal_overlay"]["mode"] = metric_mode
         return GeoJSONExportResult("produced", canonical_json(collection))
     except Exception:
