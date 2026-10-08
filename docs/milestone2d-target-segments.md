@@ -1,3 +1,5 @@
+> **Historical blocker record (PR #6).** The original M2D stop condition was resolved by accepted ADR-0011 and merged contract PR #7. M2D is now ACTIVE. The current assembly implementation record is [milestone2d-implementation.md](milestone2d-implementation.md). Statements below describing the contract as proposed/blocked are preserved as the contemporaneous record of PR #6, not present project status.
+
 # M2D — Target-area segments and SpatialAssessment assembly
 
 **Status: BLOCKED — entity implementation stopped at frozen-contract preflight.**

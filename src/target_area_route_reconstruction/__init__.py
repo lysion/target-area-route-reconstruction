@@ -8,6 +8,9 @@ from .quality_verifier import verify_quality
 from .spatial import prove_spatial_relation
 from .spatial_models import SpatialRelationProof, SpatialResult, SpatialVerification
 from .spatial_verifier import verify_spatial_relation
+from .spatial_entities import assemble_spatial_entities
+from .spatial_entities_verifier import verify_spatial_entities
+from .spatial_entities_models import SpatialAssemblyResult, SpatialEntityBundle, SpatialEntityVerification
 
 __all__ = [
     "ingest_bytes", "ingest_file", "Diagnostic", "IngestionResult",
@@ -16,4 +19,6 @@ __all__ = [
     "QualityResult", "QualityVerification",
     "prove_spatial_relation", "verify_spatial_relation", "SpatialRelationProof",
     "SpatialResult", "SpatialVerification",
+    "assemble_spatial_entities", "verify_spatial_entities",
+    "SpatialAssemblyResult", "SpatialEntityBundle", "SpatialEntityVerification",
 ]
