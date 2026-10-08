@@ -92,7 +92,8 @@ Current design artifacts:
 - [M2A deterministic canonical ingestion](docs/milestone2a-canonical-ingestion.md)
 - [M2B quality projection and gap verification](docs/milestone2b-quality-projection.md)
 - [M2C spatial relation and completeness proof](docs/milestone2c-spatial-relation.md)
-- [M2D contract blocker and proposed amendment](docs/milestone2d-target-segments.md)
+- [M2D contract blocker history](docs/milestone2d-target-segments.md)
+- [M2D deterministic entity assembly implementation](docs/milestone2d-implementation.md)
 
 ## Status
 
