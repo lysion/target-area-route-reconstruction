@@ -1,6 +1,6 @@
 # ADR-0012 — M2D canonical assembly snapshots and semantic geometry validity
 
-**Status:** Proposed for independent acceptance in PR #8; candidate implemented on the review branch. This does not mark M2D DONE.
+**Status:** Accepted — independent re-review PASS on PR #8, merged 2026-10-08 (`3e99364459188e24efd3bd901cc2cb9ad3d5dd1a`).
 
 **Date:** 2026-10-08
 
@@ -12,9 +12,9 @@
 
 Simply relaxing geometry equality would allow different payloads to reuse a revision whose pre-reference seed did not bind those payloads. Conversely, reporting every byte-level geometry difference as an invalid parent lineage contradicts the numerical-policy comparison budget.
 
-## Candidate decision
+## Decision
 
-Choose option (b) explicitly authorized by [the PR #8 remediation task](https://github.com/lysion/target-area-route-reconstruction/pull/8#issuecomment-6053442931): `verify_spatial_entities` validates the **canonical assembly snapshot** for the supplied, independently verified authority, not every possible schema-valid entity with semantically equivalent geometry.
+Adopt option (b), explicitly authorized by [the PR #8 remediation task](https://github.com/lysion/target-area-route-reconstruction/pull/8#issuecomment-6053442931): `verify_spatial_entities` validates the **canonical assembly snapshot** for the supplied, independently verified authority, not every possible schema-valid entity with semantically equivalent geometry.
 
 There are two distinct checks:
 

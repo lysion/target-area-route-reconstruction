@@ -1,6 +1,6 @@
 # M2D — TargetSegment extraction and SpatialAssessment assembly
 
-**Status:** ACTIVE — implementation ready for independent re-review in PR #8; not independently accepted or merged. Final-head CI is reported in the PR.
+**Status:** DONE — PR #8 final head `2477468d79428acb776d96967bbf66aaa539ecaf` passed CI [37766687849](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37766687849), independent re-review [5455755938](https://github.com/lysion/target-area-route-reconstruction/pull/8#pullrequestreview-5455755938) returned PASS, merged as `3e99364459188e24efd3bd901cc2cb9ad3d5dd1a`. ADR-0012 accepted.
 
 **Contract baseline:** ADR-0011 accepted in PR #7 after the original PR #6 blocker. The original `docs/milestone2d-target-segments.md` remains the historical stop/reproducer record. It is not the current M2D completion status.
 
@@ -45,7 +45,7 @@ Final mutually referencing JSON is **not** hashed to a fixed point. Equal eviden
 
 All entity snapshots in the public supporting bundle are held as immutable serialized UTF-8 JSON strings; property access creates detached dicts.
 
-The revised snapshot contract is specified in [candidate ADR-0012](decisions/0012-m2d-canonical-assembly-snapshots.md). M2D algorithm `0.1.1` serializes `snapshot_policy=m2d-canonical-payload-v1`. Semantic tolerance does not authorize a different canonical payload under an unchanged revision.
+The accepted snapshot contract is specified in [ADR-0012](decisions/0012-m2d-canonical-assembly-snapshots.md). M2D algorithm `0.1.1` serializes `snapshot_policy=m2d-canonical-payload-v1`. Semantic tolerance does not authorize a different canonical payload under an unchanged revision.
 
 ## Verifier scope
 
@@ -58,7 +58,7 @@ The parent interpolation/serialization and hashing primitives are intentionally 
 - M2E GeoJSON/map and M2F temporal metrics remain out of scope.
 - Useful local short-gap bounds and missing-route reconstruction remain unsupported.
 - First v0.1.0 implementation targets ordinary CRS84 planar interpolation as M2C explicitly declares.
-- This implementation has passed the documented branch CI and adversarial mutation gate but is **not M2D DONE** until independent review accepts PR #8. M2E is NOT STARTED.
+- This implementation passed final-head CI and independent review; M2D is **DONE**. M2E is the active next checkpoint, and M2F is NOT STARTED.
 
 ## Historical validation at initial implementation handoff
 
@@ -78,7 +78,7 @@ Before the independent adversarial audit, the code-bearing change passed [Contra
 
 Explicit negative coverage includes stale upstream proof/references, corrupted reciprocal revisions, altered relation, missing/duplicate traversals, mutated segment geometry, omitted target-relevant uncertainty and false point-anchor substitution for a leading gap. Distinct visited occurrences and stationary/repeated observations remain ordered.
 
-**Review gate:** PR #8 must remain open for independent acceptance. A passing CI does not independently certify the implementation or authorize M2E.
+**Historical review gate:** PR #8 remained open until independent review; its final head subsequently passed review and was merged. Passing CI alone was never the acceptance decision.
 
 
 ## PR #8 admission remediation and before/after evidence
@@ -135,7 +135,7 @@ Current M2B supports no local disjoint proof method: the converter's target-irre
 
 ### M2E handoff and remaining obligations
 
-[Support boundaries and ownership](v0.1-support-boundaries.md) classify all current M2 limitations. Strict authority, full observed segment coverage, exact uncertainty, immutable identity, independent adversarial/mutation checks and installed-wheel behavior are M2D admission requirements. Local gap bounds, more quality algorithms, periodic/geodesic clipping and comprehensive FIT profile combinations remain explicitly unsupported; M3 persistence, M2E export/map, M2F metrics and M7 reconstruction are later work. M2E must consume accepted entity snapshots and display uncertainty without converting it to geometry. Independent acceptance of this candidate policy and PR is still required; M2D remains ACTIVE and M2E NOT STARTED.
+[Support boundaries and ownership](v0.1-support-boundaries.md) classify all current M2 limitations. Strict authority, full observed segment coverage, exact uncertainty, immutable identity, independent adversarial/mutation checks and installed-wheel behavior are M2D admission requirements. Local gap bounds, more quality algorithms, periodic/geodesic clipping and comprehensive FIT profile combinations remain explicitly unsupported; M3 persistence, M2E export/map, M2F metrics and M7 reconstruction are later work. M2E must consume accepted entity snapshots and display uncertainty without converting it to geometry. Independent acceptance occurred in review 5455755938 and PR #8 was merged; M2D is DONE and M2E may proceed.
 
 ### Remediation validation record
 

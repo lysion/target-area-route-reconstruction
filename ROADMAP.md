@@ -132,12 +132,12 @@ The independent-audit re-exit additionally requires ordered interval/multiplicit
 
 ## Milestone 2 — Deterministic Core
 
-**Status:** ACTIVE — M2A, M2B and M2C are DONE; M2D is the sole immediate implementation checkpoint, resumed after ADR-0011
+**Status:** ACTIVE — M2A, M2B, M2C and M2D are DONE; M2E is the sole immediate implementation checkpoint
 **Release target:** v0.1.0
 
 **M2A checkpoint:** DONE after independent review and merge of PR #2. Deterministic local FIT/GPX ingestion now normalizes preserved source evidence into the frozen `CanonicalTrack` shape while retaining source order, continuity boundaries, repeated observations, and missing-position diagnostics. See [implementation and acceptance record](docs/milestone2a-canonical-ingestion.md).
 
-**M2B checkpoint:** DONE after independent review and merge of PR #3. Track quality now produces an immutable supporting `QualityProjection`, explicit source/quality gaps, optional independently verified constraints, and a deterministic verifier while preserving original parent indices. See [implementation record](docs/milestone2b-quality-projection.md). M2 remains ACTIVE; M2D is ACTIVE after the accepted ADR-0011 contract erratum.
+**M2B checkpoint:** DONE after independent review and merge of PR #3. Track quality now produces an immutable supporting `QualityProjection`, explicit source/quality gaps, optional independently verified constraints, and a deterministic verifier while preserving original parent indices. See [implementation record](docs/milestone2b-quality-projection.md). M2 remains ACTIVE; M2D is DONE after the accepted ADR-0011/ADR-0012 changes and merged PR #8.
 
 ### Goal
 
@@ -228,9 +228,9 @@ M2C must not invent new gap evidence, infer a unique missing path, silently inte
 
 #### M2D — Target-area segment extraction and SpatialAssessment assembly
 
-**Status:** ACTIVE — implementation ready for independent re-review in PR #8; M2E remains NOT STARTED
+**Status:** DONE — independent re-review PASS; PR #8 merged (`3e99364459188e24efd3bd901cc2cb9ad3d5dd1a`), ADR-0012 accepted
 
-The implementation preflight on `632e9c7` reproduced valid assessable M2C proofs with an absent leading/trailing endpoint. Frozen `trackRange` requires two concrete parent TrackPositions; no accepted anchor convention represents the absent extent. See [minimal reproducer and blocker record](docs/milestone2d-target-segments.md) and [ADR-0011](docs/decisions/0011-open-ended-coverage-uncertainty.md). ADR-0011 was accepted as a pre-release v0.1.0 erratum in PR #7, and the amended schema and regressions are merged. This paragraph preserves the original blocker history; entity implementation is now authorized in M2D. M2E remains NOT STARTED.
+The implementation preflight on `632e9c7` reproduced valid assessable M2C proofs with an absent leading/trailing endpoint. Frozen `trackRange` requires two concrete parent TrackPositions; no accepted anchor convention represents the absent extent. See [minimal reproducer and blocker record](docs/milestone2d-target-segments.md) and [ADR-0011](docs/decisions/0011-open-ended-coverage-uncertainty.md). ADR-0011 was accepted as a pre-release v0.1.0 erratum in PR #7, and the amended schema and regressions are merged. This paragraph preserves the original blocker history; ADR-0011 unblocked implementation, which was completed and independently accepted in PR #8.
 
 - consume only an assessable, verified M2C supporting result;
 - extract traceable `TargetSegment` results from the target-relative parent intervals proved by M2C;
@@ -243,13 +243,13 @@ The implementation preflight on `632e9c7` reproduced valid assessable M2C proofs
 - enforce the frozen schema requirement that `inside` and `partial` assessments reference at least one `TargetSegment`, while `outside` references none;
 - for an M2C non-assessable result, create neither `TargetSegment` nor `SpatialAssessment`.
 
-PR #8 admission hardening and the proposed versioned canonical-snapshot policy are recorded in [the implementation record](docs/milestone2d-implementation.md) and [ADR-0012](docs/decisions/0012-m2d-canonical-assembly-snapshots.md). The [support-boundary matrix](docs/v0.1-support-boundaries.md) separates required admission checks from later work. No M2E implementation is authorized before independent acceptance.
+PR #8 accepted admission hardening and the versioned canonical-snapshot policy are recorded in [the implementation record](docs/milestone2d-implementation.md) and [ADR-0012](docs/decisions/0012-m2d-canonical-assembly-snapshots.md). The [support-boundary matrix](docs/v0.1-support-boundaries.md) separates required admission checks from later work. M2D independent acceptance is complete; M2E may proceed without expanding frozen spatial authority.
 
 M2D must not reclassify relation/completeness by inventing new spatial evidence. If M2C proof material is insufficient to construct schema-valid, exhaustive segments and assessment references, fail closed rather than fabricating references.
 
 #### M2E — GeoJSON and basic interactive map
 
-**Status:** NOT STARTED
+**Status:** ACTIVE — implement a verified, evidence-preserving export projection and basic map without spatial inference
 
 - export accepted spatial results to GeoJSON;
 - provide a basic interactive map;
@@ -631,7 +631,7 @@ No project decision should rely solely on chat history.
 
 ## Current execution point
 
-**Current milestone:** Milestone 2 — Deterministic Core. M2A, M2B and M2C are DONE after independent review and merge; M2D is the sole immediate implementation checkpoint, active after ADR-0011.
+**Current milestone:** Milestone 2 — Deterministic Core. M2A–M2D are DONE after independent review and merge; M2E GeoJSON/basic-map work is the sole immediate implementation checkpoint.
 
 **Milestone 0 outcome: DONE**
 
@@ -702,8 +702,9 @@ Milestone 1 completed:
 - **M2A — DONE:** deterministic FIT/GPX canonical ingestion is merged. Raw evidence remains immutable; source ordering, continuity breaks, repeated observations, and parent-position lineage are preserved.
 - **M2B — DONE:** deterministic track-quality validation, supporting `QualityProjection`, explicit source/quality gaps, domain-only gap proof support, and the independent quality/gap verifier are merged after independent acceptance.
 - **M2C — DONE:** deterministic spatial relation/completeness proof is merged after independent review in PR #4. It preserves exact M2A/M2B/TargetArea authority, explicit non-assessability, ordered parent-interval evidence, stationary evidence and target-relative gap relevance. The current domain-only bound remains insufficient for useful local short-gap proof and no missing route is reconstructed.
-- **M2D — ACTIVE:** ADR-0011 and the open-ended CoverageUncertainty contract repair are merged; now extract exhaustive maximal TargetSegments from an accepted verified M2C proof result, then assemble the frozen SpatialAssessment with exact bidirectional revision references. Non-assessable M2C results produce neither entity.
-- **M2E–M2F — NOT STARTED:** proceed only after M2D: GeoJSON/basic map, then valid temporal metrics and quality-aware coloring.
+- **M2D — DONE:** ADR-0011 and ADR-0012 accepted; PR #8 merged after final-head CI success and independent re-review. Verified M2C proof yields maximal observed TargetSegments and a snapshot-bound SpatialAssessment with exact reciprocal references, or no entities when non-assessable.
+- **M2E — ACTIVE:** implement GeoJSON/basic map from independently verified authority, preserving all known observed segments, provenance, discontinuities and uncertainties without reconstructed geometry.
+- **M2F — NOT STARTED:** valid temporal metrics and quality-aware map coloring follow independent M2E acceptance.
 - **Cross-cutting before M2 DONE:** installed-wheel/outside-checkout CI smoke, an explicit v0.1 FIT/GPX support matrix, explicit quality-policy ownership, and release documentation for quality/gap limitations.
 
 Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut. Any proposed change to this checkpoint order or Milestone 2 scope must update this roadmap before implementation. M3 owns durable evidence custody/integrity after ingestion; M5 owns source-adapter acquisition provenance/authenticity only where mechanically supported.
