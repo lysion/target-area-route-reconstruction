@@ -1,6 +1,6 @@
 # M2F — Valid temporal speed/pace and quality-aware map coloring
 
-**Status:** ACTIVE — initial API, temporal tests and offline vector map overlay under review; NOT DONE.
+**Status:** DONE — final-head `4694362686a9905902a52a396ee981cdebfcd34e` passed full [CI 37779156527](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37779156527), independent [re-review 5456795395](https://github.com/lysion/target-area-route-reconstruction/pull/13#pullrequestreview-5456795395) returned PASS, and PR #13 merged as `a2ab7fe871806982d2e69bf87240b4842dbe4a06`.
 
 **Entry evidence:** M2E PR #11 merged and accepted, M2E closeout PR #12 merged; M2A–M2E DONE on main. No schema, M2C relation, M2D revision or M2E verified export changes are authorized in M2F.
 
@@ -57,4 +57,14 @@ Remediation on the same PR branch:
 - Test real quality-policy rejection of a GPS jump and the unscreened counterpart, equal/reversed timestamps, precise sub-microsecond UTC, extremely small unrepresentable positive duration, mixed valid/missing time in one contiguous segment, fractional clipping, and planar date-line non-equivalence.
 - Extend isolated-wheel smoke to real `gpx/no-timestamps.gpx` and assert that valid observed spatial geometry yields only missing temporal values; require Node JS runtime tests for explicit-screened versus unscreened strokes, units and pace correspondence.
 
-**Review gate remains open** until final-head CI and independent final re-review. PR #13 remains Draft and M2F stays ACTIVE, not DONE. The accepted M2E/M2D source contract is unchanged.
+**Historical review gate closed:** final-head CI and independent source/adversarial re-review passed on PR #13, which was then merged. The accepted M2E/M2D source contract remains unchanged; this does not mark full Milestone 2 exit or v0.1.0 release.
+
+## Final acceptance record — 2026-10-08
+
+- **Production PR:** [#13](https://github.com/lysion/target-area-route-reconstruction/pull/13), merged as `a2ab7fe871806982d2e69bf87240b4842dbe4a06` after final reviewed head `4694362686a9905902a52a396ee981cdebfcd34e` passed CI.
+- **Final CI:** [37779156527](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37779156527) — **SUCCESS**. All **265** Python tests pass, mandatory Node JS M2E/M2F interaction checks pass, and schema, semantic, source-fixture, mutation and patch gates are successful.
+- **Installed-wheel gate:** noneditable isolated wheel in a virtual environment outside the checkout completes **4** real FIT/GPX→M2F export/map cases, including GPX with no timestamps; accepted M2E features preserved, stale/duplicate M2D authority rejected, no metric gap chords; packaged schemas and invalid-GPX rejection verified.
+- **Independent adversarial review:** initial [review 5456683052](https://github.com/lysion/target-area-route-reconstruction/pull/13#pullrequestreview-5456683052) was **CHANGES REQUIRED**. Corrective changes introduce quality screening provenance, numeric color legend with pace reciprocity, dashed blue for unscreened calculations, and extra extreme-timestamp/GPS-jump tests. Final exact-head [review 5456795395](https://github.com/lysion/target-area-route-reconstruction/pull/13#pullrequestreview-5456795395) returned **PASS**; this was assistant-led source/adversarial evidence review, not a second external human approval.
+- **Limitations retained:** `status=valid` is exact-time/numeric validity, not independently proven true movement; without a caller-owned M2B cap implausible numerical speeds can occur but remain clearly labeled. No implicit speed cap, smoothing or quality admission changes. No M3 persistence, M7/8 route network/inference or physiological analytics.
+
+**Decision: M2F DONE. M2A–M2F checkpoints all DONE, but full Milestone 2 exit/v0.1.0 release remains a separate, pending decision.**
