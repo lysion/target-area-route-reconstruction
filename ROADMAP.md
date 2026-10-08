@@ -312,36 +312,45 @@ These obligations are not separate checkpoints, but they must be closed before M
 
 ## Milestone 3 — Persistent Runtime
 
-**Status:** NOT STARTED  
+**Status:** NOT STARTED — mandatory [immutable evidence-custody / verifiable-reload contract](docs/milestone3-evidence-custody-contract.md) and [F3–F6 owned action gates](docs/post-m2-f3-f6-action-plan.md) documented; design requirements are **not** implemented persistence.
 **Release target:** v0.2.0
 
 ### Goal
 
-Make long-running reconstruction tasks resumable, auditable, and idempotent.
+Make long-running reconstruction tasks resumable, auditable, and idempotent. **The first requirement is a trustworthy, independently anchored binding of immutable original bytes to the complete derived evidence graph; merely writing six entity JSON objects into SQLite is not an acceptable M3 result.**
 
-### Work
+### Design entry gate (required before tables or runtime caches)
 
-- introduce persistent state, initially SQLite unless evidence supports another choice;
-- persist activities, durable raw TrackSource evidence, parse state, assessments, and provenance;
-- content hashing and duplicate detection;
-- preserve a durable evidence chain from raw TrackSource bytes/content hash -> exact TrackSource revision -> CanonicalTrack revision -> QualityProjection/evidence fingerprint -> downstream derived artifacts;
-- on reload/reuse, verify stored content hashes and revision bindings so a self-consistent reconstructed snapshot cannot silently substitute for the preserved source evidence;
-- cache-first behavior;
-- resume after interruption;
-- explicit failure states;
-- manual overrides as separate auditable evidence;
-- if derived metrics are persisted, retain algorithm/version, source-track version, parameters, and quality provenance.
+- **Use the selected concrete M3 trust root:** Linux split-principal Ed25519 signer, independently protected hash-chained append-only log and independently pinned monotone checkpoint. Worker has no signing key, cannot edit/rollback log/checkpoint; signer verifies before committing and cannot undo prior commits; verifier reads externally trusted checkpoint. See explicit actor/capability matrix and rollback tests. Mutable SQLite digests alone are insufficient.
+- Bind **the complete schema-valid frozen TrackSource revision** (`id,revision_id,schema_version,activity:{id},origin,representation,extensions` when present) plus original bytes to a signed `SourceAdmission`. **TrackSource.activity is an `entityRef` with ID only; no invented Activity revision field is permitted.** Source revision cannot be reassigned to another Activity, origin, representation or content; later reconciliation must be independently signed/audited, never silently mutating the source.
+- Define **complete immutable snapshot graph AND externally signed graph-root commitment**: source receipt → full M2A IngestionResult/diagnostics/observation_sources → M2B policy/diagnostics → M2C proof/TargetArea content → M2D ordered segments/assessment → optional M2E/M2F outputs. Sign a separate append-only `GraphCommit` containing the **entire closed DAG/manifest SHA-256**, exact target/policy request selectors and the complete execution-artifact digest set; a self-consistent coordinated rewrite of all derived nodes must fail against that separately trusted signed manifest.
+- Freeze **reload-before-reuse against an expected signed GraphCommit** and protected log-head checkpoint: compare full TrackSource Activity/origin/representation + immutable raw bytes, re-ingest using **the exact attested parser/normalizer/verifier wheel/native-binary hashes** (not only version names), validate whole signed DAG manifest and M2B/M2C/M2D independently. Rebuilt or swapped same-version executables must fail or report `historical_unverified`; multiple valid graphs for one raw source require explicit selection, not silent auto-choice.
+- Freeze a **two-domain immutable-signer-receipt + distinct checkpoint-finality-record protocol**: signer appends immutable SourceAdmission/GraphCommit exactly once; `PENDING_CHECKPOINT` is a **derived state**, never a mutable field in its signature payload. A separate durable checkpoint-owner **`CheckpointFinalityRecord`** references the unchanged receipt digest/log inclusion; only then is the receipt `COMMITTED`. Tests must prove original receipt bytes/digest unchanged across acknowledgement, pre-checkpoint pending crash recovery, and post-checkpoint/pre-SQLite replay. Agree staged transactions, idempotency/conflicts and audited migration.
 
-M3 provides integrity/custody of evidence after it enters the system. It does not claim universal cryptographic authenticity of the upstream provider or prove that a user-imported file was genuine before ingestion.
+**Normative design and C01–C23 adversarial acceptance matrix:** [Milestone 3 immutable source / graph-commit custody and reload contract](docs/milestone3-evidence-custody-contract.md).
 
-### Exit criteria
+### Work (implementation required; not yet delivered)
 
-- repeated ingestion does not duplicate facts;
-- interrupted work resumes without reprocessing completed inputs;
-- cached raw sources are preferred over reacquisition;
-- source, parser, algorithm, and target-area versions are traceable;
-- every persisted CanonicalTrack and derived quality/spatial artifact can be traced to the exact durable TrackSource revision and content hash used to produce it;
-- silent replacement/tampering of persisted raw evidence or substitution of a merely self-consistent synthetic snapshot is detected rather than accepted as the original custody chain.
+- **M3A / raw custody:** persist original bytes and **complete schema-valid TrackSource with `activity:{id}`** in immutable signed append-only SourceAdmission, with optional separate full Activity snapshot if separately needed. Checkpoint-finality is a **separate signed owner-controlled record**, not a mutation of SourceAdmission. Enforce distinct signer/key, protected chain/independent checkpoint, source conflict, negative outcomes and append→checkpoint→DB crash recovery C01–C05/C17/C19/C20/C23.
+- **M3B / immutable derivation graph:** persist complete M2A–M2F typed snapshots and evidence outcome; publish a separately **signed full-DAG GraphCommit manifest digest** with exact TargetArea/policy and **actual executable/library artifact SHA-256s**, not mutable self-hashes. Reload against an **expected signed graph** by raw re-ingestion and independent stage verifiers; reject whole-DAG co-forgery, Activity reassignment, same-version binary substitution and ambiguous cached graph selection (C02/C06–C08/C14/C16–C18/C21).
+- **M3C / runtime lifecycle:** SQLite or justified alternative, idempotent imports, exact cache/reuse closure, no implicit Activity cross-source merge, interrupted resume, concurrent identity conflict, atomic assessment/segment publication, explicit failure/quarantine states and independently auditable manual overrides.
+- **M3D / reliability:** implement [F5 strict JSON parity](docs/post-m2-f3-f6-action-plan.md) before persisted JSON admission; enforce [F6 quantified benchmark](docs/post-m2-f3-f6-action-plan.md) only on the **frozen dedicated Intel Core i7-8700 / 2-physical-core / Ubuntu 24.04.1 self-hosted reference runner** with attested OCI image: 2 warm-ups + 7 medians at 200/400/800/1600 parts, doubling ratio ≤2.8 for both producer/verifier, ≤1.0s/512MiB per reference workload, 3 independent passing clean runs and 7 explicit default/hard resource budgets. **Unprovisioned/different hardware or unpinned image is NOT_TESTED, not PASS.** Clean failures C12/C13/C22 must precede batch scalability claims.
+- **F3 preservation:** preserve raw FIT timer events/sparse Record gaps as source evidence and **document that v0.1 continuity and `complete` are not true-route certification**. Do **not** silently introduce pause/time-gap inferred geometry; assign optional event-aware/sparse-interval policy design to M5 or a separately versioned quality algorithm.
+- **F4 derivation provenance:** on persisted M2F store `duration_basis`, proportional clip allocation method, exact original edge, `speed_screen_result/reason`, full-parent cap scope, metric null reason and temporal algorithm/version; never relabel allocated border-crossing time or clip speed as device-observed fact.
+
+M3 guarantees integrity/custody **after evidence enters the system**, not the authenticity of an external provider or user-uploaded file before admission, nor security against a party who can rewrite both bytes and a separately trusted immutable receipt.
+
+### Exit criteria (all required; do not substitute green M2 CI)
+
+- Exact immutable raw bytes and **signed complete schema-valid TrackSource revision** (including `activity:{id}`, origin and representation) survive restart; same source id/revision with different content or Activity/provenance fails. Signed SourceAdmission/GraphCommit receipts **remain immutable before and after checkpoint confirmation**; a distinct signed and independently durably stored `CheckpointFinalityRecord` determines whether they are pending or committed. No trusted cache/export before finality. C23 must prove unchanged receipt digest after confirmation and recovery across append/checkpoint/DB crashes.
+- Complete source, parser, normalizer, quality-policy/diagnostics, spatial proof, target revision/content, ordered segments/snapshots, optional M2F time/screen state and negative outcomes can be reloaded with exact lineage; a separate append-only signed **GraphCommit must anchor the full DAG manifest digest**, not merely the raw SourceAdmission.
+- After reload, verify signed monotone log/checkpoint, complete TrackSource and raw hash, the **caller-selected expected signed GraphCommit root digest**, genuine M2A re-ingestion, full typed DAG and independent M2B/M2C/M2D checks. Coordinated rewrite of unchanged-raw target/policy and ALL downstream results, swapped Activity/proof/area, receipt rollback, replaced same-version parser/verifier/native binary or unavailable historical engine **must fail closed** or report explicit unverified outcome.
+- A fresh FIT and GPX source reproduce deterministic accepted evidence through M2A–M2F where supported; restart in a **separate process**, reload, verify and compare without importing repository source-tree code. Corrupted/no-position/missing-time cases preserve exact negative evidence and original source identity.
+- Repeated import and concurrent attempts do not duplicate facts or silently overwrite a revision; staged crash at raw/receipt/DB and at assessment/segment commit boundaries resumes or rolls back with no partially trusted graph; cached verified raw is preferred to reacquisition.
+- **F5 gate:** strict raw JSON duplicate-member, underflow, nonfinite, Unicode and malformed-number behavior agrees for scripts, runtime and stored snapshot loader, with explicit negative fixtures and no silent coercion.
+- **F6 gate:** [frozen reference runner/CPU allocation](docs/post-m2-f3-f6-action-plan.md), Intel Core i7-8700, 2 isolated physical cores, Ubuntu 24.04.1, pinned executable/container digests and no concurrent workload; **2 warm-ups, 7 median measurements × 3 independent runs** at 200/400/800/1600 parts; 400→800/800→1600 ratios ≤2.8 per producer and verifier and ≤1.0s/512MiB at 1600. Unavailable/mismatched runner is **NOT_TESTED**; default and maximum quotas must fail closed with no silent truncation.
+- **F3/F4 gates:** replay FIT timer pause/long sparse interval as an acknowledged coverage limitation; persisted clipped-time metrics retain derived-time allocation + original-parent screen scope after restart and never become certified physical observations.
+- Pass independent tampering, **complete-DAG co-forgery**, Activity/source reassignment, signer-key/receipt/checkpoint rollback, same-version executable replacement, cached graph ambiguity, F6 numerical budgets, concurrent-conflict, crash-recovery and installed-wheel restart tests [C01–C23](docs/milestone3-evidence-custody-contract.md). Document the trust root, concrete capabilities and out-of-model operator compromise.
 
 ---
 

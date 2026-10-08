@@ -99,6 +99,8 @@ Current design artifacts:
 - [M2 independent cross-stage exit review — superseded historical PASS](docs/milestone2-exit-review.md)
 - [M2 Codex P1 remediation history and proof gates](docs/milestone2-codex-remediation.md)
 - [M2 fresh post-Codex re-exit review — PASS_WITH_LIMITATIONS](docs/milestone2-codex-reexit-review.md)
+- [Post-M2 F3–F6 engineering owners and acceptance tests](docs/post-m2-f3-f6-action-plan.md)
+- [M3 immutable original-evidence custody and verifiable derived-snapshot reload contract](docs/milestone3-evidence-custody-contract.md)
 
 ## Status
 
