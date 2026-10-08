@@ -11,6 +11,7 @@ from .spatial_verifier import verify_spatial_relation
 from .spatial_entities import assemble_spatial_entities
 from .spatial_entities_verifier import verify_spatial_entities
 from .spatial_entities_models import SpatialAssemblyResult, SpatialEntityBundle, SpatialEntityVerification
+from .geojson_export import export_geojson, GeoJSONExportResult, GeoJSONIssue
 
 __all__ = [
     "ingest_bytes", "ingest_file", "Diagnostic", "IngestionResult",
@@ -21,4 +22,5 @@ __all__ = [
     "SpatialResult", "SpatialVerification",
     "assemble_spatial_entities", "verify_spatial_entities",
     "SpatialAssemblyResult", "SpatialEntityBundle", "SpatialEntityVerification",
+    "export_geojson", "GeoJSONExportResult", "GeoJSONIssue",
 ]
