@@ -161,7 +161,7 @@ function updateMetricLegend(){
   "1.5, 2.5, 3.5, 4.5 m/s":
   speedBins.map(formatPaceSeconds).join(", ")+" min/km (descending)");
  metricLegend.textContent="Pale blue = slower; dark blue = faster. Bin boundaries: "+
-  boundaries+". Gray = time/metric unavailable. Display bins only; not a GPS quality test.";
+  boundaries+". Gray dashed = time/metric unavailable. Blue dashed = no M2B speed screening; blue solid = explicit speed cap enabled. Pace is reciprocal of speed, so both modes retain the same fragment colors. Display bins only; not a GPS quality test.";
  const cap=overlayInfo.speed_cap_mps;
  metricScreening.textContent=(overlayInfo.speed_screen==="explicit_m2b_policy_enabled"&&
   Number.isFinite(cap))?
@@ -218,6 +218,8 @@ function draw(){
       // An unavailable derived metric is still an existing observed route,
       // but cannot borrow a neighbor's quantitative color.
       if(derivedColor===grayUnavailable)s.setAttribute("stroke-dasharray","4 3");
+      else if(f.properties.speed_screen==="not_screened")
+        s.setAttribute("stroke-dasharray","7 3");
     }
     group.append(s);
   });
