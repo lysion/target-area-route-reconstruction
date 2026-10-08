@@ -27,6 +27,7 @@ def main():
         ("fit/complete-activity.fit", "complete"),
         ("equivalent/basic.gpx", "complete"),
         ("gpx/discontinuity.gpx", "incomplete"),
+        ("gpx/no-timestamps.gpx", "complete"),
     ):
         evidence = core.ingest_file(fixtures / name, source_kind=Path(name).suffix[1:],
                                    track_source={"id": "wheel-source", "revision_id": "r1"})
@@ -102,6 +103,17 @@ def main():
                    feature["properties"]["metric"]["speed_mps"] is None
                    for feature in metric_features)
         assert temporal["counts"]["valid"] + temporal["counts"]["unavailable"] == len(metric_features)
+        if name == "gpx/no-timestamps.gpx":
+            # Not merely a successful wheel import: prove valid observed
+            # spatial geometry survives with *no fabricated temporal color*.
+            assert metric_features, metric_features
+            assert all(f["properties"]["metric"]["status"] == "missing_timestamp"
+                       for f in metric_features), metric_features
+            assert all(f["properties"]["metric"]["speed_mps"] is None
+                       and f["properties"]["metric"]["pace_s_per_km"] is None
+                       for f in metric_features)
+            assert temporal["counts"]["valid"] == 0, temporal
+            assert temporal["speed_screen"] == "not_screened", temporal
         metric_html = core.render_geojson_map(metric_export.geojson_json)
         assert 'data-layer="target_metric_edge"' in metric_html
         assert 'id="metric-mode"' in metric_html
@@ -137,7 +149,7 @@ def main():
     invalid = core.ingest_file(fixtures / "gpx/invalid-version.gpx", source_kind="gpx",
                                track_source={"id": "wheel-source", "revision_id": "r1"})
     assert invalid.outcome == "failure", invalid
-    print("Installed wheel: 3 M2A→M2F FIT/GPX-to-temporal-GeoJSON/map cases, M2E identity preservation, 9 JSON/snapshot/export attacks, 5 packaged schemas + invalid-GPX XSD rejection PASS")
+    print("Installed wheel: 4 M2A→M2F FIT/GPX-to-temporal-GeoJSON/map cases (including no timestamps), M2E identity preservation, 12 JSON/snapshot/export attacks, 5 packaged schemas + invalid-GPX XSD rejection PASS")
 
 
 if __name__ == "__main__":
