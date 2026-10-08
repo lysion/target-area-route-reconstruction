@@ -1,6 +1,6 @@
 # Track Metric Overlays
 
-**Implementation status (2026-10-08):** First evidence-bounded per-edge speed/pace and quality-aware map coloring delivered in independently reviewed [M2F](milestone2f-temporal-overlay.md) (PR #13). This is a derived, nonpersistent overlay with no implicit speed threshold. The prospective discussion and other metric types below remain design notes, not additional accepted M2F features.
+**Implementation status (updated 2026-10-09):** First derived per-original-edge speed/pace display was delivered in historical M2F PR #13, but independent Codex found a lost numerical-screening uncertainty. Reviewed [PR #18](https://github.com/lysion/target-area-route-reconstruction/pull/18) and [fresh M2 re-exit](milestone2-codex-reexit-review.md) accept the corrected `temporal-overlay/0.1.1` per-original-edge screening/result and proportional clip-time labels. This remains a nonpersistent display, not observed velocity, true crossing time or implicit quality threshold. Proposed metric types below are only design notes.
 
 This note records a planned extension to the deterministic core: visually encoding track metrics such as speed or pace along the route.
 

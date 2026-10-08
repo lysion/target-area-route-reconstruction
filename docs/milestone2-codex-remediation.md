@@ -1,6 +1,6 @@
 # M2 Codex independent audit: F1/F2 remediation and re-exit evidence
 
-**Status: REMEDIATION IN REVIEW. M2 is REOPENED; the original October 8 M2 exit PASS at `7059953c` was superseded by independent audit CHANGES_REQUIRED.** Do not start M3 or re-mark M2 DONE based only on a green PR CI run.
+**Status: REMEDIATION CLOSED after reviewed PR #18 and fresh M2 [re-exit PASS_WITH_LIMITATIONS](milestone2-codex-reexit-review.md).** The original October 8 M2 exit PASS at `7059953c` was superseded by independent audit CHANGES_REQUIRED, **then** F1/F2 were repaired, source and wheel witnesses passed, Codex reviewed the corrective diff with no major findings, and merged-main [CI 37847574877](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37847574877) passed. M3 remains NOT STARTED.
 
 **Audit baseline:** `7059953c0229cde14028b0018dd366c097e7ffd1`. The independent full-repository Codex Remote audit was supplied by the project owner, with 271 original tests passing but 2 of 17 separately constructed adversarial attacks failing. The original audit's `/workspace/audit-artifacts` files were produced in the auditor's workspace and are not claimed to exist in this repository. The review evidence is transcribed here; new committed independent counterexamples are reproducible within repository CI.
 
@@ -34,3 +34,7 @@
 5. **Only then** reopen the separate M2 comprehensive exit review, record its exact revision/CI/reviewer evidence, change ROADMAP back to DONE, and proceed to M3 planning. This remediation PR should leave M2 status **ACTIVE — REOPENED** until that decision.
 
 A green CI alone cannot supersede the independent external findings. No v0.1.0 tag, artifact publication, or M3 implementation is authorized by this remediation.
+
+## Closure decision (2026-10-09)
+
+Corrective PR [#18](https://github.com/lysion/target-area-route-reconstruction/pull/18) merged at `5b52738d0b490fb2725311775b66e97f8eff674f`. Codex code review completed on exact fix head `7d9d759` reporting no major findings; independent installed-wheel F1/F2 reproductions pass in merged-main CI `37847574877` (277 Python tests, mandatory Node JS and all existing gates). All five re-exit gate categories listed above are closed **within the supported M2 boundary**, with F3/F4 explicitly disclosed and F5/F6/F7 reserved to later engineering/M3. The authoritative later acceptance is [M2 fresh re-exit](milestone2-codex-reexit-review.md); the original rejected PASS remains archived, not erased.
