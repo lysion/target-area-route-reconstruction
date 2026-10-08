@@ -203,9 +203,13 @@ class M2DEntityTests(unittest.TestCase):
         self.assertEqual(count, 19)
 
     def test_mutated_producer_coverage_is_rejected_by_independent_verifier(self):
-        args = arguments(route([(0.25, 1), (1.5, 1)]))
+        # Retain one of two covered visits: this is still schema-valid
+        # partial relation, but it fails the independent exhaustive oracle.
+        args = arguments(route([(-1, 1), (3, 1), (-1, 1)]))
         proof = prove_spatial_relation(**args).proof
-        with patch("target_area_route_reconstruction.spatial_entities._maximal_covered", return_value=()):
+        first = proof.target_coverage_intervals[0]
+        with patch("target_area_route_reconstruction.spatial_entities._maximal_covered",
+                   return_value=((first.start, first.end),)):
             result = assemble_spatial_entities(proof=proof, **args)
         self.assertEqual(result.outcome, "assembly_failure")
         self.assertIn("M2D_ASSEMBLY_VERIFICATION_FAILED", [i.code for i in result.issues])
