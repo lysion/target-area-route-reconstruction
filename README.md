@@ -95,6 +95,7 @@ Current design artifacts:
 - [M2D contract blocker history](docs/milestone2d-target-segments.md)
 - [M2D deterministic entity assembly implementation](docs/milestone2d-implementation.md)
 - [M2E verified GeoJSON and offline interactive map](docs/milestone2e-geojson-map.md)
+- [M2F validated temporal speed/pace and map coloring (ACTIVE)](docs/milestone2f-temporal-overlay.md)
 
 ## Status
 

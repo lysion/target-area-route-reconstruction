@@ -47,6 +47,7 @@ jobs:
         run: |
           node --version
           python -m unittest discover -s tests -p 'test_m2e_dom_runtime.py'
+          python -m unittest discover -s tests -p 'test_m2f_map_runtime.py'
 
       - name: Verify patch whitespace
         run: git diff-tree --check HEAD^ HEAD

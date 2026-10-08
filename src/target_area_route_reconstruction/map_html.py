@@ -57,6 +57,7 @@ def _geometry(geometry, layer):
     expected = {
         "target_area": {"Polygon", "MultiPolygon"},
         "target_segment": {"LineString"},
+        "target_metric_edge": {"LineString"},
         "observed_outside": {"LineString"},
         "gap_endpoint": {"Point"},
     }[layer]
@@ -90,7 +91,7 @@ def render_geojson_map(geojson_json: str, *, title: str = "Target area route map
     features = collection.get("features")
     if not isinstance(features, list):
         raise ValueError("M2E_MAP_INVALID_FEATURES")
-    allowed = {"target_area", "target_segment", "observed_outside", "gap_endpoint"}
+    allowed = {"target_area", "target_segment", "target_metric_edge", "observed_outside", "gap_endpoint"}
     for feature in features:
         if not isinstance(feature, dict) or feature.get("type") != "Feature":
             raise ValueError("M2E_MAP_INVALID_FEATURE")
@@ -121,6 +122,10 @@ button{padding:6px 12px;margin-right:6px}#detail{white-space:pre-wrap;overflow-w
 <aside><p><button id="reset">Reset view</button></p>
 <label><input type="checkbox" data-layer="target_area" checked> Target area</label>
 <label><input type="checkbox" data-layer="target_segment" checked> Observed inside</label>
+<label><input type="checkbox" data-layer="target_metric_edge" checked> Temporal overlay</label>
+<label>Metric <select id="metric-mode"><option value="speed_mps">Speed (m/s)</option><option value="pace_s_per_km">Pace (s/km)</option></select></label>
+<p id="metric-legend">Time-derived pace/speed; unavailable values gray. This is not independently validated GPS velocity.</p>
+<p id="metric-screening">Speed plausibility screening: unavailable.</p>
 <label><input type="checkbox" data-layer="observed_outside" checked> Observed outside</label>
 <label><input type="checkbox" data-layer="gap_endpoint" checked> Gap endpoints</label>
 <p id="detail">Select a feature for evidence details.</p>
@@ -130,8 +135,48 @@ button{padding:6px 12px;margin-right:6px}#detail{white-space:pre-wrap;overflow-w
 "use strict";
 const data=JSON.parse(document.getElementById("evidence").textContent);
 const svg=document.getElementById("map"),NS="http://www.w3.org/2000/svg";
-const visible=new Set(["target_area","target_segment","observed_outside","gap_endpoint"]);
+const visible=new Set(["target_area","target_segment","target_metric_edge","observed_outside","gap_endpoint"]);
+const metricMode=document.getElementById("metric-mode");
+const overlayInfo=(data.metadata||{}).temporal_overlay;
+metricMode.value=overlayInfo?.mode||"speed_mps";
+metricMode.disabled=!overlayInfo;
+const metricLegend=document.getElementById("metric-legend");
+const metricScreening=document.getElementById("metric-screening");
 const colors={target_area:"#2563eb",target_segment:"#15803d",observed_outside:"#64748b",gap_endpoint:"#d97706"};
+// Fixed *display bins*, not GPS quality thresholds or speed validation.
+const speedBins=[1.5,2.5,3.5,4.5];
+const speedPalette=["#bfdbfe","#93c5fd","#60a5fa","#2563eb","#1d4ed8"];
+const grayUnavailable="#94a3b8";
+function formatPaceSeconds(speed){
+ const total=Math.round(1000/speed),minutes=Math.floor(total/60),seconds=total%60;
+ return String(minutes)+":"+String(seconds).padStart(2,"0");
+}
+function updateMetricLegend(){
+ if(!overlayInfo){
+  metricLegend.textContent="No temporal overlay. Observed geometry remains available.";
+  metricScreening.textContent="No speed plausibility claim.";
+  return;
+ }
+ const boundaries=(metricMode.value==="speed_mps"?
+  "1.5, 2.5, 3.5, 4.5 m/s":
+  speedBins.map(formatPaceSeconds).join(", ")+" min/km (descending)");
+ metricLegend.textContent="Pale blue = slower; dark blue = faster. Bin boundaries: "+
+  boundaries+". Gray dashed = time/metric unavailable. Blue dashed = no M2B speed screening; blue solid = explicit speed cap enabled. Pace is reciprocal of speed, so both modes retain the same fragment colors. Display bins only; not a GPS quality test.";
+ const cap=overlayInfo.speed_cap_mps;
+ metricScreening.textContent=(overlayInfo.speed_screen==="explicit_m2b_policy_enabled"&&
+  Number.isFinite(cap))?
+  "M2B caller-defined speed rule enabled (cap "+cap+" m/s); time-valid is not accuracy certification.":
+  "WARNING: speed plausibility screening DISABLED. Numeric 'valid' only means original UTC increases and calculation is finite; extreme GPS jumps may be colored.";
+}
+function metricColor(properties){
+ const metric=properties.metric;
+ if(!metric||metric.status!=="valid")return grayUnavailable;
+ const value=metric[metricMode.value];
+ if(!Number.isFinite(value)||value<0|| (metricMode.value==="pace_s_per_km"&&value===0))return grayUnavailable;
+ const speed=metricMode.value==="pace_s_per_km"?1000/value:value;
+ let i=0;while(i<speedBins.length&&speed>=speedBins[i])i++;
+ return speedPalette[i];
+}
 const coords=[];
 function collect(g){if(!g)return;if(g.type==="Point")coords.push(g.coordinates);
 else if(g.type==="LineString"||g.type==="MultiPoint")g.coordinates.forEach(p=>coords.push(p));
@@ -140,9 +185,11 @@ else if(g.type==="MultiPolygon")g.coordinates.forEach(p=>p.forEach(r=>r.forEach(
 data.features.forEach(f=>collect(f.geometry));
 const valid=coords.filter(p=>Array.isArray(p)&&p.length===2&&p.every(Number.isFinite));
 if(valid.length!==coords.length)throw Error("Invalid coordinate");
-let x0=Math.min(...valid.map(p=>p[0])),x1=Math.max(...valid.map(p=>p[0]));
-let y0=Math.min(...valid.map(p=>p[1])),y1=Math.max(...valid.map(p=>p[1]));
-if(!valid.length){x0=0;x1=1;y0=0;y1=1;}
+let x0=0,x1=1,y0=0,y1=1;
+if(valid.length){
+ x0=x1=valid[0][0]; y0=y1=valid[0][1];
+ for(const p of valid){x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1]);}
+}
 const dx=Math.max(x1-x0,1e-9),dy=Math.max(y1-y0,1e-9),scale=Math.min(940/dx,640/dy);
 const project=p=>[500+(p[0]-(x0+x1)/2)*scale,350-(p[1]-(y0+y1)/2)*scale];
 const node=(tag,attrs)=>{const el=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,String(v)));return el;};
@@ -163,7 +210,19 @@ function draw(){
  data.features.forEach(f=>{
   const layer=f.properties.layer;if(!visible.has(layer))return;
   const group=node("g",{"data-layer":layer});
-  shapes(f.geometry,layer).forEach(s=>group.append(s));
+  shapes(f.geometry,layer).forEach(s=>{
+    if(layer==="target_metric_edge"){
+      const derivedColor=metricColor(f.properties);
+      s.setAttribute("stroke",derivedColor);
+      s.setAttribute("stroke-width",4);
+      // An unavailable derived metric is still an existing observed route,
+      // but cannot borrow a neighbor's quantitative color.
+      if(derivedColor===grayUnavailable)s.setAttribute("stroke-dasharray","4 3");
+      else if(f.properties.speed_screen==="not_screened")
+        s.setAttribute("stroke-dasharray","7 3");
+    }
+    group.append(s);
+  });
   group.addEventListener("click",()=>{document.getElementById("detail").textContent=JSON.stringify(f.properties,null,2);});
   root.append(group);
  });
@@ -172,6 +231,8 @@ let view=[0,0,1000,700];function apply(){svg.setAttribute("viewBox",view.join(" 
 const meta=data.metadata||{};
 document.getElementById("status").textContent="  | relation: "+(meta.relation??"not assessable")+" | coverage: "+(meta.coverage_completeness??"not assessable");
 document.querySelectorAll("[data-layer]").forEach(c=>c.addEventListener("change",()=>{c.checked?visible.add(c.dataset.layer):visible.delete(c.dataset.layer);draw();}));
+metricMode.addEventListener("change",()=>{updateMetricLegend();draw();});
+updateMetricLegend();
 document.getElementById("reset").onclick=()=>{view=[0,0,1000,700];apply();};
 svg.addEventListener("wheel",e=>{e.preventDefault();const factor=e.deltaY>0?1.15:1/1.15;view=[view[0]+view[2]*(1-factor)/2,view[1]+view[3]*(1-factor)/2,view[2]*factor,view[3]*factor];apply();},{passive:false});
 let drag=null;svg.addEventListener("pointerdown",e=>{drag=[e.clientX,e.clientY,...view];svg.setPointerCapture(e.pointerId);});
