@@ -112,6 +112,19 @@ def _verify(q, evidence, policy):
                 classes[edge] = name
                 if name == "excluded_intervals":
                     excluded_by_edge[edge] = (n, entry)
+    # A verified QualityProjection is a *canonical coverage partition*, not
+    # merely a set of admitted edges. Neighboring intervals within the same
+    # original part cannot be split at an arbitrary observation vertex. Only
+    # an excluded edge or a real source-part boundary terminates a usable run.
+    # This admission check prevents M2D from mistaking representational
+    # fragmentation for distinct maximal TargetSegments (ADR-0005).
+    previous_usable = None
+    for index, admitted in enumerate(q.usable_intervals):
+        if (previous_usable is not None
+                and previous_usable.end.part_index == admitted.start.part_index
+                and previous_usable.end.observation_index == admitted.start.observation_index):
+            fail("USABLE_INTERVAL_NOT_MAXIMAL", f"usable_intervals/{index}")
+        previous_usable = admitted
     if universe - classes.keys():
         fail("EDGE_UNACCOUNTED")
     if issues:
