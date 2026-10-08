@@ -66,6 +66,16 @@ if (metricInfo) {
     const strokes = overlays.map(g => g.children[0].attrs.stroke);
     assert.ok(strokes.includes("#94a3b8"), "missing timestamp must render neutral");
     assert.ok(strokes.some(v => v !== "#94a3b8"), "valid timestamp must render metric color");
+    const derivedColored=groups().filter(g=>g.attrs["data-layer"]==="target_metric_edge" &&
+        g.children[0].attrs.stroke!=="#94a3b8");
+    if(metricInfo.speed_screen==="not_screened"){
+        assert.ok(derivedColored.every(g=>g.children[0].attrs["stroke-dasharray"]==="7 3"),
+            "unscreened numeric speed must be BLUE DASHED, not look like certified speed");
+    }else if(metricInfo.speed_screen==="explicit_m2b_policy_enabled"){
+        assert.ok(derivedColored.every(g=>g.children[0].attrs["stroke-dasharray"]===undefined),
+            "explicit-screened numerical speed should use SOLID line");
+    }
+
     assert.ok(strokes.includes("#1d4ed8")||strokes.includes("#93c5fd")||
         strokes.includes("#60a5fa")||strokes.includes("#bfdbfe")||
         strokes.includes("#2563eb"), "valid edge uses a documented blue bin");
@@ -87,6 +97,8 @@ if (metricInfo) {
     mode.handlers.change();
     assert.ok(elements["metric-legend"].textContent.includes("min/km"),
         "pace mode must disclose inverse conversion and units");
+    assert.ok(elements["metric-legend"].textContent.includes("reciprocal"),
+        "switching to pace must explain identical reciprocal bin colors");
     assert.ok(elements["metric-legend"].textContent.includes("descending"),
         "pace bins decrease as velocity increases");
     const recolored=groups().filter(g=>g.attrs["data-layer"]==="target_metric_edge")
