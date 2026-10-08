@@ -1,6 +1,6 @@
 # M2E — Verified GeoJSON export and basic interactive map
 
-**Status:** ACTIVE — GeoJSON export, offline interactive vector map, adversarial/DOM tests and isolated-wheel M2E smoke implemented in PR #11. Final-head CI and independent acceptance required before M2E DONE.
+**Status:** DONE — final-head `81bdd0c10bd016a3111068ebbccbf3457bfcbc74` passed full CI [37775412882](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37775412882), independent [source-and-adversarial re-review](https://github.com/lysion/target-area-route-reconstruction/pull/11#pullrequestreview-5456393871) returned PASS, and PR #11 was merged as `802cc18bad88b8edb7051051c77614d60f1fa164`.
 
 **Baseline:** M2D PR #8 independently accepted and merged; ADR-0012 Accepted; M2A–M2D are DONE. M2E does not change any frozen core schema, evidence/revision policy or spatial classification.
 
@@ -37,9 +37,9 @@ The RFC 7946 FeatureCollection includes a documented `metadata` foreign member w
 
 `include_outside` is a strict boolean controlling only diagnostic outside geometry. No omitted outside feature changes relation, completeness or TargetSegment membership.
 
-## Basic interactive map — first implementation slice
+## Basic interactive map — accepted implementation
 
-Build a lightweight interactive HTML map from **accepted** GeoJSON:
+The accepted implementation supplies a lightweight interactive HTML map from **accepted** GeoJSON with these constraints:
 
 - preserve each independent Feature; no simplification, snapping, geometry union, map matching, route interpolation, gap chord or straight-line connection across missing observations;
 - show TargetArea outline/fill, inside segments, optional outside context, and observed gap endpoints with distinct legend/layer controls;
@@ -79,3 +79,14 @@ This document is a milestone implementation record, not permission to change the
 Preflight CI run [37775118596](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37775118596) on head `12ab153853f587283cc4c65f34e06f42c6d23a95`: 245 unit tests passed; isolated wheel confirmed 3 real FIT/GPX→M2E export/map cases and forged-authority rejection. Review found that the earlier wheel check terminated at M2D; this was repaired before preflight PASS. The subsequent CI change makes Node.js map interaction testing a separately named mandatory step. Final-head CI must be checked again after all changes; preflight PASS does not automatically approve a later head.
 
 **Independent acceptance rule:** PR #11 remains unmerged until review checks the exact final commit, upstream authority gates, semantic no-gap-chord invariant, projection exhaustiveness and occurrence order, map injection defenses, Node DOM controls, and noneditable installed-wheel M2E output. No M2F behavior is authorized here.
+
+## Final acceptance record — 2026-10-08
+
+- **Production PR:** [#11](https://github.com/lysion/target-area-route-reconstruction/pull/11), merged after exact head `81bdd0c10bd016a3111068ebbccbf3457bfcbc74` passed CI.
+- **Final CI:** [37775412882](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37775412882) — **SUCCESS**. All **245** Python tests passed; a separately required Node.js map interaction step passed; Schema/semantic/raw-source/mutation/patch checks passed.
+- **Wheel gate:** non-editable installed wheel in a virtual environment outside the source checkout processed three real FIT/GPX→GeoJSON/map cases, checked canonical segment equivalence and gap Point-only geometry, rejected forged M2D authority, and validated packaged schemas/invalid GPX rejection.
+- **Source/adversarial re-review:** [review 5456393871](https://github.com/lysion/target-area-route-reconstruction/pull/11#pullrequestreview-5456393871) — **PASS**, anchored to final exact head; this review did not constitute a second external person's human approval.
+- **Scope:** no modification to frozen M0/M1 contracts, M2A–M2D evidence/revision semantics or M2C classification. Map generation never re-clips or interpolates missing routes. `render_geojson_map` is a renderer, not an independent authority validator; callers must feed the successful `export_geojson` result.
+- **Deferred:** M2F temporal speed/pace and quality-aware coloring; M3 persistence; M7/M8 cross-Activity reconstruction and route network; local short-gap proof methods and geodesic/dateline handling.
+
+**Decision: M2E DONE. Milestone 2 remains ACTIVE; M2F NOT STARTED.**

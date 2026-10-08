@@ -132,7 +132,7 @@ The independent-audit re-exit additionally requires ordered interval/multiplicit
 
 ## Milestone 2 — Deterministic Core
 
-**Status:** ACTIVE — M2A, M2B, M2C and M2D are DONE; M2E is the sole immediate implementation checkpoint
+**Status:** ACTIVE — M2A through M2E are DONE; M2F is the next checkpoint and is NOT STARTED
 **Release target:** v0.1.0
 
 **M2A checkpoint:** DONE after independent review and merge of PR #2. Deterministic local FIT/GPX ingestion now normalizes preserved source evidence into the frozen `CanonicalTrack` shape while retaining source order, continuity boundaries, repeated observations, and missing-position diagnostics. See [implementation and acceptance record](docs/milestone2a-canonical-ingestion.md).
@@ -249,12 +249,14 @@ M2D must not reclassify relation/completeness by inventing new spatial evidence.
 
 #### M2E — GeoJSON and basic interactive map
 
-**Status:** ACTIVE — implement a verified, evidence-preserving export projection and basic map without spatial inference
+**Status:** DONE — independently audited PR #11 merged (`802cc18bad88b8edb7051051c77614d60f1fa164`); final-head CI [37775412882](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37775412882) SUCCESS
 
 - export accepted spatial results to GeoJSON;
 - provide a basic interactive map;
 - distinguish confirmed geometry, target segments, and quality/uncertainty state where represented;
 - keep rendering downstream of deterministic analysis rather than creating new inference.
+
+M2E acceptance: GeoJSON projection requires independently valid exact M2C proof and M2D canonical snapshot. The offline SVG map distinguishes TargetArea, ordered original observed TargetSegments, optional observed outside fragments and actual gap endpoints without ever drawing a gap chord. Unknown/incomplete/non-assessable are represented separately. Final-head CI passed 245 unit tests, explicit Node.js map interactions and isolated-wheel FIT/GPX→M2E end-to-end smoke; independent [PR #11 review](https://github.com/lysion/target-area-route-reconstruction/pull/11#pullrequestreview-5456393871) returned PASS. M2F remains NOT STARTED; M2E does not infer routes.
 
 #### M2F — Valid temporal metrics and quality-aware map coloring
 
@@ -631,7 +633,7 @@ No project decision should rely solely on chat history.
 
 ## Current execution point
 
-**Current milestone:** Milestone 2 — Deterministic Core. M2A–M2D are DONE after independent review and merge; M2E GeoJSON/basic-map work is the sole immediate implementation checkpoint.
+**Current milestone:** Milestone 2 — Deterministic Core. M2A–M2E are DONE after independent review and merge. M2F valid temporal metrics and quality-aware map coloring is the next checkpoint, currently NOT STARTED.
 
 **Milestone 0 outcome: DONE**
 
@@ -703,8 +705,8 @@ Milestone 1 completed:
 - **M2B — DONE:** deterministic track-quality validation, supporting `QualityProjection`, explicit source/quality gaps, domain-only gap proof support, and the independent quality/gap verifier are merged after independent acceptance.
 - **M2C — DONE:** deterministic spatial relation/completeness proof is merged after independent review in PR #4. It preserves exact M2A/M2B/TargetArea authority, explicit non-assessability, ordered parent-interval evidence, stationary evidence and target-relative gap relevance. The current domain-only bound remains insufficient for useful local short-gap proof and no missing route is reconstructed.
 - **M2D — DONE:** ADR-0011 and ADR-0012 accepted; PR #8 merged after final-head CI success and independent re-review. Verified M2C proof yields maximal observed TargetSegments and a snapshot-bound SpatialAssessment with exact reciprocal references, or no entities when non-assessable.
-- **M2E — ACTIVE:** implement GeoJSON/basic map from independently verified authority, preserving all known observed segments, provenance, discontinuities and uncertainties without reconstructed geometry.
-- **M2F — NOT STARTED:** valid temporal metrics and quality-aware map coloring follow independent M2E acceptance.
+- **M2E — DONE:** independently verified GeoJSON export and offline interactive SVG map accepted in merged PR #11 after 245 tests, Node.js map interaction checks and installed-wheel FIT/GPX→M2E smoke. Ordered observations, gap endpoints and uncertainty are preserved without reconstruction.
+- **M2F — NOT STARTED:** next checkpoint covers valid temporal metrics and quality-aware map coloring, now eligible to start after M2E acceptance.
 - **Cross-cutting before M2 DONE:** installed-wheel/outside-checkout CI smoke, an explicit v0.1 FIT/GPX support matrix, explicit quality-policy ownership, and release documentation for quality/gap limitations.
 
 Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut. Any proposed change to this checkpoint order or Milestone 2 scope must update this roadmap before implementation. M3 owns durable evidence custody/integrity after ingestion; M5 owns source-adapter acquisition provenance/authenticity only where mechanically supported.
