@@ -35,6 +35,8 @@ const elements = {
     detail: details,
     reset: new Element("button"),
     "metric-mode": new Element("select"),
+    "metric-legend": new Element("p"),
+    "metric-screening": new Element("p"),
 };
 const checkboxes = ["target_area", "target_segment", "target_metric_edge", "observed_outside", "gap_endpoint"]
     .map(layer => {const checkbox = new Element("input"); checkbox.dataset.layer = layer; return checkbox;});
@@ -64,12 +66,33 @@ if (metricInfo) {
     const strokes = overlays.map(g => g.children[0].attrs.stroke);
     assert.ok(strokes.includes("#94a3b8"), "missing timestamp must render neutral");
     assert.ok(strokes.some(v => v !== "#94a3b8"), "valid timestamp must render metric color");
+    assert.ok(strokes.includes("#1d4ed8")||strokes.includes("#93c5fd")||
+        strokes.includes("#60a5fa")||strokes.includes("#bfdbfe")||
+        strokes.includes("#2563eb"), "valid edge uses a documented blue bin");
+    assert.ok(groups().filter(g=>g.attrs["data-layer"]==="target_metric_edge" &&
+        g.children[0].attrs.stroke==="#94a3b8").every(g=>
+        g.children[0].attrs["stroke-dasharray"]==="4 3"),
+        "unavailable time must display dashed gray rather than plausible speed");
+    assert.ok(elements["metric-legend"].textContent.includes("m/s"),
+        "numeric speed legend required");
+    if(metricInfo.speed_screen==="not_screened"){
+        assert.ok(elements["metric-screening"].textContent.includes("DISABLED"),
+            "unscreened jumps must be disclosed");
+    }
     overlays[0].handlers.click();
     assert.ok(details.textContent.includes('"duration_s"'), "details must expose derived time evidence");
     const mode = elements["metric-mode"];
     assert.equal(mode.disabled, false);
     mode.value = "pace_s_per_km";
     mode.handlers.change();
+    assert.ok(elements["metric-legend"].textContent.includes("min/km"),
+        "pace mode must disclose inverse conversion and units");
+    assert.ok(elements["metric-legend"].textContent.includes("descending"),
+        "pace bins decrease as velocity increases");
+    const recolored=groups().filter(g=>g.attrs["data-layer"]==="target_metric_edge")
+       .map(g=>g.children[0].attrs.stroke);
+    assert.deepEqual(recolored,strokes,
+        "speed and its reciprocal pace must map each same edge into the same speed bin");
     assert.equal(groups().filter(g => g.attrs["data-layer"] === "target_metric_edge").length, 2);
     const checkbox = checkboxes.find(c => c.dataset.layer === "target_metric_edge");
     checkbox.checked = false; checkbox.handlers.change();
