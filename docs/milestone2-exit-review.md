@@ -1,5 +1,7 @@
 # Milestone 2 — Independent Deterministic Core Exit Review
 
+> **SUPERSEDED / HISTORICAL:** This original 2026-10-08 PASS did not test equivalently split admitted quality intervals or M2F `SPEED_NUMERICALLY_INDETERMINATE` propagation. Independent later Codex Remote audit of `7059953c` returned **CHANGES_REQUIRED (F1 and F2 P1)** despite the green 271-test suite. M2 is REOPENED pending the [corrective implementation and new independent exit decision](milestone2-codex-remediation.md). Do not treat this historical PASS as current release acceptance.
+
 **Decision:** PASS — M2 scope is complete after independently authored cross-stage adversarial gates; **the `v0.1.0` package version is NOT a published GitHub/PyPI release or release approval**.
 
 **Review date:** 2026-10-08.

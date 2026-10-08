@@ -48,6 +48,8 @@ jobs:
           node --version
           python -m unittest discover -s tests -p 'test_m2e_dom_runtime.py'
           python -m unittest discover -s tests -p 'test_m2f_map_runtime.py'
+          # Independent Codex counterexample must execute actual map JS, not a skipped fixture.
+          python -m unittest discover -s tests -p 'test_m2_codex_p1_regression.py'
 
       - name: Verify patch whitespace
         run: git diff-tree --check HEAD^ HEAD

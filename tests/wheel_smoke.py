@@ -90,7 +90,7 @@ def main():
         metric_fc = json.loads(metric_export.geojson_json)
         assert metric_fc["features"][:len(geojson["features"])] == geojson["features"]
         temporal = metric_fc["metadata"]["temporal_overlay"]
-        assert temporal["algorithm"]["version"] == "0.1.0"
+        assert temporal["algorithm"]["version"] == "0.1.1"
         metric_features = [
             feature for feature in metric_fc["features"]
             if feature["properties"]["layer"] == "target_metric_edge"

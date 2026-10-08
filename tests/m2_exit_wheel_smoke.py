@@ -132,11 +132,85 @@ def main():
     assert rejected.outcome == "failure" and rejected.canonical_track is None
     assert any(d.code == "UNSUPPORTED_GPX_ROUTE_OR_WAYPOINT" for d in rejected.diagnostics)
 
+    # New independent exit witness for the Codex F1 producer/verifier
+    # disagreement: equivalent arbitrary partitions are *not* valid
+    # QualityProjection values, even when their admitted edges are identical.
+    from dataclasses import replace
+    from target_area_route_reconstruction.models import TrackPosition
+    from target_area_route_reconstruction.quality_models import ParentInterval
+    canonical_gpx = core.ingest_file(
+        fixtures / "equivalent/basic.gpx", source_kind="gpx",
+        track_source={"id": "m2-codex-wheel-f1", "revision_id": "r1"})
+    policy = core.QualityPolicy()
+    original = core.project_quality(canonical_gpx, policy=policy)
+    assert original.outcome == "produced"
+    q = original.projection
+    assert q.algorithm.version == "0.1.1"
+    assert len(q.usable_intervals) == 1
+    split = replace(q, usable_intervals=(
+        ParentInterval(TrackPosition(0, 0), TrackPosition(0, 1)),
+        ParentInterval(TrackPosition(0, 1), TrackPosition(0, 2)),
+    ))
+    split_check = core.verify_quality(split, canonical_gpx, policy=policy)
+    assert split_check.outcome == "invalid", split_check
+    assert "USABLE_INTERVAL_NOT_MAXIMAL" in {issue.code for issue in split_check.issues}
+    args = dict(evidence=canonical_gpx, quality_projection=split,
+                quality_policy=policy, target_area=polygon,
+                target_reference=ParentReference(polygon["id"], polygon["revision_id"]))
+    rejected = core.prove_spatial_relation(**args)
+    assert rejected.outcome != "produced", rejected
+
+    # New isolated-wheel F2 witness must preserve the *exact verified M2B
+    # parent-edge decision*, even if a temporal metric happens to be finite.
+    # Tiny positive distance is below the numeric guard; cap=1 cannot certify.
+    tiny_raw = (
+        b'<?xml version="1.0" encoding="UTF-8"?>'
+        b'<gpx version="1.1" creator="m2-codex" '
+        b'xmlns="http://www.topografix.com/GPX/1/1">'
+        b'<trk><trkseg>'
+        b'<trkpt lat="0" lon="0"><time>2026-10-07T00:00:00Z</time></trkpt>'
+        b'<trkpt lat="0" lon="0.000000000001">'
+        b'<time>2026-10-07T00:00:00.000000000001Z</time></trkpt>'
+        b'</trkseg></trk></gpx>'
+    )
+    tiny = core.ingest_bytes(tiny_raw, source_kind="gpx",
+                            track_source={"id": "m2-codex-wheel-f2", "revision_id": "r1"})
+    tiny_target = target()
+    tiny_target["geometry"]["coordinates"] = [[
+        [-1, -1], [2, -1], [2, 2], [-1, 2], [-1, -1],
+    ]]
+    tiny_policy = core.QualityPolicy(max_implied_speed_mps=1)
+    tiny_q = core.project_quality(tiny, policy=tiny_policy)
+    assert tiny_q.outcome == "produced", tiny_q
+    assert [d.code for d in tiny_q.projection.diagnostics] == [
+        "SPEED_NUMERICALLY_INDETERMINATE"
+    ], tiny_q.projection.diagnostics
+    tiny_inputs = dict(evidence=tiny, quality_projection=tiny_q.projection,
+                       quality_policy=tiny_policy, target_area=tiny_target,
+                       target_reference=ParentReference(tiny_target["id"], tiny_target["revision_id"]))
+    proof = core.prove_spatial_relation(**tiny_inputs)
+    assert proof.outcome == "produced", proof
+    assembled = core.assemble_spatial_entities(proof=proof.proof, **tiny_inputs)
+    assert assembled.outcome == "produced", assembled
+    derived = core.export_temporal_geojson(
+        bundle=assembled.bundle, proof=proof.proof, **tiny_inputs)
+    assert derived.outcome == "produced", derived
+    collection = json.loads(derived.geojson_json)
+    edges = layers(collection, "target_metric_edge")
+    assert len(edges) == 1, edges
+    edge = edges[0]["properties"]
+    assert edge["metric"]["status"] == "valid"
+    assert edge["speed_screen_result"] == "indeterminate"
+    assert edge["speed_screen_reason"] == "SPEED_NUMERICALLY_INDETERMINATE"
+    assert edge["metric"]["speed_mps"] > 10000
+    assert collection["metadata"]["temporal_overlay"]["algorithm"]["version"] == "0.1.1"
+
     # No positioned observations is not "outside".
     none = core.ingest_file(
         fixtures / "fit/no-position.fit", source_kind="fit",
         track_source={"id": "no-position", "revision_id": "r1"})
     assert none.outcome == "no_positioned_observations" and none.canonical_track is None
+    print("M2 EXIT ISOLATED WHEEL: F1 reject nonmaximal quality partitions and F2 preserve indeterminate numeric screening PASS")
     print("M2 EXIT ISOLATED WHEEL: actual FIT/GPX partial equivalence, exact raw hashes, "
           "determinism, spatial revision separation, unknown gap without chord, "
           "missing-time neutrality, route-only rejection, non-assessability PASS")

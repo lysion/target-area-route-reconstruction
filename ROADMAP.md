@@ -132,12 +132,12 @@ The independent-audit re-exit additionally requires ordered interval/multiplicit
 
 ## Milestone 2 — Deterministic Core
 
-**Status:** DONE — all M2A–M2F checkpoints and independent cross-stage M2 exit criteria accepted; v0.1.0 has NOT been tagged or published. See [M2 exit review](docs/milestone2-exit-review.md).
+**Status:** ACTIVE — REOPENED after Codex independent audit CHANGES_REQUIRED on main `7059953c` (P1 F1 nonmaximal QualityProjection partitions; P1 F2 lost M2F screening uncertainty). Earlier [M2 exit review](docs/milestone2-exit-review.md) is historical and superseded pending [remediation/re-exit](docs/milestone2-codex-remediation.md). No v0.1.0 release or M3 start.
 **Release target:** v0.1.0
 
 **M2A checkpoint:** DONE after independent review and merge of PR #2. Deterministic local FIT/GPX ingestion now normalizes preserved source evidence into the frozen `CanonicalTrack` shape while retaining source order, continuity boundaries, repeated observations, and missing-position diagnostics. See [implementation and acceptance record](docs/milestone2a-canonical-ingestion.md).
 
-**M2B checkpoint:** DONE after independent review and merge of PR #3. Track quality now produces an immutable supporting `QualityProjection`, explicit source/quality gaps, optional independently verified constraints, and a deterministic verifier while preserving original parent indices. See [implementation record](docs/milestone2b-quality-projection.md). M2 remains ACTIVE; M2D is DONE after the accepted ADR-0011/ADR-0012 changes and merged PR #8.
+**M2B checkpoint:** DONE after independent review and merge of PR #3. Track quality now produces an immutable supporting `QualityProjection`, explicit source/quality gaps, optional independently verified constraints, and a deterministic verifier while preserving original parent indices. See [implementation record](docs/milestone2b-quality-projection.md). The original 2026-10-08 M2D acceptance is historical; a later Codex audit reopened the M2B/M2D admission boundary. See [remediation](docs/milestone2-codex-remediation.md).
 
 ### Goal
 
@@ -182,7 +182,7 @@ M2A stops before quality classification, spatial assessment, derived speed/pace,
 
 #### M2B — Track quality, QualityProjection, and gap-proof verifier
 
-**Status:** DONE
+**Status:** REOPENED — new QualityProjection canonical partition check under review (Codex F1, quality algorithm 0.1.1); earlier PR #3 acceptance is historical.
 
 Implement the quality-layer hand-off already defined in [the quality-layer interface](docs/quality-layer-interface.md):
 
@@ -228,7 +228,7 @@ M2C must not invent new gap evidence, infer a unique missing path, silently inte
 
 #### M2D — Target-area segment extraction and SpatialAssessment assembly
 
-**Status:** DONE — independent re-review PASS; PR #8 merged (`3e99364459188e24efd3bd901cc2cb9ad3d5dd1a`), ADR-0012 accepted
+**Status:** RE-REVIEW REQUIRED — downstream maximality admission depended on M2B quality verifier; earlier independent re-review PASS; PR #8 merged (`3e99364459188e24efd3bd901cc2cb9ad3d5dd1a`), ADR-0012 accepted
 
 The implementation preflight on `632e9c7` reproduced valid assessable M2C proofs with an absent leading/trailing endpoint. Frozen `trackRange` requires two concrete parent TrackPositions; no accepted anchor convention represents the absent extent. See [minimal reproducer and blocker record](docs/milestone2d-target-segments.md) and [ADR-0011](docs/decisions/0011-open-ended-coverage-uncertainty.md). ADR-0011 was accepted as a pre-release v0.1.0 erratum in PR #7, and the amended schema and regressions are merged. This paragraph preserves the original blocker history; ADR-0011 unblocked implementation, which was completed and independently accepted in PR #8.
 
@@ -260,7 +260,7 @@ M2E acceptance: GeoJSON projection requires independently valid exact M2C proof 
 
 #### M2F — Valid temporal metrics and quality-aware map coloring
 
-**Status:** DONE — independently re-reviewed PR #13 merged (`a2ab7fe871806982d2e69bf87240b4842dbe4a06`); final-head CI [37779156527](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37779156527) SUCCESS
+**Status:** REOPENED — per-original-edge M2B speed-screening uncertainty propagation is under review (Codex F2; temporal algorithm 0.1.1); original independently re-reviewed PR #13 merged (`a2ab7fe871806982d2e69bf87240b4842dbe4a06`); final-head CI [37779156527](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37779156527) SUCCESS
 
 - derive segment speed/pace only where temporal evidence is valid;
 - keep speed/pace unavailable across missing or non-increasing timestamps, continuity breaks, excluded geometry, or unresolved gaps;
@@ -635,7 +635,7 @@ No project decision should rely solely on chat history.
 
 ## Current execution point
 
-**Current milestone transition:** Milestone 2 Deterministic Core is DONE after the [separate cross-stage exit review](docs/milestone2-exit-review.md). Next planned milestone: M3 persistence (NOT STARTED). v0.1.0 tagging/publishing is a separate action not performed by M2 acceptance.
+**Current milestone transition:** Milestone 2 Deterministic Core is **ACTIVE — REOPENED** after Codex independent P1 counterexamples invalidated the earlier exit PASS. See [M2 remediation/re-exit](docs/milestone2-codex-remediation.md). M3 persistence remains NOT STARTED; do not promote until independent P1 re-review and separate M2 exit decision. v0.1.0 is not published.
 
 **Milestone 0 outcome: DONE**
 
@@ -704,12 +704,12 @@ Milestone 1 completed:
 **Milestone 2 current execution:**
 
 - **M2A — DONE:** deterministic FIT/GPX canonical ingestion is merged. Raw evidence remains immutable; source ordering, continuity breaks, repeated observations, and parent-position lineage are preserved.
-- **M2B — DONE:** deterministic track-quality validation, supporting `QualityProjection`, explicit source/quality gaps, domain-only gap proof support, and the independent quality/gap verifier are merged after independent acceptance.
+- **M2B — REOPENED (F1):** original accepted projection verified edge coverage but permitted noncanonical adjacent split runs, affecting M2D maximality. New versioned canonical-run verification is in PR #18; original acceptance preserved historically.
 - **M2C — DONE:** deterministic spatial relation/completeness proof is merged after independent review in PR #4. It preserves exact M2A/M2B/TargetArea authority, explicit non-assessability, ordered parent-interval evidence, stationary evidence and target-relative gap relevance. The current domain-only bound remains insufficient for useful local short-gap proof and no missing route is reconstructed.
-- **M2D — DONE:** ADR-0011 and ADR-0012 accepted; PR #8 merged after final-head CI success and independent re-review. Verified M2C proof yields maximal observed TargetSegments and a snapshot-bound SpatialAssessment with exact reciprocal references, or no entities when non-assessable.
+- **M2D — RE-REVIEW REQUIRED (dependent on F1):** original implementation/ADR-0011/0012 remain merged; enforce M2B canonical admission before trusted maximal segment extraction. No new geometry inference.
 - **M2E — DONE:** independently verified GeoJSON export and offline interactive SVG map accepted in merged PR #11 after 245 tests, Node.js map interaction checks and installed-wheel FIT/GPX→M2E smoke. Ordered observations, gap endpoints and uncertainty are preserved without reconstruction.
-- **M2F — DONE:** per-original-edge time-derived speed/pace and map display with explicit M2B speed-screen provenance; review 5456795395 PASS and CI 37779156527 SUCCESS, merged PR #13. No gap speed, inferred geometry, device-telemetry substitution or implicit quality thresholds.
-- **Milestone 2 exit — DONE:** independently authored real FIT/GPX cross-checkpoint tests, original source SHA-256, partial track/parent revision equivalence, non-assessability, unknown gaps, and isolated noneditable wheel passed in [CI 37781638868](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37781638868). Final exact-head CI and [M2 exit review](docs/milestone2-exit-review.md) evidence close all M2 obligations. This is **not** a public v0.1.0 tag/PyPI release.
+- **M2F — REOPENED (F2):** accepted v0.1.0 implementation lost `SPEED_NUMERICALLY_INDETERMINATE` as displayed in map/GeoJSON; new v0.1.1 per-edge status and time-allocation disclosures await independent review. Original PR #13 PASS is historical.
+- **Milestone 2 exit — REOPENED:** earlier [PASS report](docs/milestone2-exit-review.md) and green [main CI 37782367139](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37782367139) are insufficient against later independent F1/F2 counterexamples; new exact-head CI, isolated-wheel attacks and Codex final diff review must pass before a [new exit decision](docs/milestone2-codex-remediation.md).
 - **Cross-cutting before M2 DONE:** installed-wheel/outside-checkout CI smoke, an explicit v0.1 FIT/GPX support matrix, explicit quality-policy ownership, and release documentation for quality/gap limitations.
 
 Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut. Any proposed change to this checkpoint order or Milestone 2 scope must update this roadmap before implementation. M3 owns durable evidence custody/integrity after ingestion; M5 owns source-adapter acquisition provenance/authenticity only where mechanically supported.

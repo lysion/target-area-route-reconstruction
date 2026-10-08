@@ -161,11 +161,11 @@ function updateMetricLegend(){
   "1.5, 2.5, 3.5, 4.5 m/s":
   speedBins.map(formatPaceSeconds).join(", ")+" min/km (descending)");
  metricLegend.textContent="Pale blue = slower; dark blue = faster. Bin boundaries: "+
-  boundaries+". Gray dashed = time/metric unavailable. Blue dashed = no M2B speed screening; blue solid = explicit speed cap enabled. Pace is reciprocal of speed, so both modes retain the same fragment colors. Display bins only; not a GPS quality test.";
+  boundaries+". Gray dashed = time/metric unavailable. Blue long-dashed = no M2B speed screening; blue short-dashed = parent-edge screening numerically indeterminate; blue solid = parent-edge screening passed. Screening applies to the ORIGINAL parent edge, not the clipped speed. Clipped duration is proportionally allocated, not observed arrival time. Pace is reciprocal of speed; both modes retain the same fragment colors. Display bins only; not a GPS quality test.";
  const cap=overlayInfo.speed_cap_mps;
  metricScreening.textContent=(overlayInfo.speed_screen==="explicit_m2b_policy_enabled"&&
   Number.isFinite(cap))?
-  "M2B caller-defined speed rule enabled (cap "+cap+" m/s); time-valid is not accuracy certification.":
+  "M2B parent-edge speed cap "+cap+" m/s enabled; "+(overlayInfo.screening_counts?.indeterminate||0)+" rendered edges have numerically indeterminate screening; neither pass nor derived clip speed is accuracy certification.":
   "WARNING: speed plausibility screening DISABLED. Numeric 'valid' only means original UTC increases and calculation is finite; extreme GPS jumps may be colored.";
 }
 function metricColor(properties){
@@ -218,8 +218,15 @@ function draw(){
       // An unavailable derived metric is still an existing observed route,
       // but cannot borrow a neighbor's quantitative color.
       if(derivedColor===grayUnavailable)s.setAttribute("stroke-dasharray","4 3");
-      else if(f.properties.speed_screen==="not_screened")
+      else if(f.properties.speed_screen_result==="passed"){
+        // A solid line requires an explicit verified parent-edge PASS.
+        // Missing state (including old GeoJSON) is NEVER interpreted as pass.
+      }else if(f.properties.speed_screen_result==="not_screened")
         s.setAttribute("stroke-dasharray","7 3");
+      else if(f.properties.speed_screen_result==="indeterminate")
+        s.setAttribute("stroke-dasharray","2 3");
+      else
+        s.setAttribute("stroke-dasharray","2 2 1 2");
     }
     group.append(s);
   });
