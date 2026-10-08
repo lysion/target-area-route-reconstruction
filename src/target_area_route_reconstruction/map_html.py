@@ -4,8 +4,76 @@ from __future__ import annotations
 
 import html
 import json
+import math
 
 from ._m2d_common import strict_load
+
+
+
+def _position(value):
+    # Type-exact checks reject bool-as-int and malformed nested coordinates.
+    if not isinstance(value, list) or len(value) != 2:
+        raise ValueError("M2E_MAP_INVALID_COORDINATES")
+    lon, lat = value
+    if type(lon) not in (int, float) or type(lat) not in (int, float):
+        raise ValueError("M2E_MAP_INVALID_COORDINATES")
+    if not (-180 <= lon <= 180 and -90 <= lat <= 90):
+        raise ValueError("M2E_MAP_COORDINATE_OUT_OF_RANGE")
+    if not (math.isfinite(lon) and math.isfinite(lat)):
+        raise ValueError("M2E_MAP_NONFINITE_COORDINATE")
+
+
+def _line(value):
+    if not isinstance(value, list) or len(value) < 2:
+        raise ValueError("M2E_MAP_INVALID_LINE")
+    for point in value:
+        _position(point)
+    if all(point == value[0] for point in value[1:]):
+        raise ValueError("M2E_MAP_DEGENERATE_LINE")
+
+
+def _ring(value):
+    if not isinstance(value, list) or len(value) < 4:
+        raise ValueError("M2E_MAP_INVALID_RING")
+    for point in value:
+        _position(point)
+    if value[0] != value[-1]:
+        raise ValueError("M2E_MAP_UNCLOSED_RING")
+
+
+def _polygon(value):
+    if not isinstance(value, list) or not value:
+        raise ValueError("M2E_MAP_INVALID_POLYGON")
+    for ring in value:
+        _ring(ring)
+
+
+def _geometry(geometry, layer):
+    # Validate the declared nesting as well as its numeric leaves. A flat
+    # coordinate walk would accept malformed Points containing nested rings.
+    if not isinstance(geometry, dict):
+        raise ValueError("M2E_MAP_INVALID_GEOMETRY")
+    kind = geometry.get("type")
+    expected = {
+        "target_area": {"Polygon", "MultiPolygon"},
+        "target_segment": {"LineString"},
+        "observed_outside": {"LineString"},
+        "gap_endpoint": {"Point"},
+    }[layer]
+    if kind not in expected:
+        raise ValueError("M2E_MAP_LAYER_GEOMETRY_MISMATCH")
+    coords = geometry.get("coordinates")
+    if kind == "Point":
+        _position(coords)
+    elif kind == "LineString":
+        _line(coords)
+    elif kind == "Polygon":
+        _polygon(coords)
+    else:
+        if not isinstance(coords, list) or not coords:
+            raise ValueError("M2E_MAP_INVALID_MULTIPOLYGON")
+        for polygon in coords:
+            _polygon(polygon)
 
 
 def render_geojson_map(geojson_json: str, *, title: str = "Target area route map") -> str:
@@ -29,34 +97,10 @@ def render_geojson_map(geojson_json: str, *, title: str = "Target area route map
         props = feature.get("properties")
         if not isinstance(props, dict) or props.get("layer") not in allowed:
             raise ValueError("M2E_MAP_INVALID_LAYER")
-    # Reject malformed or invented geometry before any HTML is emitted.
-    # This map is not a new authority source; only verified M2E export
-    # should be passed here. Structural checks prevent accidental false lines.
+    # This rendering API does not independently establish spatial authority.
+    # Validate Feature geometry strictly; callers must use verified export.
     for feature in features:
-        geom = feature.get("geometry")
-        if not isinstance(geom, dict):
-            raise ValueError("M2E_MAP_INVALID_GEOMETRY")
-        layer = feature["properties"]["layer"]
-        expected = {"target_area": {"Polygon", "MultiPolygon"},
-                    "target_segment": {"LineString"},
-                    "observed_outside": {"LineString"},
-                    "gap_endpoint": {"Point"}}[layer]
-        if geom.get("type") not in expected:
-            raise ValueError("M2E_MAP_LAYER_GEOMETRY_MISMATCH")
-        def check_coords(node):
-            if isinstance(node, list) and len(node) == 2 and all(
-                type(v) in (int, float) for v in node
-            ):
-                import math
-                if not all(math.isfinite(v) for v in node):
-                    raise ValueError("M2E_MAP_NONFINITE_COORDINATE")
-                if not (-180 <= node[0] <= 180 and -90 <= node[1] <= 90):
-                    raise ValueError("M2E_MAP_COORDINATE_OUT_OF_RANGE")
-                return 1
-            if not isinstance(node, list) or not node:
-                raise ValueError("M2E_MAP_INVALID_COORDINATES")
-            return sum(check_coords(child) for child in node)
-        check_coords(geom.get("coordinates"))
+        _geometry(feature.get("geometry"), feature["properties"]["layer"])
     # Escape script closing tags and HTML metacharacters even inside JSON strings.
     payload = json.dumps(collection, ensure_ascii=True, separators=(",", ":"), allow_nan=False)
     payload = payload.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
