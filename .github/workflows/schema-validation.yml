@@ -62,3 +62,7 @@ jobs:
           cp tests/wheel_smoke.py "$wheel_check_dir/smoke.py"
           cd "$wheel_check_dir"
           env -u PYTHONPATH "$wheel_check_dir/venv/bin/python" smoke.py "$GITHUB_WORKSPACE/tests/source-fixtures" "$GITHUB_WORKSPACE"
+          # Dedicated cross-checkpoint M2 exit witness: real FIT/GPX
+          # equivalence, source byte integrity and no inferred gap paths.
+          cp "$GITHUB_WORKSPACE/tests/m2_exit_wheel_smoke.py" "$wheel_check_dir/m2-exit.py"
+          env -u PYTHONPATH "$wheel_check_dir/venv/bin/python" m2-exit.py "$GITHUB_WORKSPACE/tests/source-fixtures" "$GITHUB_WORKSPACE"

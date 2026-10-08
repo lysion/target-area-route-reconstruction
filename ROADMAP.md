@@ -132,7 +132,7 @@ The independent-audit re-exit additionally requires ordered interval/multiplicit
 
 ## Milestone 2 — Deterministic Core
 
-**Status:** ACTIVE — M2A through M2F are DONE; dedicated final Milestone 2 exit review remains pending before v0.1.0 release
+**Status:** DONE — all M2A–M2F checkpoints and independent cross-stage M2 exit criteria accepted; v0.1.0 has NOT been tagged or published. See [M2 exit review](docs/milestone2-exit-review.md).
 **Release target:** v0.1.0
 
 **M2A checkpoint:** DONE after independent review and merge of PR #2. Deterministic local FIT/GPX ingestion now normalizes preserved source evidence into the frozen `CanonicalTrack` shape while retaining source order, continuity boundaries, repeated observations, and missing-position diagnostics. See [implementation and acceptance record](docs/milestone2a-canonical-ingestion.md).
@@ -635,7 +635,7 @@ No project decision should rely solely on chat history.
 
 ## Current execution point
 
-**Current milestone:** Milestone 2 — Deterministic Core. M2A–M2F are DONE after independently reviewed merges. The remaining gate is the cross-cutting Milestone 2 exit assessment and v0.1.0 release decision, which are not implied by checkpoint CI.
+**Current milestone transition:** Milestone 2 Deterministic Core is DONE after the [separate cross-stage exit review](docs/milestone2-exit-review.md). Next planned milestone: M3 persistence (NOT STARTED). v0.1.0 tagging/publishing is a separate action not performed by M2 acceptance.
 
 **Milestone 0 outcome: DONE**
 
@@ -709,7 +709,7 @@ Milestone 1 completed:
 - **M2D — DONE:** ADR-0011 and ADR-0012 accepted; PR #8 merged after final-head CI success and independent re-review. Verified M2C proof yields maximal observed TargetSegments and a snapshot-bound SpatialAssessment with exact reciprocal references, or no entities when non-assessable.
 - **M2E — DONE:** independently verified GeoJSON export and offline interactive SVG map accepted in merged PR #11 after 245 tests, Node.js map interaction checks and installed-wheel FIT/GPX→M2E smoke. Ordered observations, gap endpoints and uncertainty are preserved without reconstruction.
 - **M2F — DONE:** per-original-edge time-derived speed/pace and map display with explicit M2B speed-screen provenance; review 5456795395 PASS and CI 37779156527 SUCCESS, merged PR #13. No gap speed, inferred geometry, device-telemetry substitution or implicit quality thresholds.
-- **Milestone 2 exit — PENDING:** verify all cross-cutting source/support/wheel/quality/release-documentation gates as a distinct release-readiness assessment; do not claim v0.1.0 release based solely on M2F completion.
+- **Milestone 2 exit — DONE:** independently authored real FIT/GPX cross-checkpoint tests, original source SHA-256, partial track/parent revision equivalence, non-assessability, unknown gaps, and isolated noneditable wheel passed in [CI 37781638868](https://github.com/lysion/target-area-route-reconstruction/actions/runs/37781638868). Final exact-head CI and [M2 exit review](docs/milestone2-exit-review.md) evidence close all M2 obligations. This is **not** a public v0.1.0 tag/PyPI release.
 - **Cross-cutting before M2 DONE:** installed-wheel/outside-checkout CI smoke, an explicit v0.1 FIT/GPX support matrix, explicit quality-policy ownership, and release documentation for quality/gap limitations.
 
 Any schema need that would change a frozen invariant must trigger a new/superseding ADR rather than an implementation shortcut. Any proposed change to this checkpoint order or Milestone 2 scope must update this roadmap before implementation. M3 owns durable evidence custody/integrity after ingestion; M5 owns source-adapter acquisition provenance/authenticity only where mechanically supported.
