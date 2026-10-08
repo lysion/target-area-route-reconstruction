@@ -56,6 +56,29 @@ assert.ok(groups().filter(g => g.attrs["data-layer"] === "target_segment")
     .every(g => g.children.length === 1 && g.children[0].tag === "path"));
 assert.ok(elements.status.textContent.includes("unknown"));
 assert.ok(elements.status.textContent.includes("incomplete"));
+const metricInfo = JSON.parse(evidence[1]).metadata?.temporal_overlay;
+if (metricInfo) {
+    const overlays = groups().filter(g => g.attrs["data-layer"] === "target_metric_edge");
+    assert.equal(overlays.length, 2, "two separately observed metric edges");
+    assert.ok(overlays.every(g => g.children.length === 1 && g.children[0].tag === "path"));
+    const strokes = overlays.map(g => g.children[0].attrs.stroke);
+    assert.ok(strokes.includes("#94a3b8"), "missing timestamp must render neutral");
+    assert.ok(strokes.some(v => v !== "#94a3b8"), "valid timestamp must render metric color");
+    overlays[0].handlers.click();
+    assert.ok(details.textContent.includes('"duration_s"'), "details must expose derived time evidence");
+    const mode = elements["metric-mode"];
+    assert.equal(mode.disabled, false);
+    mode.value = "pace_s_per_km";
+    mode.handlers.change();
+    assert.equal(groups().filter(g => g.attrs["data-layer"] === "target_metric_edge").length, 2);
+    const checkbox = checkboxes.find(c => c.dataset.layer === "target_metric_edge");
+    checkbox.checked = false; checkbox.handlers.change();
+    assert.equal(groups().filter(g => g.attrs["data-layer"] === "target_metric_edge").length, 0);
+    assert.equal(groups().filter(g => g.attrs["data-layer"] === "target_segment").length, 2,
+        "disabling overlay must preserve source-confirmed spatial segments");
+    checkbox.checked = true; checkbox.handlers.change();
+    assert.equal(groups().filter(g => g.attrs["data-layer"] === "target_metric_edge").length, 2);
+}
 
 const segment = groups().find(g => g.attrs["data-layer"] === "target_segment");
 segment.handlers.click();
@@ -79,4 +102,4 @@ svg.handlers.pointerup();
 elements.reset.onclick();
 assert.equal(svg.attrs.viewBox, original);
 
-console.log("M2E DOM runtime: actual SVG lines/points, layer visibility, click, zoom, pan, reset PASS");
+console.log("M2E/M2F DOM runtime: SVG lines/points, verified metric colors, neutral missing time, layer/mode controls, click, zoom, pan, reset PASS");
