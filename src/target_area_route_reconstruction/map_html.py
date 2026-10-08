@@ -124,7 +124,8 @@ button{padding:6px 12px;margin-right:6px}#detail{white-space:pre-wrap;overflow-w
 <label><input type="checkbox" data-layer="target_segment" checked> Observed inside</label>
 <label><input type="checkbox" data-layer="target_metric_edge" checked> Temporal overlay</label>
 <label>Metric <select id="metric-mode"><option value="speed_mps">Speed (m/s)</option><option value="pace_s_per_km">Pace (s/km)</option></select></label>
-<p id="metric-legend">Gray: metric unavailable; blue shades: derived speed/pace (not quality certification).</p>
+<p id="metric-legend">Time-derived pace/speed; unavailable values gray. This is not independently validated GPS velocity.</p>
+<p id="metric-screening">Speed plausibility screening: unavailable.</p>
 <label><input type="checkbox" data-layer="observed_outside" checked> Observed outside</label>
 <label><input type="checkbox" data-layer="gap_endpoint" checked> Gap endpoints</label>
 <p id="detail">Select a feature for evidence details.</p>
@@ -139,15 +140,39 @@ const metricMode=document.getElementById("metric-mode");
 const overlayInfo=(data.metadata||{}).temporal_overlay;
 metricMode.value=overlayInfo?.mode||"speed_mps";
 metricMode.disabled=!overlayInfo;
+const metricLegend=document.getElementById("metric-legend");
+const metricScreening=document.getElementById("metric-screening");
 const colors={target_area:"#2563eb",target_segment:"#15803d",observed_outside:"#64748b",gap_endpoint:"#d97706"};
 // Fixed *display bins*, not GPS quality thresholds or speed validation.
 const speedBins=[1.5,2.5,3.5,4.5];
 const speedPalette=["#bfdbfe","#93c5fd","#60a5fa","#2563eb","#1d4ed8"];
+const grayUnavailable="#94a3b8";
+function formatPaceSeconds(speed){
+ const total=Math.round(1000/speed),minutes=Math.floor(total/60),seconds=total%60;
+ return String(minutes)+":"+String(seconds).padStart(2,"0");
+}
+function updateMetricLegend(){
+ if(!overlayInfo){
+  metricLegend.textContent="No temporal overlay. Observed geometry remains available.";
+  metricScreening.textContent="No speed plausibility claim.";
+  return;
+ }
+ const boundaries=(metricMode.value==="speed_mps"?
+  "1.5, 2.5, 3.5, 4.5 m/s":
+  speedBins.map(formatPaceSeconds).join(", ")+" min/km (descending)");
+ metricLegend.textContent="Pale blue = slower; dark blue = faster. Bin boundaries: "+
+  boundaries+". Gray = time/metric unavailable. Display bins only; not a GPS quality test.";
+ const cap=overlayInfo.speed_cap_mps;
+ metricScreening.textContent=(overlayInfo.speed_screen==="explicit_m2b_policy_enabled"&&
+  Number.isFinite(cap))?
+  "M2B caller-defined speed rule enabled (cap "+cap+" m/s); time-valid is not accuracy certification.":
+  "WARNING: speed plausibility screening DISABLED. Numeric 'valid' only means original UTC increases and calculation is finite; extreme GPS jumps may be colored.";
+}
 function metricColor(properties){
  const metric=properties.metric;
- if(!metric||metric.status!=="valid")return "#94a3b8";
+ if(!metric||metric.status!=="valid")return grayUnavailable;
  const value=metric[metricMode.value];
- if(!Number.isFinite(value)||value<0|| (metricMode.value==="pace_s_per_km"&&value===0))return "#94a3b8";
+ if(!Number.isFinite(value)||value<0|| (metricMode.value==="pace_s_per_km"&&value===0))return grayUnavailable;
  const speed=metricMode.value==="pace_s_per_km"?1000/value:value;
  let i=0;while(i<speedBins.length&&speed>=speedBins[i])i++;
  return speedPalette[i];
@@ -186,7 +211,14 @@ function draw(){
   const layer=f.properties.layer;if(!visible.has(layer))return;
   const group=node("g",{"data-layer":layer});
   shapes(f.geometry,layer).forEach(s=>{
-    if(layer==="target_metric_edge")s.setAttribute("stroke",metricColor(f.properties));
+    if(layer==="target_metric_edge"){
+      const derivedColor=metricColor(f.properties);
+      s.setAttribute("stroke",derivedColor);
+      s.setAttribute("stroke-width",4);
+      // An unavailable derived metric is still an existing observed route,
+      // but cannot borrow a neighbor's quantitative color.
+      if(derivedColor===grayUnavailable)s.setAttribute("stroke-dasharray","4 3");
+    }
     group.append(s);
   });
   group.addEventListener("click",()=>{document.getElementById("detail").textContent=JSON.stringify(f.properties,null,2);});
@@ -197,7 +229,8 @@ let view=[0,0,1000,700];function apply(){svg.setAttribute("viewBox",view.join(" 
 const meta=data.metadata||{};
 document.getElementById("status").textContent="  | relation: "+(meta.relation??"not assessable")+" | coverage: "+(meta.coverage_completeness??"not assessable");
 document.querySelectorAll("[data-layer]").forEach(c=>c.addEventListener("change",()=>{c.checked?visible.add(c.dataset.layer):visible.delete(c.dataset.layer);draw();}));
-metricMode.addEventListener("change",draw);
+metricMode.addEventListener("change",()=>{updateMetricLegend();draw();});
+updateMetricLegend();
 document.getElementById("reset").onclick=()=>{view=[0,0,1000,700];apply();};
 svg.addEventListener("wheel",e=>{e.preventDefault();const factor=e.deltaY>0?1.15:1/1.15;view=[view[0]+view[2]*(1-factor)/2,view[1]+view[3]*(1-factor)/2,view[2]*factor,view[3]*factor];apply();},{passive:false});
 let drag=null;svg.addEventListener("pointerdown",e=>{drag=[e.clientX,e.clientY,...view];svg.setPointerCapture(e.pointerId);});
