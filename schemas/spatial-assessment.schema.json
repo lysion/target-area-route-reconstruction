@@ -84,7 +84,7 @@
       ],
       "properties": {
         "affected_track_range": {
-          "$ref": "common.schema.json#/$defs/trackRange"
+          "$ref": "#/$defs/coverageUncertaintyRange"
         },
         "relevance": {
           "type": "string",
@@ -100,6 +100,72 @@
           "$ref": "common.schema.json#/$defs/extensions"
         }
       },
+      "additionalProperties": false
+    },
+    "coverageUncertaintyRange": {
+      "type": "object",
+      "description": "Target-relative affected extent: two positioned neighbors, missing leading neighbor, or missing trailing neighbor. Null marks a source neighbor unavailable, never a position or geometry.",
+      "required": [
+        "start",
+        "end"
+      ],
+      "properties": {
+        "start": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/trackPosition"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "end": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/trackPosition"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "description": "bounded",
+          "properties": {
+            "start": {
+              "$ref": "common.schema.json#/$defs/trackPosition"
+            },
+            "end": {
+              "$ref": "common.schema.json#/$defs/trackPosition"
+            }
+          }
+        },
+        {
+          "description": "leading",
+          "properties": {
+            "start": {
+              "type": "null"
+            },
+            "end": {
+              "$ref": "common.schema.json#/$defs/trackPosition"
+            }
+          }
+        },
+        {
+          "description": "trailing",
+          "properties": {
+            "start": {
+              "$ref": "common.schema.json#/$defs/trackPosition"
+            },
+            "end": {
+              "type": "null"
+            }
+          }
+        }
+      ],
       "additionalProperties": false
     }
   },
