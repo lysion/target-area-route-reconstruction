@@ -57,6 +57,7 @@ def _geometry(geometry, layer):
     expected = {
         "target_area": {"Polygon", "MultiPolygon"},
         "target_segment": {"LineString"},
+        "target_metric_edge": {"LineString"},
         "observed_outside": {"LineString"},
         "gap_endpoint": {"Point"},
     }[layer]
@@ -90,7 +91,7 @@ def render_geojson_map(geojson_json: str, *, title: str = "Target area route map
     features = collection.get("features")
     if not isinstance(features, list):
         raise ValueError("M2E_MAP_INVALID_FEATURES")
-    allowed = {"target_area", "target_segment", "observed_outside", "gap_endpoint"}
+    allowed = {"target_area", "target_segment", "target_metric_edge", "observed_outside", "gap_endpoint"}
     for feature in features:
         if not isinstance(feature, dict) or feature.get("type") != "Feature":
             raise ValueError("M2E_MAP_INVALID_FEATURE")
@@ -121,6 +122,9 @@ button{padding:6px 12px;margin-right:6px}#detail{white-space:pre-wrap;overflow-w
 <aside><p><button id="reset">Reset view</button></p>
 <label><input type="checkbox" data-layer="target_area" checked> Target area</label>
 <label><input type="checkbox" data-layer="target_segment" checked> Observed inside</label>
+<label><input type="checkbox" data-layer="target_metric_edge" checked> Temporal overlay</label>
+<label>Metric <select id="metric-mode"><option value="speed_mps">Speed (m/s)</option><option value="pace_s_per_km">Pace (s/km)</option></select></label>
+<p id="metric-legend">Gray: metric unavailable; blue shades: derived speed/pace (not quality certification).</p>
 <label><input type="checkbox" data-layer="observed_outside" checked> Observed outside</label>
 <label><input type="checkbox" data-layer="gap_endpoint" checked> Gap endpoints</label>
 <p id="detail">Select a feature for evidence details.</p>
@@ -130,8 +134,24 @@ button{padding:6px 12px;margin-right:6px}#detail{white-space:pre-wrap;overflow-w
 "use strict";
 const data=JSON.parse(document.getElementById("evidence").textContent);
 const svg=document.getElementById("map"),NS="http://www.w3.org/2000/svg";
-const visible=new Set(["target_area","target_segment","observed_outside","gap_endpoint"]);
+const visible=new Set(["target_area","target_segment","target_metric_edge","observed_outside","gap_endpoint"]);
+const metricMode=document.getElementById("metric-mode");
+const overlayInfo=(data.metadata||{}).temporal_overlay;
+metricMode.value=overlayInfo?.mode||"speed_mps";
+metricMode.disabled=!overlayInfo;
 const colors={target_area:"#2563eb",target_segment:"#15803d",observed_outside:"#64748b",gap_endpoint:"#d97706"};
+// Fixed *display bins*, not GPS quality thresholds or speed validation.
+const speedBins=[1.5,2.5,3.5,4.5];
+const speedPalette=["#bfdbfe","#93c5fd","#60a5fa","#2563eb","#1d4ed8"];
+function metricColor(properties){
+ const metric=properties.metric;
+ if(!metric||metric.status!=="valid")return "#94a3b8";
+ const value=metric[metricMode.value];
+ if(!Number.isFinite(value)||value<0|| (metricMode.value==="pace_s_per_km"&&value===0))return "#94a3b8";
+ const speed=metricMode.value==="pace_s_per_km"?1000/value:value;
+ let i=0;while(i<speedBins.length&&speed>=speedBins[i])i++;
+ return speedPalette[i];
+}
 const coords=[];
 function collect(g){if(!g)return;if(g.type==="Point")coords.push(g.coordinates);
 else if(g.type==="LineString"||g.type==="MultiPoint")g.coordinates.forEach(p=>coords.push(p));
@@ -163,7 +183,10 @@ function draw(){
  data.features.forEach(f=>{
   const layer=f.properties.layer;if(!visible.has(layer))return;
   const group=node("g",{"data-layer":layer});
-  shapes(f.geometry,layer).forEach(s=>group.append(s));
+  shapes(f.geometry,layer).forEach(s=>{
+    if(layer==="target_metric_edge")s.setAttribute("stroke",metricColor(f.properties));
+    group.append(s);
+  });
   group.addEventListener("click",()=>{document.getElementById("detail").textContent=JSON.stringify(f.properties,null,2);});
   root.append(group);
  });
@@ -172,6 +195,7 @@ let view=[0,0,1000,700];function apply(){svg.setAttribute("viewBox",view.join(" 
 const meta=data.metadata||{};
 document.getElementById("status").textContent="  | relation: "+(meta.relation??"not assessable")+" | coverage: "+(meta.coverage_completeness??"not assessable");
 document.querySelectorAll("[data-layer]").forEach(c=>c.addEventListener("change",()=>{c.checked?visible.add(c.dataset.layer):visible.delete(c.dataset.layer);draw();}));
+metricMode.addEventListener("change",draw);
 document.getElementById("reset").onclick=()=>{view=[0,0,1000,700];apply();};
 svg.addEventListener("wheel",e=>{e.preventDefault();const factor=e.deltaY>0?1.15:1/1.15;view=[view[0]+view[2]*(1-factor)/2,view[1]+view[3]*(1-factor)/2,view[2]*factor,view[3]*factor];apply();},{passive:false});
 let drag=null;svg.addEventListener("pointerdown",e=>{drag=[e.clientX,e.clientY,...view];svg.setPointerCapture(e.pointerId);});
