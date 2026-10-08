@@ -104,6 +104,12 @@ The domain enum value `unknown` is a real SpatialAssessment relation state and i
 
 Schemas must not rely on the JSON Schema `default` keyword to mutate or fill input data.
 
+### Explicit pre-release uncertainty exception — ADR-0011
+
+In the unreleased v0.1.0 SpatialAssessment schema, `CoverageUncertainty.affected_track_range` alone uses a dedicated `coverageUncertaintyRange`, not shared `trackRange`. It requires `start` and `end`; exactly one may be null when the actual source gap has a missing positioned leading/trailing neighbor. Both-null remains invalid. These are source-evidence extents, not geometry or fabricated TrackPositions.
+
+ADR-0011 accepts this as a **documented pre-release v0.1.0 erratum**: previously valid bounded instances are unchanged, and the unreleased family now also represents leading/trailing uncertainty already permitted by the frozen domain. The serialized `schema_version` remains `0.1.0`. This exception does not widen nullability for any other range/position or authorize silent schema changes after v0.1.0 is first released.
+
 ## 6. Identity and revision references
 
 Identifiers are opaque strings. Consumers must not parse semantic meaning from them.

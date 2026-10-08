@@ -223,9 +223,12 @@ def validate_spatial_assessment(assessment: dict[str, Any]) -> list[str]:
         assessment.get("coverage_uncertainties", [])
     ):
         affected = uncertainty["affected_track_range"]
-        if not track_position_ordered(
-            affected["start"], affected["end"], allow_equal=True
-        ):
+        start, end = affected["start"], affected["end"]
+        # Open-ended uncertainty is not a geometry range. Null means no
+        # positioned source neighbor, never a phantom TrackPosition.
+        if start is None and end is None:
+            errors.append(issue("COVERAGE_UNCERTAINTY_RANGE_UNANCHORED", f"coverage_uncertainties[{index}] cannot have two absent neighbors"))
+        elif start is not None and end is not None and not track_position_ordered(start, end, allow_equal=True):
             errors.append(issue("COVERAGE_UNCERTAINTY_RANGE_REVERSED", f"coverage_uncertainties[{index}] track range is reversed"))
 
     return errors
@@ -554,6 +557,10 @@ def validate_linked_scenario(
     ):
         affected = uncertainty["affected_track_range"]
         for endpoint_name in ("start", "end"):
+            # An absent leading/trailing source neighbor is not a parent
+            # position; M2D must match it against verified M2C gap evidence.
+            if affected[endpoint_name] is None:
+                continue
             for error in validate_track_position_against_parent(
                 canonical_track,
                 affected[endpoint_name],

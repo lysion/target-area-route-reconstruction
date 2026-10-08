@@ -1,7 +1,7 @@
-"""Executable M2D blocker evidence, not a segment/assessment implementation.
+"""ADR-0011 pre-release amendment acceptance probes from real M2A/M2B/M2C evidence.
 
-Every schema probe comes from verified production M2A -> M2B -> M2C facts.
-Candidate assessments exist only inside these tests; none is published by core.
+The original mismatch remains permanently documented in PR #6. These tests
+require faithful open-ended serialization, not fabricated endpoint positions.
 """
 
 import copy
@@ -91,21 +91,23 @@ class M2DContractTests(unittest.TestCase):
         return {(tuple(error.absolute_path), error.validator)
                 for error in self.validator.iter_errors(candidate)}
 
-    def test_leading_gap_proof_valid_but_exact_start_is_not_schema_representable(self):
+    def test_leading_gap_proof_valid_and_exact_start_is_schema_representable(self):
         _, proof = self.verified((FIXTURES / "leading-gap.gpx").read_bytes())
         gap = proof.gap_relevance[0].gap
         self.assertIsNone(gap.start)
         self.assertEqual(asdict(gap.end), {"part_index": 0, "observation_index": 0, "fraction_to_next": 0})
-        self.assertEqual(self.failures(self.candidate(proof)), {
-            (("coverage_uncertainties", 0, "affected_track_range", "start"), "type")})
+        candidate = self.candidate(proof)
+        self.assertEqual(self.failures(candidate), set())
+        self.assertEqual(validate_spatial_assessment(candidate), [])
 
-    def test_trailing_gap_proof_valid_but_exact_end_is_not_schema_representable(self):
+    def test_trailing_gap_proof_valid_and_exact_end_is_schema_representable(self):
         _, proof = self.verified((FIXTURES / "trailing-gap.gpx").read_bytes())
         gap = proof.gap_relevance[0].gap
         self.assertIsNone(gap.end)
         self.assertEqual(asdict(gap.start), {"part_index": 0, "observation_index": 1, "fraction_to_next": 0})
-        self.assertEqual(self.failures(self.candidate(proof)), {
-            (("coverage_uncertainties", 0, "affected_track_range", "end"), "type")})
+        candidate = self.candidate(proof)
+        self.assertEqual(self.failures(candidate), set())
+        self.assertEqual(validate_spatial_assessment(candidate), [])
 
     def test_omitting_unavailable_endpoint_is_also_rejected(self):
         for side, missing in (("leading", "start"), ("trailing", "end")):
@@ -113,8 +115,10 @@ class M2DContractTests(unittest.TestCase):
                 _, proof = self.verified((FIXTURES / (side + "-gap.gpx")).read_bytes())
                 candidate = self.candidate(proof)
                 del candidate["coverage_uncertainties"][0]["affected_track_range"][missing]
-                self.assertEqual(self.failures(candidate), {
-                    (("coverage_uncertainties", 0, "affected_track_range"), "required")})
+                # Required and oneOf may both report the missing endpoint:
+                # assert the precise contract reason, not an incidental error count.
+                self.assertIn((("coverage_uncertainties", 0, "affected_track_range"), "required"),
+                              self.failures(candidate))
 
     def test_bounded_gap_control_keeps_both_real_endpoints_and_passes(self):
         evidence, proof = self.verified((FIXTURES / "bounded-gap-control.gpx").read_bytes())
@@ -174,8 +178,39 @@ class M2DContractTests(unittest.TestCase):
                 records = [(start + timedelta(seconds=i), xy[0] if xy else None, xy[1] if xy else None)
                            for i, xy in enumerate(points)]
                 _, proof = self.verified(build_fit(records), kind="fit")
-                self.assertEqual(self.failures(self.candidate(proof)), {
-                    (("coverage_uncertainties", 0, "affected_track_range", endpoint), "type")})
+                candidate = self.candidate(proof)
+                self.assertIsNone(candidate["coverage_uncertainties"][0]["affected_track_range"][endpoint])
+                self.assertEqual(self.failures(candidate), set())
+                self.assertEqual(validate_spatial_assessment(candidate), [])
+
+    def test_both_null_and_extra_fields_are_not_accepted(self):
+        _, proof = self.verified((FIXTURES / "leading-gap.gpx").read_bytes())
+        candidate = self.candidate(proof)
+        affected = candidate["coverage_uncertainties"][0]["affected_track_range"]
+        affected["end"] = None
+        self.assertIn((("coverage_uncertainties", 0, "affected_track_range"), "oneOf"), self.failures(candidate))
+        self.assertIn("COVERAGE_UNCERTAINTY_RANGE_UNANCHORED",
+                      [issue_code(error) for error in validate_spatial_assessment(candidate)])
+        affected["end"] = {"part_index": 0, "observation_index": 0, "fraction_to_next": 0}
+        affected["invented"] = "not-a-range"
+        self.assertIn((("coverage_uncertainties", 0, "affected_track_range"), "additionalProperties"), self.failures(candidate))
+
+    def test_packaged_schema_matches_acceptance_contract(self):
+        from importlib.resources import files
+        packaged = files("target_area_route_reconstruction").joinpath(
+            "spec", "spatial-assessment.schema.json"
+        ).read_bytes()
+        self.assertEqual(packaged, (ROOT / "schemas/spatial-assessment.schema.json").read_bytes())
+
+    def test_malformed_missing_neighbor_cannot_be_a_sentinel(self):
+        _, proof = self.verified((FIXTURES / "trailing-gap.gpx").read_bytes())
+        candidate = self.candidate(proof)
+        affected = candidate["coverage_uncertainties"][0]["affected_track_range"]
+        affected["end"] = {"part_index": -1, "observation_index": 0, "fraction_to_next": 0}
+        self.assertTrue(self.failures(candidate))
+        affected["end"] = {"part_index": 0, "observation_index": 1, "fraction_to_next": "not-a-number"}
+        self.assertTrue(self.failures(candidate))
+
 
 
 if __name__ == "__main__":
