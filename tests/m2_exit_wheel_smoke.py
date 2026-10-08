@@ -1,0 +1,146 @@
+"""Milestone 2 exit smoke against an installed wheel, outside source checkout.
+
+This file is copied into the isolated venv's working directory by CI.
+Only raw fixture bytes are read from the checkout. No test modules, source
+package directory or editable install can supply implementation code.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+import target_area_route_reconstruction as core
+from target_area_route_reconstruction.quality_models import ParentReference
+
+
+def target():
+    return {
+        "schema_version": "0.1.0", "id": "m2-exit-isolated", "revision_id": "r1",
+        "spatial_reference": "OGC:CRS84",
+        "geometry": {"type": "Polygon", "coordinates": [[
+            [112.902, 28.19], [112.908, 28.19], [112.908, 28.22],
+            [112.902, 28.22], [112.902, 28.19],
+        ]]},
+        "definition_provenance": {"description": "Independent installed-wheel M2 exit check"},
+    }
+
+
+def pipeline(evidence, polygon):
+    policy = core.QualityPolicy()
+    projection = core.project_quality(evidence, policy=policy)
+    assert projection.outcome == "produced", projection
+    assert core.verify_quality(projection.projection, evidence, policy=policy).outcome == "valid"
+    args = dict(evidence=evidence, quality_projection=projection.projection,
+                quality_policy=policy, target_area=polygon,
+                target_reference=ParentReference(polygon["id"], polygon["revision_id"]))
+    spatial = core.prove_spatial_relation(**args)
+    assert spatial.outcome == "produced", spatial
+    assert core.verify_spatial_relation(spatial.proof, **args).outcome == "valid"
+    assembled = core.assemble_spatial_entities(proof=spatial.proof, **args)
+    assert assembled.outcome in ("produced", "non_assessable"), assembled
+    assert core.verify_spatial_entities(assembled.bundle, proof=spatial.proof, **args).outcome == "valid"
+    export = core.export_geojson(bundle=assembled.bundle, proof=spatial.proof, **args)
+    assert export.outcome == "produced", export
+    metric = core.export_temporal_geojson(bundle=assembled.bundle, proof=spatial.proof, **args)
+    assert metric.outcome == "produced", metric
+    assert core.render_geojson_map(metric.geojson_json).startswith("<!doctype html>")
+    return spatial, assembled, json.loads(export.geojson_json), json.loads(metric.geojson_json)
+
+
+def layers(fc, name):
+    return [f for f in fc["features"] if f["properties"]["layer"] == name]
+
+
+def main():
+    fixtures, checkout = (Path(arg).resolve() for arg in sys.argv[1:])
+    installed = Path(core.__file__).resolve()
+    assert not installed.is_relative_to(checkout), installed
+    assert not Path.cwd().resolve().is_relative_to(checkout)
+    manifest = json.loads((fixtures / "manifest.json").read_text())
+    expected_hashes = {item["path"]: item["sha256"] for item in manifest["fixtures"]}
+    outputs = []
+    for name in ("equivalent/basic.gpx", "equivalent/basic.fit"):
+        path = fixtures / name
+        data = path.read_bytes()
+        assert hashlib.sha256(data).hexdigest() == expected_hashes[name]
+        evidence = core.ingest_file(
+            path, source_kind=path.suffix[1:],
+            track_source={"id": "m2-exit-wheel-source", "revision_id": "r1"},
+        )
+        assert evidence.outcome == "success", evidence
+        assert data == path.read_bytes(), "Source bytes changed during ingestion"
+        first = pipeline(evidence, target())
+        second = pipeline(evidence, target())
+        assert first[0].to_json() == second[0].to_json()
+        assert first[1].to_json() == second[1].to_json()
+        assert first[2] == second[2] and first[3] == second[3]
+        spatial, entities, base, timed = first
+        assert (spatial.proof.relation, spatial.proof.coverage_completeness) == ("partial", "complete")
+        assert len(entities.bundle.segments) == len(layers(base, "target_segment")) == 1
+        assert len(layers(timed, "target_metric_edge")) == 2
+        assert timed["features"][:len(base["features"])] == base["features"]
+        outputs.append((evidence.canonical_track, base, timed))
+    fit, gpx = outputs
+    assert fit[0]["revision_id"] != gpx[0]["revision_id"], "distinct evidence revisions must not alias"
+    a = layers(fit[1], "target_segment")[0]["geometry"]["coordinates"]
+    b = layers(gpx[1], "target_segment")[0]["geometry"]["coordinates"]
+    assert len(a) == len(b)
+    assert all(abs(x - y) <= 1e-6 for pa, pb in zip(a, b) for x, y in zip(pa, pb)), (a, b)
+
+    # A gap through the target must remain unresolved, never a fabricated chord.
+    gap_path = fixtures / "gpx/discontinuity.gpx"
+    original = gap_path.read_bytes()
+    gap = core.ingest_file(gap_path, source_kind="gpx",
+                           track_source={"id": "m2-exit-gap", "revision_id": "r1"})
+    polygon = target()
+    polygon["geometry"]["coordinates"] = [[
+        [112.89, 28.19], [112.92, 28.19], [112.92, 28.22],
+        [112.89, 28.22], [112.89, 28.19],
+    ]]
+    spatial, entities, base, metric = pipeline(gap, polygon)
+    assert gap_path.read_bytes() == original
+    assert (spatial.proof.relation, spatial.proof.coverage_completeness) == ("unknown", "incomplete")
+    assert len(entities.bundle.segments) == len(layers(metric, "target_metric_edge")) == 2
+    assert {f["properties"]["parent_edge"]["part_index"] for f in layers(metric, "target_metric_edge")} == {0, 1}
+    assert all(f["geometry"]["type"] == "Point" for f in layers(base, "gap_endpoint"))
+
+    # A spatially valid track with no timestamps must never acquire a speed.
+    missing_path = fixtures / "gpx/no-timestamps.gpx"
+    missing = core.ingest_file(
+        missing_path, source_kind="gpx",
+        track_source={"id": "m2-exit-time", "revision_id": "r1"})
+    spatial, entities, base, timed = pipeline(missing, polygon)
+    assert spatial.proof.assessable
+    assert layers(timed, "target_metric_edge")
+    assert all(edge["properties"]["metric"]["speed_mps"] is None
+               and edge["properties"]["metric"]["pace_s_per_km"] is None
+               and edge["properties"]["metric"]["status"] == "missing_timestamp"
+               for edge in layers(timed, "target_metric_edge"))
+    assert layers(base, "target_segment"), "spatial validity must survive missing time"
+
+    # Unsupported GPX route-only input cannot masquerade as a track.
+    route_only = (b'<?xml version="1.0" encoding="UTF-8"?>'
+                  b'<gpx version="1.1" creator="m2exit" xmlns="http://www.topografix.com/GPX/1/1">'
+                  b'<rte><rtept lat="28.20" lon="112.90"/>'
+                  b'<rtept lat="28.21" lon="112.91"/></rte></gpx>')
+    rejected = core.ingest_bytes(
+        route_only, source_kind="gpx",
+        track_source={"id": "route-not-a-track", "revision_id": "r1"})
+    assert rejected.outcome == "failure" and rejected.canonical_track is None
+    assert any(d.code == "UNSUPPORTED_GPX_ROUTE_OR_WAYPOINT" for d in rejected.diagnostics)
+
+    # No positioned observations is not "outside".
+    none = core.ingest_file(
+        fixtures / "fit/no-position.fit", source_kind="fit",
+        track_source={"id": "no-position", "revision_id": "r1"})
+    assert none.outcome == "no_positioned_observations" and none.canonical_track is None
+    print("M2 EXIT ISOLATED WHEEL: actual FIT/GPX partial equivalence, exact raw hashes, "
+          "determinism, spatial revision separation, unknown gap without chord, "
+          "missing-time neutrality, route-only rejection, non-assessability PASS")
+
+
+if __name__ == "__main__":
+    main()
