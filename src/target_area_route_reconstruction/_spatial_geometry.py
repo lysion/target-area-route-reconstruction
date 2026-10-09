@@ -67,16 +67,31 @@ def _boundary_segments(geometry):
 def _preflight_tiny_boundary_contact(left, right, area):
     dx, dy = right[0] - left[0], right[1] - left[1]
     if max(abs(dx), abs(dy)) >= _GEOMETRY_SQUARE_UNDERFLOW_GUARD:
-        return
+        return None
     # Positive-length remains a coordinate inequality, not an epsilon test.
     if tuple(left) == tuple(right):
-        return
+        return None
     x0, x1 = sorted((left[0], right[0]))
     y0, y1 = sorted((left[1], right[1]))
     for a, b in _boundary_segments(area.boundary):
         if (max(min(a[0], b[0]), x0) <= min(max(a[0], b[0]), x1)
                 and max(min(a[1], b[1]), y0) <= min(max(a[1], b[1]), y1)):
             raise SpatialFailure("SPATIAL_NUMERICAL_BOUNDARY_UNRESOLVED")
+    # No ring SEGMENT can intersect the exact axis-aligned parent envelope:
+    # this edge cannot change its inside/outside predicate anywhere. GEOS
+    # overlay itself may silently erase a subnormal positive line even without
+    # a RuntimeWarning, so DO NOT call line.intersection/difference here.
+    # Evaluate stationary point coverage; both endpoints must agree.
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            start_covered = bool(area.covers(Point(left)))
+            end_covered = bool(area.covers(Point(right)))
+    except RuntimeWarning as exc:
+        raise SpatialFailure("SPATIAL_NUMERICAL_ENGINE_WARNING") from exc
+    if start_covered != end_covered:
+        raise SpatialFailure("SPATIAL_NUMERICAL_POINT_PREDICATE_MISMATCH")
+    return start_covered
 
 
 def clip_edge(part, edge, left, right, area):
@@ -85,7 +100,12 @@ def clip_edge(part, edge, left, right, area):
     No geometric length cutoff, cross-edge merge, union, repair or buffering.
     The two classifications must partition the full parent parameter interval.
     """
-    _preflight_tiny_boundary_contact(left, right, area)
+    proven_stationary_class = _preflight_tiny_boundary_contact(left, right, area)
+    if proven_stationary_class is not None:
+        # Full ORIGINAL positive edge retains its original parent lineage.
+        whole = (ParentInterval(TrackPosition(part, edge),
+                                TrackPosition(part, edge + 1)),)
+        return (whole, ()) if proven_stationary_class else ((), whole)
     line = LineString((left, right))
     inside, outside = [], []
     # Shapely can emit NumPy RuntimeWarning instead of raising GEOSException
