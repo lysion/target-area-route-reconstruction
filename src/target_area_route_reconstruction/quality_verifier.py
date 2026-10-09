@@ -66,7 +66,11 @@ def _verify(q, evidence, policy):
                 or not 0 <= i < len(parts[p]["observations"])):
             fail("TRACK_POSITION_OUT_OF_BOUNDS", path)
             return False
-        if (type(f) not in (float, int) or not math.isfinite(f) or not 0 <= f < 1
+        # Even objects manufactured without TrackPosition.__post_init__ may
+        # arrive from an untrusted snapshot. Refuse noncanonical signed zeros
+        # and integer fractions before they enter a revision/digest identity.
+        if (type(f) is not float or not math.isfinite(f) or not 0 <= f < 1
+                or (f == 0.0 and math.copysign(1.0, f) < 0)
                 or (f != 0 and i + 1 == len(parts[p]["observations"]))):
             fail("TRACK_POSITION_INVALID", path)
             return False
