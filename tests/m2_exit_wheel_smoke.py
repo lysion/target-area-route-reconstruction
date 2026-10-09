@@ -145,7 +145,7 @@ def main():
     original = core.project_quality(canonical_gpx, policy=policy)
     assert original.outcome == "produced"
     q = original.projection
-    assert q.algorithm.version == "0.1.1"
+    assert q.algorithm.version == "0.1.2"
     assert len(q.usable_intervals) == 1
     split = replace(q, usable_intervals=(
         ParentInterval(TrackPosition(0, 0), TrackPosition(0, 1)),
