@@ -1,6 +1,8 @@
 """Per-original-edge planar CRS84 clipping, with auditable binary64 lineage."""
 
 import math
+import sys
+import warnings
 
 from shapely.geometry import LineString, Point, box
 
@@ -41,15 +43,62 @@ def _fraction(point, left, right, local_length):
     return fraction
 
 
+# GEOS intersection operates on floating-point expressions whose products
+# can underflow even when both source coordinates and the target are valid
+# binary64 CRS84 values. Never use a squared-length epsilon to delete positive
+# observations. Instead, conservatively refuse to classify a tiny edge whose
+# bounding box meets ANY actual polygon-ring boundary segment. Simple exact
+# coordinate ordering (no GEOS predicates or length arithmetic) is used for
+# this *preflight*, so the check does not share GEOS's underflow failure.
+# Edges wholly separated from every ring boundary (e.g. a 1e-200 degree edge
+# well inside a 2-degree box) remain eligible and retain positive length.
+_GEOMETRY_SQUARE_UNDERFLOW_GUARD = 16 * math.sqrt(sys.float_info.min)
+
+
+def _boundary_segments(geometry):
+    if geometry.geom_type == "LineString" or geometry.geom_type == "LinearRing":
+        vertices = list(geometry.coords)
+        yield from zip(vertices, vertices[1:])
+    else:
+        for item in getattr(geometry, "geoms", ()):
+            yield from _boundary_segments(item)
+
+
+def _preflight_tiny_boundary_contact(left, right, area):
+    dx, dy = right[0] - left[0], right[1] - left[1]
+    if max(abs(dx), abs(dy)) >= _GEOMETRY_SQUARE_UNDERFLOW_GUARD:
+        return
+    # Positive-length remains a coordinate inequality, not an epsilon test.
+    if tuple(left) == tuple(right):
+        return
+    x0, x1 = sorted((left[0], right[0]))
+    y0, y1 = sorted((left[1], right[1]))
+    for a, b in _boundary_segments(area.boundary):
+        if (max(min(a[0], b[0]), x0) <= min(max(a[0], b[0]), x1)
+                and max(min(a[1], b[1]), y0) <= min(max(a[1], b[1]), y1)):
+            raise SpatialFailure("SPATIAL_NUMERICAL_BOUNDARY_UNRESOLVED")
+
+
 def clip_edge(part, edge, left, right, area):
     """Return positive inside/outside fragments on ONE admitted parent edge.
 
     No geometric length cutoff, cross-edge merge, union, repair or buffering.
     The two classifications must partition the full parent parameter interval.
     """
+    _preflight_tiny_boundary_contact(left, right, area)
     line = LineString((left, right))
     inside, outside = [], []
-    for target, clipped in ((inside, line.intersection(area)), (outside, line.difference(area))):
+    # Shapely can emit NumPy RuntimeWarning instead of raising GEOSException
+    # for division-by-zero/invalid topology math. Such a classification is
+    # NEVER usable evidence, even if it yields an apparently valid partition.
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            clipped_inside = line.intersection(area)
+            clipped_outside = line.difference(area)
+    except RuntimeWarning as exc:
+        raise SpatialFailure("SPATIAL_NUMERICAL_ENGINE_WARNING") from exc
+    for target, clipped in ((inside, clipped_inside), (outside, clipped_outside)):
         for component in linear_components(clipped):
             a, b = component.coords[0], component.coords[-1]
             local_length = min(math.hypot(b[0] - a[0], b[1] - a[1]),
