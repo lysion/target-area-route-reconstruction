@@ -1,0 +1,167 @@
+"""Independent Codex full-repository audit R2-01/R2-02 regressions.
+
+Unlike the production M2C verifier and the legacy M1 oracle, the expected
+intersection in the attack is constructed from exact rational arithmetic on
+the ACTUAL binary64 coordinates. No GEOS/Shapely predicate supplies the
+expected outcome. Extreme but schema-valid coordinates may be rejected with
+a stable numeric failure; they must NEVER be labelled outside/complete or
+accepted as an incorrectly extended target fragment.
+"""
+
+from __future__ import annotations
+
+import math
+import unittest
+from dataclasses import replace
+from decimal import Decimal
+from fractions import Fraction
+
+from target_area_route_reconstruction import (
+    QualityPolicy, TrackPosition, ingest_bytes, project_quality,
+    prove_spatial_relation, verify_quality, verify_spatial_relation,
+)
+from target_area_route_reconstruction.quality_models import ParentInterval
+from test_canonical_ingestion import gpx
+from test_spatial_relation import arguments, rectangle
+from test_geojson_export import make_export
+
+
+def decimal_xml(value):
+    """GPX latitude/longitude is xsd:decimal, not scientific notation.
+
+    Preserve very small *nonzero* binary64 values (including 5e-324) through
+    real GPX/XSD/normalization rather than constructing a forged CanonicalTrack.
+    """
+    return format(Decimal(str(value)), "f")
+
+
+def real_gpx(left, right):
+    pts = []
+    for lon, lat in (left, right):
+        pts.append(f'<trkpt lon="{decimal_xml(lon)}" lat="{decimal_xml(lat)}"/>')
+    result = ingest_bytes(gpx([pts]), source_kind="gpx",
+                          track_source={"id": "codex-r2-source", "revision_id": "r1"})
+    assert result.outcome == "success", result
+    assert [x["position"] for x in result.canonical_track["parts"][0]["observations"]] == [
+        list(left), list(right)], result.canonical_track
+    return result
+
+
+def exact_positive_horizontal_coverage(a, b, xmin, xmax):
+    """Liang-Barsky for a horizontal edge; Fraction(float) is exact binary64.
+
+    This intentionally *does not* use GEOS, any producer/verifier helper,
+    floating-point interpolation or an epsilon cutoff.
+    """
+    a, b, xmin, xmax = (Fraction(x) for x in (a, b, xmin, xmax))
+    assert b > a and xmax > xmin
+    lo = max(Fraction(0), (xmin - a) / (b - a))
+    hi = min(Fraction(1), (xmax - a) / (b - a))
+    return lo < hi, lo, hi
+
+
+class IndependentR2Numerics(unittest.TestCase):
+    def check_attack(self, left_lon, right_lon, xmin, xmax):
+        self.assertTrue(math.isfinite(left_lon) and math.isfinite(right_lon))
+        self.assertTrue(xmax > xmin)
+        exact, lo, hi = exact_positive_horizontal_coverage(
+            left_lon, right_lon, xmin, xmax)
+        self.assertTrue(exact, ("independent exact coverage witness", lo, hi))
+        evidence = real_gpx((left_lon, 0), (right_lon, 0))
+        args = arguments(evidence, rectangle(xmin, -1, xmax, 1))
+        proof = prove_spatial_relation(**args)
+        # A numeric failure is an accepted *safe* result: no trustworthy
+        # relation/proof/target fragment may escape through the public API.
+        self.assertEqual(proof.outcome, "numerical_failure", proof)
+        self.assertIsNone(proof.proof)
+        self.assertTrue(
+            any(issue.code in (
+                "SPATIAL_NUMERICAL_BOUNDARY_UNRESOLVED",
+                "SPATIAL_NUMERICAL_ENGINE_WARNING",
+                "SPATIAL_PARTITION_NUMERICAL_FAILURE",
+                "SPATIAL_FRACTION_UNREPRESENTABLE",
+                "SPATIAL_LINEAGE_NUMERICAL_FAILURE",
+            ) for issue in proof.issues), proof.issues)
+        # Calling the verifier on a forged outside/complete assertion must
+        # not convert an unsafe numeric domain into independently verified
+        # evidence; quality/evidence/area inputs are still the original ones.
+        # No accepted proof is produced by the M2C entry in the first place.
+
+    def test_r2_01_a_false_outside_with_nextafter_thin_rectangle(self):
+        x = 8e-200
+        self.check_attack(-9e-200, 1.8e-199, x, math.nextafter(x, math.inf))
+
+    def test_r2_01_b_polygon_bound_overshoot_with_subnormal_edge(self):
+        self.check_attack(-1.3e-199, 3e-200, 0.0, 5e-324)
+
+    def test_multiple_scales_near_boundary_with_independent_fraction_oracle(self):
+        for magnitude in (1e-160, 1e-175, 1e-190, 1e-200, 1e-240):
+            with self.subTest(magnitude=magnitude):
+                xmin = magnitude
+                self.check_attack(-2 * magnitude, 3 * magnitude,
+                                  xmin, math.nextafter(xmin, math.inf))
+
+    def test_tiny_positive_evidence_fully_inside_does_not_get_erased(self):
+        for size in (1e-200, 5e-324):
+            with self.subTest(size=size):
+                evidence = real_gpx((0, 0), (size, 0))
+                args = arguments(evidence, rectangle(-1, -1, 1, 1))
+                result = prove_spatial_relation(**args)
+                self.assertEqual(result.outcome, "produced", result)
+                self.assertEqual(result.proof.relation, "inside")
+                self.assertEqual(len(result.proof.target_coverage_intervals), 1)
+                self.assertEqual(verify_spatial_relation(
+                    result.proof, **args).outcome, "valid")
+
+
+class IndependentR2Identity(unittest.TestCase):
+    def test_zero_and_negative_zero_become_canonical_parent_identity(self):
+        examples = (TrackPosition(0, 0, 0.0), TrackPosition(0, 0, 0),
+                    TrackPosition(0, 0, -0.0))
+        self.assertTrue(all(type(x.fraction_to_next) is float for x in examples))
+        self.assertTrue(all(math.copysign(1.0, x.fraction_to_next) == 1 for x in examples))
+        self.assertEqual(len({str(x) for x in examples}), 1)
+
+        evidence = real_gpx((0, 0), (0.1, 0))
+        policy = QualityPolicy()
+        original = project_quality(evidence, policy=policy)
+        self.assertEqual(original.outcome, "produced")
+        baseline = original.projection
+        for fraction in (0.0, 0, -0.0):
+            with self.subTest(fraction=repr(fraction), typ=type(fraction).__name__):
+                first = replace(baseline.usable_intervals[0].start,
+                                fraction_to_next=fraction)
+                changed = replace(baseline, usable_intervals=(
+                    replace(baseline.usable_intervals[0], start=first),))
+                self.assertEqual(changed.to_json(), baseline.to_json())
+                self.assertEqual(verify_quality(
+                    changed, evidence, policy=policy).outcome, "valid")
+                original_args = arguments(evidence, rectangle(-1, -1, 1, 1))
+                changed_args = {**original_args, "quality_projection": changed}
+                # A canonical equivalent representation has one spatial
+                # authority digest and hence identical downstream revision.
+                a = prove_spatial_relation(**original_args)
+                b = prove_spatial_relation(**changed_args)
+                self.assertEqual((a.outcome, b.outcome), ("produced", "produced"))
+                self.assertEqual(a.proof.authority.quality_projection_digest,
+                                 b.proof.authority.quality_projection_digest)
+                self.assertEqual(a.proof.to_json(), b.proof.to_json())
+
+    def test_manually_bypassed_trackposition_constructor_is_rejected(self):
+        evidence = real_gpx((0, 0), (.1, 0))
+        policy = QualityPolicy()
+        q = project_quality(evidence, policy=policy).projection
+        for invalid in (0, -0.0):
+            with self.subTest(kind=type(invalid).__name__, value=repr(invalid)):
+                bad = object.__new__(TrackPosition)
+                object.__setattr__(bad, "part_index", 0)
+                object.__setattr__(bad, "observation_index", 0)
+                object.__setattr__(bad, "fraction_to_next", invalid)
+                hacked = replace(q, usable_intervals=(
+                    ParentInterval(bad, q.usable_intervals[0].end),))
+                rejected = verify_quality(hacked, evidence, policy=policy)
+                self.assertEqual(rejected.outcome, "invalid", rejected)
+                self.assertIn("TRACK_POSITION_INVALID", [x.code for x in rejected.issues])
+
+if __name__ == "__main__":
+    unittest.main()
