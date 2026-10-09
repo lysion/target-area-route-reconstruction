@@ -70,7 +70,8 @@ def _verify(proof, track, area, authority, quality, verified):
         p, i, f = value.part_index, value.observation_index, value.fraction_to_next
         return (type(p) is int and 0 <= p < len(track["parts"]) and type(i) is int
                 and 0 <= i < len(track["parts"][p]["observations"])
-                and type(f) in (int, float) and math.isfinite(f) and 0 <= f < 1
+                and type(f) is float and math.isfinite(f) and 0 <= f < 1
+                and (f != 0.0 or math.copysign(1.0, f) > 0)
                 and (f == 0 or i + 1 < len(track["parts"][p]["observations"])))
 
     actual_spans = {}
