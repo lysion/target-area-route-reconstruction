@@ -1,5 +1,7 @@
 # M2C — Spatial relation and completeness proof
 
+> **R2-01 P1 / SECOND INDEPENDENT FULL-REPOSITORY CODEX AUDIT:** although M2C was implemented and previously marked DONE, legal finite tiny geometries produced inaccurate GEOS intersection/difference and could pass BOTH producer and shared verifier, invalidating the previous M2 DONE. This original checkpoint doc remains historical; the current [R2 correction](milestone2-codex-r2-remediation.md) is in PR #21, spatial-proof `0.1.1`, with GEOS warning-as-failure and conservative tiny-boundary preflight. Independent exact-Fraction GPX/source + wheel tests and new exit review are required. M2D has been implemented (despite historical `NOT STARTED` wording below); its verified authority still depends on a correct M2C proof. **M3 NOT STARTED**.
+
 Status: ACTIVE, implementation handoff for independent review. M2A and M2B are DONE; M2D remains NOT STARTED. Base: `4b61b6108f7ebfc41d06cd8c105f7af2d9e5da37` (the approved ROADMAP contract correction). No frozen schema or ADR is changed.
 
 ## Scope and ownership
