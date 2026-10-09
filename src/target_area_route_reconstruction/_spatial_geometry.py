@@ -56,12 +56,19 @@ _GEOMETRY_SQUARE_UNDERFLOW_GUARD = 16 * math.sqrt(sys.float_info.min)
 
 
 def _boundary_segments(geometry):
-    if geometry.geom_type == "LineString" or geometry.geom_type == "LinearRing":
-        vertices = list(geometry.coords)
-        yield from zip(vertices, vertices[1:])
+    # Read each target's original linear ring vertices without asking GEOS to
+    # construct a new boundary geometry, overlay or length. Polygon holes and
+    # separate MultiPolygon components must all participate in the proof that
+    # no boundary segment envelope can meet the parent edge envelope.
+    if geometry.geom_type == "Polygon":
+        for ring in (geometry.exterior, *geometry.interiors):
+            vertices = list(ring.coords)
+            yield from zip(vertices, vertices[1:])
+    elif geometry.geom_type == "MultiPolygon":
+        for polygon in geometry.geoms:
+            yield from _boundary_segments(polygon)
     else:
-        for item in getattr(geometry, "geoms", ()):
-            yield from _boundary_segments(item)
+        raise SpatialFailure("SPATIAL_NUMERICAL_BOUNDARY_UNSUPPORTED")
 
 
 def _preflight_tiny_boundary_contact(left, right, area):
@@ -73,7 +80,7 @@ def _preflight_tiny_boundary_contact(left, right, area):
         return None
     x0, x1 = sorted((left[0], right[0]))
     y0, y1 = sorted((left[1], right[1]))
-    for a, b in _boundary_segments(area.boundary):
+    for a, b in _boundary_segments(area):
         if (max(min(a[0], b[0]), x0) <= min(max(a[0], b[0]), x1)
                 and max(min(a[1], b[1]), y0) <= min(max(a[1], b[1]), y1)):
             raise SpatialFailure("SPATIAL_NUMERICAL_BOUNDARY_UNRESOLVED")
