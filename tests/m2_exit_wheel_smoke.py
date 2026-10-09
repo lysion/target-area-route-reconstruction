@@ -259,7 +259,7 @@ def main():
         assert math.copysign(1.0, t.fraction_to_next) == 1.0
         assert t == TrackPosition(0, 0)
         assert str(t) == str(TrackPosition(0, 0))
-    assert q.algorithm.version == "0.1.2"
+    assert q.projection.algorithm.version == "0.1.2"
 
     print("M2 EXIT ISOLATED WHEEL: R2-01 exact Fraction GPX numerical attacks fail closed; R2-02 canonical identity PASS")
 
