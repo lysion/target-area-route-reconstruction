@@ -21,9 +21,11 @@ from target_area_route_reconstruction import (
     prove_spatial_relation, verify_quality, verify_spatial_relation,
 )
 from target_area_route_reconstruction.quality_models import ParentInterval
+from target_area_route_reconstruction._spatial_inputs import algorithm, prepare
+from target_area_route_reconstruction.spatial_models import SpatialRelationProof
+from target_area_route_reconstruction import assemble_spatial_entities
 from test_canonical_ingestion import gpx
 from test_spatial_relation import arguments, rectangle
-from test_geojson_export import make_export
 
 
 def decimal_xml(value):
@@ -82,10 +84,25 @@ class IndependentR2Numerics(unittest.TestCase):
                 "SPATIAL_FRACTION_UNREPRESENTABLE",
                 "SPATIAL_LINEAGE_NUMERICAL_FAILURE",
             ) for issue in proof.issues), proof.issues)
-        # Calling the verifier on a forged outside/complete assertion must
-        # not convert an unsafe numeric domain into independently verified
-        # evidence; quality/evidence/area inputs are still the original ones.
-        # No accepted proof is produced by the M2C entry in the first place.
+        # Adversarial verifier attack: manufacture the exact kind of
+        # outside/complete proof incorrectly accepted by the old shared-GEOS
+        # verifier. No producer helper is used for expected fragments.
+        _, _, authority, _ = prepare(**args)
+        forged = SpatialRelationProof(
+            authority=authority, algorithm=algorithm(), assessable=True,
+            relation="outside", coverage_completeness="complete", reason=None,
+            target_coverage_intervals=(),
+            outside_evidence_intervals=(
+                ParentInterval(TrackPosition(0, 0), TrackPosition(0, 1)),),
+            stationary_evidence=(), gap_relevance=(),
+        )
+        checked = verify_spatial_relation(forged, **args)
+        self.assertEqual(checked.outcome, "invalid", checked)
+        self.assertTrue(
+            any(x.code.startswith("SPATIAL_NUMERICAL_") for x in checked.issues),
+            checked)
+        assembled = assemble_spatial_entities(proof=forged, **args)
+        self.assertNotEqual(assembled.outcome, "produced", assembled)
 
     def test_r2_01_a_false_outside_with_nextafter_thin_rectangle(self):
         x = 8e-200
