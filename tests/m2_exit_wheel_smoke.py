@@ -205,6 +205,64 @@ def main():
     assert edge["metric"]["speed_mps"] > 10000
     assert collection["metadata"]["temporal_overlay"]["algorithm"]["version"] == "0.1.1"
 
+    # Independent second full-repository Codex audit R2-01: real GPX XML
+    # -> wheel M2A/B/C, never a forged canonical support snapshot. Exact
+    # binary64 rectangle arithmetic establishes that both tiny bounds have
+    # strictly positive intersections, but GEOS previously classified the
+    # first outside and overshot the second into the target.
+    import math
+    from fractions import Fraction
+    from decimal import Decimal
+    def format_decimal(value):
+        return format(Decimal(str(value)), "f")
+    def numerical_gpx(start, end):
+        points = "".join(
+            '<trkpt lon="' + format_decimal(x) + '" lat="0"/>'
+            for x in (start, end)
+        )
+        return ('<gpx xmlns="http://www.topografix.com/GPX/1/1" '
+                'version="1.1" creator="codex-r2"><trk><trkseg>'
+                + points + '</trkseg></trk></gpx>').encode()
+    def rectangle_local(a, b):
+        polygon = target()
+        polygon["geometry"]["coordinates"] = [[
+            [a, -1], [b, -1], [b, 1], [a, 1], [a, -1],
+        ]]
+        return polygon
+    for x0, x1, a, b in (
+        (-9e-200, 1.8e-199, 8e-200, math.nextafter(8e-200, math.inf)),
+        (-1.3e-199, 3e-200, 0.0, 5e-324),
+    ):
+        dx = Fraction(x1) - Fraction(x0)
+        low = max(Fraction(0), (Fraction(a) - Fraction(x0)) / dx)
+        high = min(Fraction(1), (Fraction(b) - Fraction(x0)) / dx)
+        assert low < high, "Exact-Fraction independent oracle: nonempty intersection"
+        raw = numerical_gpx(x0, x1)
+        src = core.ingest_bytes(raw, source_kind="gpx",
+                  track_source={"id": "codex-r2-wheel", "revision_id": "r1"})
+        assert src.outcome == "success", src
+        q = core.project_quality(src, policy=core.QualityPolicy())
+        assert q.outcome == "produced", q
+        area = rectangle_local(a, b)
+        args = dict(evidence=src, quality_projection=q.projection,
+                    quality_policy=core.QualityPolicy(), target_area=area,
+                    target_reference=ParentReference(area["id"], area["revision_id"]))
+        rejected = core.prove_spatial_relation(**args)
+        assert rejected.outcome == "numerical_failure" and rejected.proof is None, rejected
+        assert any(issue.code.startswith("SPATIAL_NUMERICAL_") for issue in rejected.issues)
+
+    # R2-02: all equivalent signed/integer zero parent positions must have
+    # one canonical JSON representation before snapshot identity/digest.
+    for variant in (0.0, 0, -0.0):
+        t = TrackPosition(0, 0, variant)
+        assert type(t.fraction_to_next) is float
+        assert math.copysign(1.0, t.fraction_to_next) == 1.0
+        assert t == TrackPosition(0, 0)
+        assert str(t) == str(TrackPosition(0, 0))
+    assert q.algorithm.version == "0.1.2"
+
+    print("M2 EXIT ISOLATED WHEEL: R2-01 exact Fraction GPX numerical attacks fail closed; R2-02 canonical identity PASS")
+
     # No positioned observations is not "outside".
     none = core.ingest_file(
         fixtures / "fit/no-position.fit", source_kind="fit",
