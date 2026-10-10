@@ -261,7 +261,36 @@ def main():
         assert str(t) == str(TrackPosition(0, 0))
     assert q.projection.algorithm.version == "0.1.2"
 
-    print("M2 EXIT ISOLATED WHEEL: R2-01 exact Fraction GPX numerical attacks fail closed; R2-02 canonical identity PASS")
+    # PR #21 Codex P2: dataclass-equal diagnostic endpoints must not admit
+    # alternative JSON representations of the same quality evidence. Run
+    # this independently from an installed, noneditable wheel.
+    from target_area_route_reconstruction.quality_models import EdgeDiagnostic
+    diag_policy = core.QualityPolicy()
+    diag_q = core.project_quality(canonical_gpx, policy=diag_policy).projection
+    assert diag_q.diagnostics and isinstance(diag_q.diagnostics[0], EdgeDiagnostic)
+    assert core.verify_quality(diag_q, canonical_gpx, policy=diag_policy).outcome == "valid"
+    for endname in ("start", "end"):
+        for noncanonical in (0, -0.0):
+            base_pos = getattr(diag_q.diagnostics[0].interval, endname)
+            forged_pos = object.__new__(TrackPosition)
+            object.__setattr__(forged_pos, "part_index", base_pos.part_index)
+            object.__setattr__(forged_pos, "observation_index", base_pos.observation_index)
+            object.__setattr__(forged_pos, "fraction_to_next", noncanonical)
+            hacked_interval = replace(diag_q.diagnostics[0].interval, **{endname: forged_pos})
+            hacked = replace(diag_q, diagnostics=(
+                replace(diag_q.diagnostics[0], interval=hacked_interval),))
+            assert hacked.diagnostics == diag_q.diagnostics
+            assert hacked.to_json() != diag_q.to_json()
+            check = core.verify_quality(hacked, canonical_gpx, policy=diag_policy)
+            assert check.outcome == "invalid" and any(
+                issue.code == "TRACK_POSITION_INVALID" for issue in check.issues), check
+            rejected = core.prove_spatial_relation(
+                evidence=canonical_gpx, quality_projection=hacked, quality_policy=diag_policy,
+                target_area=polygon,
+                target_reference=ParentReference(polygon["id"], polygon["revision_id"]))
+            assert rejected.outcome != "produced" and rejected.proof is None, rejected
+
+    print("M2 EXIT ISOLATED WHEEL: R2-01 exact Fraction GPX numerical attacks fail closed; R2-02 canonical identity and diagnostic bypass rejection PASS")
 
     # No positioned observations is not "outside".
     none = core.ingest_file(
