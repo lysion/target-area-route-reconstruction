@@ -26,7 +26,7 @@ def evidence_digest(evidence: IngestionResult) -> str:
     return digest(evidence.to_dict())
 
 
-def _canonical_source_vertex(position) -> bool:
+def _canonical_source_vertex(position, parts) -> bool:
     """Admit only original M2A vertices with one stable typed JSON identity.
 
     Dataclass equality alone conflates 0, 0.0 and -0.0 even though serialized
@@ -35,7 +35,9 @@ def _canonical_source_vertex(position) -> bool:
     """
     return (isinstance(position, TrackPosition)
             and type(position.part_index) is int
+            and 0 <= position.part_index < len(parts)
             and type(position.observation_index) is int
+            and 0 <= position.observation_index < len(parts[position.part_index]["observations"])
             and type(position.fraction_to_next) is float
             and position.fraction_to_next == 0.0
             and math.copysign(1.0, position.fraction_to_next) == 1.0)
@@ -73,13 +75,13 @@ def evidence_issues(evidence: IngestionResult) -> tuple[QualityIssue, ...]:
                     return (QualityIssue("QUALITY_EVIDENCE_INVALID"),)
                 expected_positions.append(TrackPosition(p, i))
         mappings = evidence.observation_sources
-        if (any(not _canonical_source_vertex(m.position) for m in mappings)
+        if (any(not _canonical_source_vertex(m.position, parts) for m in mappings)
                 or [m.position for m in mappings] != expected_positions):
             return (QualityIssue("SOURCE_MAPPING_INVALID"),)
         # Every diagnostic, including a non-gap warning, contributes to the
         # source-evidence digest. Check its optional endpoint representations
         # before dataclass-equality provenance checks or any derived identity.
-        if any(pos is not None and not _canonical_source_vertex(pos)
+        if any(pos is not None and not _canonical_source_vertex(pos, parts)
                for diag in evidence.diagnostics
                for pos in (diag.previous_position, diag.next_position)):
             return (QualityIssue("SOURCE_DIAGNOSTIC_POSITION_INVALID"),)
@@ -99,6 +101,21 @@ def evidence_issues(evidence: IngestionResult) -> tuple[QualityIssue, ...]:
         missing_records = []
         for diag in evidence.diagnostics:
             if diag.code not in GAP_CODES:
+                # Non-gap diagnostics (e.g. invalid timestamps) originate
+                # immediately before a positioned sample. Their two optional
+                # endpoints must be the actual predecessor and that exact
+                # sample's canonical observation, not just any in-bounds
+                # positions with a dataclass-equal or forged identity.
+                source = diag.source
+                if (source is None or source.source_kind not in kinds
+                        or type(source.record_index) is not int):
+                    return (QualityIssue("SOURCE_DIAGNOSTIC_POSITION_INVALID"),)
+                insertion = bisect_left(records, source.record_index)
+                if (insertion >= len(mappings) or mappings[insertion].source != source
+                        or diag.previous_position != (
+                            mappings[insertion - 1].position if insertion else None)
+                        or diag.next_position != mappings[insertion].position):
+                    return (QualityIssue("SOURCE_DIAGNOSTIC_POSITION_INVALID"),)
                 continue
             source = diag.source
             if source is None or source.source_kind not in kinds:
