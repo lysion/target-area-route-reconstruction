@@ -361,7 +361,33 @@ def main():
             downstream = core.assemble_spatial_entities(proof=bad_proof, **gap_args)
             assert downstream.outcome != "produced", downstream
 
-    print("M2 EXIT ISOLATED WHEEL: R2-01 exact Fraction GPX numerical attacks fail closed; R2-02 canonical identity, M2A/M2B source and M2C nested-gap bypasses PASS")
+    # Codex P2: even a fully typed positive-zero non-gap M2A diagnostic
+    # must name its own positioned record and exact predecessor. Source
+    # acceptance cannot rely on in-bounds checks alone.
+    from target_area_route_reconstruction.models import Diagnostic
+    first_src, second_src = canonical_gpx.observation_sources[:2]
+    timestamp_diag = Diagnostic(
+        "TIMESTAMP_UNREPRESENTABLE", second_src.source, "timestamp",
+        first_src.position, second_src.position)
+    with_diag = replace(canonical_gpx, diagnostics=(timestamp_diag,))
+    clean_projection = core.project_quality(with_diag, policy=diag_policy)
+    assert clean_projection.outcome == "produced", clean_projection
+    for field, altered in (
+        ("previous_position", TrackPosition(99, 99, 0.0)),
+        ("next_position", TrackPosition(99, 99, 0.0)),
+        ("next_position", first_src.position),
+    ):
+        bad_evidence = replace(with_diag, diagnostics=(
+            replace(timestamp_diag, **{field: altered}),))
+        result = core.project_quality(bad_evidence, policy=diag_policy)
+        assert result.outcome == "quality_evidence_unavailable", result
+        assert "SOURCE_DIAGNOSTIC_POSITION_INVALID" in {
+            issue.code for issue in result.issues}, result
+        rejected = core.verify_quality(
+            clean_projection.projection, bad_evidence, policy=diag_policy)
+        assert rejected.outcome == "quality_evidence_unavailable", rejected
+
+    print("M2 EXIT ISOLATED WHEEL: R2-01 Fraction GPX numerical attacks fail closed; R2-02 canonical M2A/M2B diagnostic neighbors and M2C nested gaps PASS")
 
     # No positioned observations is not "outside".
     none = core.ingest_file(
