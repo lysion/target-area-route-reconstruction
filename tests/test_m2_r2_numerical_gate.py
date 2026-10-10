@@ -279,5 +279,44 @@ class IndependentR2Identity(unittest.TestCase):
                     self.assertIsNone(denied.proof)
 
 
+    def test_m2c_nested_gap_relevance_endpoint_identity_fails_closed(self):
+        # Codex PR #21 P2 witness: the embedded Gap in GapRelevance is a
+        # distinct serialized snapshot from the validated M2B Gap. A forged
+        # integer/negative zero is dataclass-equal but has a different digest.
+        evidence = ingest_bytes(gpx([
+            ['<trkpt lon="0" lat="0"/>', '<trkpt lon="0.1" lat="0"/>'],
+            ['<trkpt lon="0.2" lat="0"/>', '<trkpt lon="0.3" lat="0"/>'],
+        ]), source_kind="gpx", track_source={"id": "r2-nested-gap", "revision_id": "r1"})
+        self.assertEqual(evidence.outcome, "success")
+        args = arguments(evidence, rectangle(-1, -1, 1, 1))
+        result = prove_spatial_relation(**args)
+        self.assertEqual(result.outcome, "produced", result)
+        baseline = result.proof
+        self.assertEqual(verify_spatial_relation(baseline, **args).outcome, "valid")
+        self.assertTrue(baseline.gap_relevance)
+        for field in ("start", "end"):
+            for invalid in (0, -0.0):
+                with self.subTest(field=field, type=type(invalid).__name__, value=repr(invalid)):
+                    original = getattr(baseline.gap_relevance[0].gap, field)
+                    self.assertIsNotNone(original)
+                    bad = object.__new__(TrackPosition)
+                    object.__setattr__(bad, "part_index", original.part_index)
+                    object.__setattr__(bad, "observation_index", original.observation_index)
+                    object.__setattr__(bad, "fraction_to_next", invalid)
+                    self.assertEqual(bad, original)
+                    changed_gap = replace(baseline.gap_relevance[0].gap, **{field: bad})
+                    self.assertEqual(changed_gap, baseline.gap_relevance[0].gap)
+                    changed_relevance = replace(baseline.gap_relevance[0], gap=changed_gap)
+                    forged = replace(baseline, gap_relevance=(
+                        changed_relevance, *baseline.gap_relevance[1:]))
+                    self.assertNotEqual(forged.to_json(), baseline.to_json())
+                    checked = verify_spatial_relation(forged, **args)
+                    self.assertEqual(checked.outcome, "invalid", checked)
+                    self.assertIn("SPATIAL_POSITION_INVALID",
+                                  [issue.code for issue in checked.issues])
+                    assembled = assemble_spatial_entities(proof=forged, **args)
+                    self.assertNotEqual(assembled.outcome, "produced", assembled)
+
+
 if __name__ == "__main__":
     unittest.main()
