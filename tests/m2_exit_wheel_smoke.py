@@ -410,7 +410,26 @@ def main():
             assert "SOURCE_DIAGNOSTIC_SOURCE_INVALID" in {
                 issue.code for issue in result.issues}, result
 
-    print("M2 EXIT ISOLATED WHEEL: R2-01 Fraction GPX numerical attacks fail closed; R2-02 canonical M2A source indices, M2B diagnostics and M2C nested gaps PASS")
+    # Exact SourceLocation class identity must be enforced even if a
+    # dataclass subclass retains every canonical source index and only
+    # appends an independent JSON field. This is a wheel-only adversary.
+    from dataclasses import dataclass
+    @dataclass(frozen=True)
+    class ExtendedSourceLocation(SourceLocation):
+        extra: str = "forged"
+
+    forged_src = src0.source
+    inherited = ExtendedSourceLocation(
+        forged_src.source_kind, forged_src.record_index,
+        forged_src.track_index, forged_src.segment_index, forged_src.point_index)
+    fake_evidence = replace(canonical_gpx, observation_sources=(
+        replace(src0, source=inherited), *canonical_gpx.observation_sources[1:]))
+    assert fake_evidence.to_json() != canonical_gpx.to_json()
+    rejected = core.project_quality(fake_evidence, policy=diag_policy)
+    assert rejected.outcome == "quality_evidence_unavailable", rejected
+    assert "SOURCE_MAPPING_INVALID" in {i.code for i in rejected.issues}, rejected
+
+    print("M2 EXIT ISOLATED WHEEL: R2-01 Fraction GPX numerical attacks fail closed; R2-02 canonical M2A source types/indices, M2B diagnostics and M2C nested gaps PASS")
 
     # No positioned observations is not "outside".
     none = core.ingest_file(
