@@ -52,9 +52,21 @@ def _canonical_source_location(source) -> bool:
     """
     if type(source) is not SourceLocation or type(source.source_kind) is not str:
         return False
-    return all(value is None or (type(value) is int and value >= 0)
+    if not all(value is None or (type(value) is int and value >= 0)
                for value in (source.record_index, source.track_index,
-                             source.segment_index, source.point_index))
+                             source.segment_index, source.point_index)):
+        return False
+    if source.source_kind == "fit":
+        # FIT identifies a Record by record_index, with no track/segment/
+        # point coordinates. A non-None zero is a different M2A JSON object.
+        return all(value is None for value in (
+            source.track_index, source.segment_index, source.point_index))
+    if source.source_kind == "gpx":
+        # GPX continuity/empty-part diagnostics have no point index, but
+        # always preserve concrete source track and segment indices.
+        return (type(source.track_index) is int
+                and type(source.segment_index) is int)
+    return False
 
 
 def evidence_issues(evidence: IngestionResult) -> tuple[QualityIssue, ...]:
@@ -98,7 +110,10 @@ def evidence_issues(evidence: IngestionResult) -> tuple[QualityIssue, ...]:
             return (QualityIssue("SOURCE_MAPPING_INVALID"),)
         if any(type(diag) is not Diagnostic for diag in evidence.diagnostics):
             return (QualityIssue("SOURCE_DIAGNOSTIC_SOURCE_INVALID"),)
-        if any(not _canonical_source_location(m.source) for m in mappings):
+        if any(not _canonical_source_location(m.source)
+               or type(m.source.record_index) is not int
+               or (m.source.source_kind == "gpx" and type(m.source.point_index) is not int)
+               for m in mappings):
             return (QualityIssue("SOURCE_MAPPING_INVALID"),)
         if any(diag.source is not None and not _canonical_source_location(diag.source)
                for diag in evidence.diagnostics):
@@ -128,6 +143,11 @@ def evidence_issues(evidence: IngestionResult) -> tuple[QualityIssue, ...]:
         boundaries = set()
         missing_records = []
         for diag in evidence.diagnostics:
+            if diag.code in {"SOURCE_CONTINUITY_BREAK", "EMPTY_SOURCE_PART"}:
+                if (diag.source is None or diag.source.source_kind != "gpx"
+                        or diag.source.record_index is not None
+                        or diag.source.point_index is not None):
+                    return (QualityIssue("SOURCE_DIAGNOSTIC_SOURCE_INVALID"),)
             if diag.code not in GAP_CODES:
                 # Non-gap diagnostics (e.g. invalid timestamps) originate
                 # immediately before a positioned sample. Their two optional
