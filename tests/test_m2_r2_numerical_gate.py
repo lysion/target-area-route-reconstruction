@@ -391,5 +391,59 @@ class IndependentR2Identity(unittest.TestCase):
                         "quality_evidence_unavailable")
 
 
+    def test_source_snapshot_subclasses_cannot_extend_hashed_identity(self):
+        # Codex P2: dataclass inheritance preserves canonical source indices,
+        # but adds serialized fields to asdict() and therefore distinct SHA.
+        from dataclasses import asdict, dataclass
+        from target_area_route_reconstruction.models import (
+            Diagnostic, IngestionResult, ObservationSource, SourceLocation,
+        )
+
+        @dataclass(frozen=True)
+        class ForeignSource(SourceLocation):
+            extra: str = "untrusted"
+
+        @dataclass(frozen=True)
+        class ForeignMapping(ObservationSource):
+            extra: str = "untrusted"
+
+        @dataclass(frozen=True)
+        class ForeignDiagnostic(Diagnostic):
+            extra: str = "untrusted"
+
+        @dataclass(frozen=True)
+        class ForeignEvidence(IngestionResult):
+            extra: str = "untrusted"
+
+        evidence = real_gpx((0, 0), (0.1, 0))
+        mapping = evidence.observation_sources[0]
+        fake_source = ForeignSource(**asdict(mapping.source))
+        self.assertEqual([getattr(fake_source, key) for key in
+                          ("record_index", "track_index", "segment_index", "point_index")],
+                         [getattr(mapping.source, key) for key in
+                          ("record_index", "track_index", "segment_index", "point_index")])
+        diagnostic = Diagnostic("TIMESTAMP_UNREPRESENTABLE", mapping.source,
+                                "timestamp", None, mapping.position)
+        augmented = replace(evidence, diagnostics=(diagnostic,))
+        self.assertEqual(project_quality(augmented, policy=QualityPolicy()).outcome, "produced")
+        cases = (
+            (replace(augmented, observation_sources=(
+                replace(mapping, source=fake_source), *augmented.observation_sources[1:])),
+             "SOURCE_MAPPING_INVALID"),
+            (replace(augmented, observation_sources=(
+                ForeignMapping(**asdict(mapping)), *augmented.observation_sources[1:])),
+             "SOURCE_MAPPING_INVALID"),
+            (replace(augmented, diagnostics=(ForeignDiagnostic(**asdict(diagnostic)),)),
+             "SOURCE_DIAGNOSTIC_SOURCE_INVALID"),
+            (ForeignEvidence(**asdict(augmented)), "QUALITY_EVIDENCE_INVALID"),
+        )
+        for changed, code in cases:
+            with self.subTest(case=code, type=type(changed).__name__):
+                self.assertNotEqual(changed.to_json(), augmented.to_json())
+                result = project_quality(changed, policy=QualityPolicy())
+                self.assertEqual(result.outcome, "quality_evidence_unavailable", result)
+                self.assertIn(code, [issue.code for issue in result.issues])
+
+
 if __name__ == "__main__":
     unittest.main()
