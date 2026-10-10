@@ -10,7 +10,7 @@ import math
 import re
 from bisect import bisect_left
 
-from .models import IngestionResult, SourceLocation, TrackPosition
+from .models import Diagnostic, IngestionResult, ObservationSource, SourceLocation, TrackPosition
 from .quality_models import QualityIssue
 
 GAP_CODES = frozenset({"SOURCE_CONTINUITY_BREAK", "EMPTY_SOURCE_PART",
@@ -33,7 +33,7 @@ def _canonical_source_vertex(position, parts) -> bool:
     evidence SHA-256 does not. Source mappings and ingestion diagnostics are
     both included in the M2A fingerprint, so guard both before hashing.
     """
-    return (isinstance(position, TrackPosition)
+    return (type(position) is TrackPosition
             and type(position.part_index) is int
             and 0 <= position.part_index < len(parts)
             and type(position.observation_index) is int
@@ -50,7 +50,7 @@ def _canonical_source_location(source) -> bool:
     values changes provenance hashes. Optional indices remain None only as
     explicitly represented by the source format/diagnostic contract.
     """
-    if not isinstance(source, SourceLocation) or type(source.source_kind) is not str:
+    if type(source) is not SourceLocation or type(source.source_kind) is not str:
         return False
     return all(value is None or (type(value) is int and value >= 0)
                for value in (source.record_index, source.track_index,
@@ -59,7 +59,7 @@ def _canonical_source_location(source) -> bool:
 
 def evidence_issues(evidence: IngestionResult) -> tuple[QualityIssue, ...]:
     """Check the supported M2A hand-off, including unchanged revision content."""
-    if not isinstance(evidence, IngestionResult):
+    if type(evidence) is not IngestionResult:
         return (QualityIssue("QUALITY_EVIDENCE_INVALID"),)
     if evidence.outcome != "success" or evidence.canonical_track is None:
         return (QualityIssue("QUALITY_EVIDENCE_UNAVAILABLE"),)
@@ -90,6 +90,14 @@ def evidence_issues(evidence: IngestionResult) -> tuple[QualityIssue, ...]:
                     return (QualityIssue("QUALITY_EVIDENCE_INVALID"),)
                 expected_positions.append(TrackPosition(p, i))
         mappings = evidence.observation_sources
+        # Exact typed input shapes are part of the snapshot authority. A
+        # dataclass subclass can append fields which asdict() hashes, even
+        # though inherited source coordinates remain unchanged. Refuse it
+        # instead of silently accepting a second identity for the same fact.
+        if any(type(m) is not ObservationSource for m in mappings):
+            return (QualityIssue("SOURCE_MAPPING_INVALID"),)
+        if any(type(diag) is not Diagnostic for diag in evidence.diagnostics):
+            return (QualityIssue("SOURCE_DIAGNOSTIC_SOURCE_INVALID"),)
         if any(not _canonical_source_location(m.source) for m in mappings):
             return (QualityIssue("SOURCE_MAPPING_INVALID"),)
         if any(diag.source is not None and not _canonical_source_location(diag.source)
