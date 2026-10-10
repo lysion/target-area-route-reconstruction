@@ -387,7 +387,30 @@ def main():
             clean_projection.projection, bad_evidence, policy=diag_policy)
         assert rejected.outcome == "quality_evidence_unavailable", rejected
 
-    print("M2 EXIT ISOLATED WHEEL: R2-01 Fraction GPX numerical attacks fail closed; R2-02 canonical M2A/M2B diagnostic neighbors and M2C nested gaps PASS")
+    # Type-sensitive source lineage witness: these are *equal* as Python
+    # SourceLocation values, but their JSON spellings and fingerprints differ.
+    # Check both observation mapping and diagnostic copies against the wheel.
+    from target_area_route_reconstruction.models import SourceLocation
+    src0 = canonical_gpx.observation_sources[0]
+    injected_diag = Diagnostic(
+        "TIMESTAMP_UNREPRESENTABLE", src0.source, "timestamp",
+        None, src0.position)
+    inject = replace(canonical_gpx, diagnostics=(injected_diag,))
+    assert core.project_quality(inject, policy=diag_policy).outcome == "produced"
+    for name in ("record_index", "track_index", "segment_index", "point_index"):
+        # The reference wheel fixture's initial GPX indices are all zero.
+        assert getattr(src0.source, name) == 0
+        for representation in (False, 0.0):
+            bad_source = replace(src0.source, **{name: representation})
+            assert isinstance(bad_source, SourceLocation) and bad_source == src0.source
+            spoofed = replace(inject, diagnostics=(replace(injected_diag, source=bad_source),))
+            assert spoofed.to_json() != inject.to_json()
+            result = core.project_quality(spoofed, policy=diag_policy)
+            assert result.outcome == "quality_evidence_unavailable", result
+            assert "SOURCE_DIAGNOSTIC_SOURCE_INVALID" in {
+                issue.code for issue in result.issues}, result
+
+    print("M2 EXIT ISOLATED WHEEL: R2-01 Fraction GPX numerical attacks fail closed; R2-02 canonical M2A source indices, M2B diagnostics and M2C nested gaps PASS")
 
     # No positioned observations is not "outside".
     none = core.ingest_file(
