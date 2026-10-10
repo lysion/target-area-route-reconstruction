@@ -10,7 +10,7 @@ import math
 import re
 from bisect import bisect_left
 
-from .models import IngestionResult, TrackPosition
+from .models import IngestionResult, SourceLocation, TrackPosition
 from .quality_models import QualityIssue
 
 GAP_CODES = frozenset({"SOURCE_CONTINUITY_BREAK", "EMPTY_SOURCE_PART",
@@ -41,6 +41,20 @@ def _canonical_source_vertex(position, parts) -> bool:
             and type(position.fraction_to_next) is float
             and position.fraction_to_next == 0.0
             and math.copysign(1.0, position.fraction_to_next) == 1.0)
+
+
+def _canonical_source_location(source) -> bool:
+    """Guard every source index before dataclass equality or fingerprinting.
+
+    Python considers False == 0 and 1.0 == 1, but the JSON encoding of these
+    values changes provenance hashes. Optional indices remain None only as
+    explicitly represented by the source format/diagnostic contract.
+    """
+    if not isinstance(source, SourceLocation) or type(source.source_kind) is not str:
+        return False
+    return all(value is None or (type(value) is int and value >= 0)
+               for value in (source.record_index, source.track_index,
+                             source.segment_index, source.point_index))
 
 
 def evidence_issues(evidence: IngestionResult) -> tuple[QualityIssue, ...]:
@@ -76,6 +90,11 @@ def evidence_issues(evidence: IngestionResult) -> tuple[QualityIssue, ...]:
                     return (QualityIssue("QUALITY_EVIDENCE_INVALID"),)
                 expected_positions.append(TrackPosition(p, i))
         mappings = evidence.observation_sources
+        if any(not _canonical_source_location(m.source) for m in mappings):
+            return (QualityIssue("SOURCE_MAPPING_INVALID"),)
+        if any(diag.source is not None and not _canonical_source_location(diag.source)
+               for diag in evidence.diagnostics):
+            return (QualityIssue("SOURCE_DIAGNOSTIC_SOURCE_INVALID"),)
         if (any(not _canonical_source_vertex(m.position, parts) for m in mappings)
                 or [m.position for m in mappings] != expected_positions):
             return (QualityIssue("SOURCE_MAPPING_INVALID"),)
