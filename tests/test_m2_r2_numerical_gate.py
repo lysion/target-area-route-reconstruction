@@ -318,5 +318,39 @@ class IndependentR2Identity(unittest.TestCase):
                     self.assertNotEqual(assembled.outcome, "produced", assembled)
 
 
+    def test_nongap_m2a_diagnostic_has_canonical_real_neighbor_positions(self):
+        # Codex P2: timestamp diagnostics are not gap diagnostics but still
+        # enter the immutable M2A digest. A well-typed, canonical position
+        # must ALSO be the exact neighbor of the source record.
+        from target_area_route_reconstruction.models import Diagnostic
+        evidence = real_gpx((0, 0), (0.1, 0))
+        first, second = evidence.observation_sources
+        d = Diagnostic("TIMESTAMP_UNREPRESENTABLE", second.source, "timestamp",
+                       first.position, second.position)
+        admitted = replace(evidence, diagnostics=(d,))
+        policy = QualityPolicy()
+        projected = project_quality(admitted, policy=policy)
+        self.assertEqual(projected.outcome, "produced", projected)
+        self.assertEqual(verify_quality(projected.projection, admitted,
+                                        policy=policy).outcome, "valid")
+        candidates = (
+            ("previous_position", TrackPosition(99, 99, 0.0)),
+            ("next_position", TrackPosition(99, 99, 0.0)),
+            ("next_position", first.position),  # in bounds, incorrect record
+        )
+        for field, value in candidates:
+            with self.subTest(field=field, value=value):
+                forged = replace(admitted, diagnostics=(replace(d, **{field: value}),))
+                self.assertNotEqual(forged.to_json(), admitted.to_json())
+                result = project_quality(forged, policy=policy)
+                self.assertEqual(result.outcome, "quality_evidence_unavailable", result)
+                self.assertIn("SOURCE_DIAGNOSTIC_POSITION_INVALID",
+                              [issue.code for issue in result.issues])
+                verified = verify_quality(projected.projection, forged, policy=policy)
+                self.assertEqual(verified.outcome, "quality_evidence_unavailable", verified)
+                self.assertIn("SOURCE_DIAGNOSTIC_POSITION_INVALID",
+                              [issue.code for issue in verified.issues])
+
+
 if __name__ == "__main__":
     unittest.main()
