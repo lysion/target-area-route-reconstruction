@@ -180,5 +180,42 @@ class IndependentR2Identity(unittest.TestCase):
                 self.assertEqual(rejected.outcome, "invalid", rejected)
                 self.assertIn("TRACK_POSITION_INVALID", [x.code for x in rejected.issues])
 
+    def test_noncanonical_diagnostic_endpoints_fail_closed_before_spatial_digest(self):
+        # Independent PR #21 Codex P2 witness: dataclass equality treats
+        # integer/negative zero as equal, while JSON and evidence hashes do
+        # not. Test the diagnostic field, not just usable intervals.
+        evidence = real_gpx((0, 0), (0.1, 0))
+        policy = QualityPolicy()
+        baseline = project_quality(evidence, policy=policy).projection
+        self.assertEqual(len(baseline.diagnostics), 1)
+        self.assertEqual(verify_quality(baseline, evidence, policy=policy).outcome, "valid")
+        args = arguments(evidence, rectangle(-1, -1, 1, 1))
+        for endpoint in ("start", "end"):
+            for invalid in (0, -0.0):
+                with self.subTest(endpoint=endpoint, typ=type(invalid).__name__,
+                                  value=repr(invalid)):
+                    original = getattr(baseline.diagnostics[0].interval, endpoint)
+                    forged_position = object.__new__(TrackPosition)
+                    object.__setattr__(forged_position, "part_index", original.part_index)
+                    object.__setattr__(forged_position, "observation_index", original.observation_index)
+                    object.__setattr__(forged_position, "fraction_to_next", invalid)
+                    interval = replace(baseline.diagnostics[0].interval,
+                                       **{endpoint: forged_position})
+                    forged = replace(baseline, diagnostics=(
+                        replace(baseline.diagnostics[0], interval=interval),))
+                    # The old verifier compared these tuples with dataclass
+                    # equality, then approved distinct serialized evidence.
+                    self.assertEqual(forged.diagnostics, baseline.diagnostics)
+                    self.assertNotEqual(forged.to_json(), baseline.to_json())
+                    validation = verify_quality(forged, evidence, policy=policy)
+                    self.assertEqual(validation.outcome, "invalid", validation)
+                    self.assertIn("TRACK_POSITION_INVALID",
+                                  [issue.code for issue in validation.issues])
+                    spatial = prove_spatial_relation(
+                        **{**args, "quality_projection": forged})
+                    self.assertNotEqual(spatial.outcome, "produced", spatial)
+                    self.assertIsNone(spatial.proof)
+
+
 if __name__ == "__main__":
     unittest.main()
