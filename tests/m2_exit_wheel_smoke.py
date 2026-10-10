@@ -429,7 +429,35 @@ def main():
     assert rejected.outcome == "quality_evidence_unavailable", rejected
     assert "SOURCE_MAPPING_INVALID" in {i.code for i in rejected.issues}, rejected
 
-    print("M2 EXIT ISOLATED WHEEL: R2-01 Fraction GPX numerical attacks fail closed; R2-02 canonical M2A source types/indices, M2B diagnostics and M2C nested gaps PASS")
+    # Native FIT Record locations have no track/segment/point indices.
+    # GPX part-level discontinuity reports have no record/point index.
+    # Canonical types alone do not prevent None→integer hash aliases.
+    fit_src = core.ingest_file(
+        fixtures / "fit/complete-activity.fit", source_kind="fit",
+        track_source={"id": "wheel-fit-shape", "revision_id": "r1"})
+    assert fit_src.outcome == "success", fit_src
+    fit_mapping = fit_src.observation_sources[0]
+    for field in ("track_index", "segment_index", "point_index"):
+        assert getattr(fit_mapping.source, field) is None
+        fake = replace(fit_src, observation_sources=(
+            replace(fit_mapping, source=replace(fit_mapping.source, **{field: 0})),
+            *fit_src.observation_sources[1:]))
+        check = core.project_quality(fake, policy=diag_policy)
+        assert check.outcome == "quality_evidence_unavailable" and any(
+            issue.code == "SOURCE_MAPPING_INVALID" for issue in check.issues), check
+    part_diag = next(d for d in gap_evidence.diagnostics
+                     if d.code == "SOURCE_CONTINUITY_BREAK")
+    assert part_diag.source.record_index is None and part_diag.source.point_index is None
+    for field in ("record_index", "point_index"):
+        changed = list(gap_evidence.diagnostics)
+        i = changed.index(part_diag)
+        changed[i] = replace(part_diag, source=replace(part_diag.source, **{field: 0}))
+        fake = replace(gap_evidence, diagnostics=tuple(changed))
+        check = core.project_quality(fake, policy=diag_policy)
+        assert check.outcome == "quality_evidence_unavailable" and any(
+            issue.code == "SOURCE_DIAGNOSTIC_SOURCE_INVALID" for issue in check.issues), check
+
+    print("M2 EXIT ISOLATED WHEEL: R2-01 Fraction GPX numerical attacks fail closed; R2-02 canonical M2A FIT/GPX source shapes, M2B diagnostics and M2C nested gaps PASS")
 
     # No positioned observations is not "outside".
     none = core.ingest_file(
