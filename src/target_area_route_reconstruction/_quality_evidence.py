@@ -63,7 +63,8 @@ def evidence_issues(evidence: IngestionResult) -> tuple[QualityIssue, ...]:
                     "parts": track["parts"], "normalizer": track["normalizer"]})):
             return (QualityIssue("PARENT_CONTENT_REVISION_MISMATCH"),)
         expected_positions = []
-        if not track["parts"]:
+        parts = track["parts"]
+        if not parts:
             return (QualityIssue("QUALITY_EVIDENCE_INVALID"),)
         for p, part in enumerate(track["parts"]):
             if not part["observations"]:
