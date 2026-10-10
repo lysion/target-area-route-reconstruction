@@ -291,7 +291,51 @@ def main():
                 target_reference=ParentReference(polygon["id"], polygon["revision_id"]))
             assert rejected.outcome != "produced" and rejected.proof is None, rejected
 
-    print("M2 EXIT ISOLATED WHEEL: R2-01 exact Fraction GPX numerical attacks fail closed; R2-02 canonical identity and diagnostic bypass rejection PASS")
+    # A separate Codex P2 found the same representation bypass earlier
+    # than quality projection: M2A source mappings and ingestion gap diagnostic
+    # endpoints participate in the evidence SHA-256. Verify both negative
+    # paths from real GPX using only the installed package.
+    def forged_vertex(original, variant):
+        bad = object.__new__(TrackPosition)
+        object.__setattr__(bad, "part_index", original.part_index)
+        object.__setattr__(bad, "observation_index", original.observation_index)
+        object.__setattr__(bad, "fraction_to_next", variant)
+        assert bad == original
+        return bad
+
+    gap_evidence = core.ingest_file(
+        fixtures / "gpx/discontinuity.gpx", source_kind="gpx",
+        track_source={"id": "r2-wheel-gap", "revision_id": "r1"})
+    assert gap_evidence.outcome == "success", gap_evidence
+    for source_evidence, source_kind in ((canonical_gpx, "mapping"),
+                                         (gap_evidence, "diagnostic")):
+        base_projection = core.project_quality(source_evidence, policy=diag_policy)
+        assert base_projection.outcome == "produced", base_projection
+        for variant in (0, -0.0):
+            if source_kind == "mapping":
+                mapping = source_evidence.observation_sources[0]
+                bad = forged_vertex(mapping.position, variant)
+                swapped = replace(source_evidence, observation_sources=(
+                    replace(mapping, position=bad), *source_evidence.observation_sources[1:]))
+                expected_code = "SOURCE_MAPPING_INVALID"
+            else:
+                position_index = next(i for i, d in enumerate(source_evidence.diagnostics)
+                                      if d.previous_position is not None)
+                d = source_evidence.diagnostics[position_index]
+                bad = forged_vertex(d.previous_position, variant)
+                changed_diags = list(source_evidence.diagnostics)
+                changed_diags[position_index] = replace(d, previous_position=bad)
+                swapped = replace(source_evidence, diagnostics=tuple(changed_diags))
+                expected_code = "SOURCE_DIAGNOSTIC_POSITION_INVALID"
+            assert swapped.to_json() != source_evidence.to_json()
+            rejected = core.project_quality(swapped, policy=diag_policy)
+            assert rejected.outcome == "quality_evidence_unavailable", rejected
+            assert expected_code in {issue.code for issue in rejected.issues}, rejected
+            validation = core.verify_quality(
+                base_projection.projection, swapped, policy=diag_policy)
+            assert validation.outcome == "quality_evidence_unavailable", validation
+
+    print("M2 EXIT ISOLATED WHEEL: R2-01 exact Fraction GPX numerical attacks fail closed; R2-02 canonical identity, diagnostic and M2A source representation bypasses PASS")
 
     # No positioned observations is not "outside".
     none = core.ingest_file(
