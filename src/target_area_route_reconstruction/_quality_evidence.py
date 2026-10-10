@@ -26,6 +26,21 @@ def evidence_digest(evidence: IngestionResult) -> str:
     return digest(evidence.to_dict())
 
 
+def _canonical_source_vertex(position) -> bool:
+    """Admit only original M2A vertices with one stable typed JSON identity.
+
+    Dataclass equality alone conflates 0, 0.0 and -0.0 even though serialized
+    evidence SHA-256 does not. Source mappings and ingestion diagnostics are
+    both included in the M2A fingerprint, so guard both before hashing.
+    """
+    return (isinstance(position, TrackPosition)
+            and type(position.part_index) is int
+            and type(position.observation_index) is int
+            and type(position.fraction_to_next) is float
+            and position.fraction_to_next == 0.0
+            and math.copysign(1.0, position.fraction_to_next) == 1.0)
+
+
 def evidence_issues(evidence: IngestionResult) -> tuple[QualityIssue, ...]:
     """Check the supported M2A hand-off, including unchanged revision content."""
     if not isinstance(evidence, IngestionResult):
@@ -58,10 +73,16 @@ def evidence_issues(evidence: IngestionResult) -> tuple[QualityIssue, ...]:
                     return (QualityIssue("QUALITY_EVIDENCE_INVALID"),)
                 expected_positions.append(TrackPosition(p, i))
         mappings = evidence.observation_sources
-        if ([m.position for m in mappings] != expected_positions
-                or any(type(m.position.part_index) is not int or type(m.position.observation_index) is not int
-                       or type(m.position.fraction_to_next) not in (int, float) for m in mappings)):
+        if (any(not _canonical_source_vertex(m.position) for m in mappings)
+                or [m.position for m in mappings] != expected_positions):
             return (QualityIssue("SOURCE_MAPPING_INVALID"),)
+        # Every diagnostic, including a non-gap warning, contributes to the
+        # source-evidence digest. Check its optional endpoint representations
+        # before dataclass-equality provenance checks or any derived identity.
+        if any(pos is not None and not _canonical_source_vertex(pos)
+               for diag in evidence.diagnostics
+               for pos in (diag.previous_position, diag.next_position)):
+            return (QualityIssue("SOURCE_DIAGNOSTIC_POSITION_INVALID"),)
         records = [m.source.record_index for m in mappings]
         if (any(type(n) is not int or n < 0 for n in records)
                 or any(a >= b for a, b in zip(records, records[1:]))):
