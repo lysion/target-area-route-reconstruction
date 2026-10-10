@@ -335,7 +335,33 @@ def main():
                 base_projection.projection, swapped, policy=diag_policy)
             assert validation.outcome == "quality_evidence_unavailable", validation
 
-    print("M2 EXIT ISOLATED WHEEL: R2-01 exact Fraction GPX numerical attacks fail closed; R2-02 canonical identity, diagnostic and M2A source representation bypasses PASS")
+    # PR review's third representation bypass: the M2C proof has a nested
+    # GapRelevance.gap snapshot distinct from its validated M2B parent. Forge
+    # either endpoint and require an installed-wheel M2C + M2D refusal.
+    gap_quality = core.project_quality(gap_evidence, policy=diag_policy).projection
+    gap_args = dict(evidence=gap_evidence, quality_projection=gap_quality,
+                    quality_policy=diag_policy, target_area=polygon,
+                    target_reference=ParentReference(polygon["id"], polygon["revision_id"]))
+    spatial_gap = core.prove_spatial_relation(**gap_args)
+    assert spatial_gap.outcome == "produced" and spatial_gap.proof.gap_relevance, spatial_gap
+    for field in ("start", "end"):
+        for noncanonical in (0, -0.0):
+            parent_gap = spatial_gap.proof.gap_relevance[0].gap
+            original = getattr(parent_gap, field)
+            assert original is not None
+            forged_gap = replace(parent_gap, **{field: forged_vertex(original, noncanonical)})
+            assert forged_gap == parent_gap
+            forged_rel = replace(spatial_gap.proof.gap_relevance[0], gap=forged_gap)
+            bad_proof = replace(spatial_gap.proof, gap_relevance=(
+                forged_rel, *spatial_gap.proof.gap_relevance[1:]))
+            assert bad_proof.to_json() != spatial_gap.proof.to_json()
+            checked = core.verify_spatial_relation(bad_proof, **gap_args)
+            assert checked.outcome == "invalid" and any(
+                issue.code == "SPATIAL_POSITION_INVALID" for issue in checked.issues), checked
+            downstream = core.assemble_spatial_entities(proof=bad_proof, **gap_args)
+            assert downstream.outcome != "produced", downstream
+
+    print("M2 EXIT ISOLATED WHEEL: R2-01 exact Fraction GPX numerical attacks fail closed; R2-02 canonical identity, M2A/M2B source and M2C nested-gap bypasses PASS")
 
     # No positioned observations is not "outside".
     none = core.ingest_file(
