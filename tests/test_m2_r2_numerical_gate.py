@@ -447,5 +447,49 @@ class IndependentR2Identity(unittest.TestCase):
                 self.assertIn(code, [issue.code for issue in result.issues])
 
 
+    def test_fit_and_gpx_source_locations_have_distinct_optional_index_shapes(self):
+        from pathlib import Path
+        from target_area_route_reconstruction import ingest_file
+        from test_canonical_ingestion import ROOT
+        fit = ingest_file(Path(ROOT) / "tests/source-fixtures/fit/complete-activity.fit",
+                          source_kind="fit", track_source={"id": "r2-fit-shape", "revision_id": "r1"})
+        self.assertEqual(fit.outcome, "success", fit)
+        original = project_quality(fit, policy=QualityPolicy())
+        self.assertEqual(original.outcome, "produced", original)
+        mapping = fit.observation_sources[0]
+        self.assertEqual((mapping.source.track_index, mapping.source.segment_index,
+                          mapping.source.point_index), (None, None, None))
+        for name in ("track_index", "segment_index", "point_index"):
+            with self.subTest(kind="fit", field=name):
+                forged = replace(fit, observation_sources=(
+                    replace(mapping, source=replace(mapping.source, **{name: 0})),
+                    *fit.observation_sources[1:]))
+                result = project_quality(forged, policy=QualityPolicy())
+                self.assertEqual(result.outcome, "quality_evidence_unavailable", result)
+                self.assertIn("SOURCE_MAPPING_INVALID", [issue.code for issue in result.issues])
+
+        gap = ingest_bytes(gpx([
+            ['<trkpt lon="0" lat="0"/>'],
+            ['<trkpt lon="0.1" lat="0"/>'],
+        ]), source_kind="gpx", track_source={"id": "r2-gpx-parts", "revision_id": "r1"})
+        self.assertEqual(gap.outcome, "success", gap)
+        gap_projection = project_quality(gap, policy=QualityPolicy())
+        self.assertEqual(gap_projection.outcome, "produced", gap_projection)
+        gap_idx = next(i for i, d in enumerate(gap.diagnostics)
+                       if d.code == "SOURCE_CONTINUITY_BREAK")
+        diag = gap.diagnostics[gap_idx]
+        self.assertIsNone(diag.source.record_index)
+        self.assertIsNone(diag.source.point_index)
+        for field in ("record_index", "point_index"):
+            with self.subTest(kind="gpx-part", field=field):
+                altered = list(gap.diagnostics)
+                altered[gap_idx] = replace(diag, source=replace(diag.source, **{field: 0}))
+                forged = replace(gap, diagnostics=tuple(altered))
+                result = project_quality(forged, policy=QualityPolicy())
+                self.assertEqual(result.outcome, "quality_evidence_unavailable", result)
+                self.assertIn("SOURCE_DIAGNOSTIC_SOURCE_INVALID",
+                              [issue.code for issue in result.issues])
+
+
 if __name__ == "__main__":
     unittest.main()
