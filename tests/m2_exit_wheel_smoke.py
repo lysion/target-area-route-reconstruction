@@ -278,7 +278,8 @@ def main():
             object.__setattr__(forged_pos, "fraction_to_next", noncanonical)
             hacked_interval = replace(diag_q.diagnostics[0].interval, **{endname: forged_pos})
             hacked = replace(diag_q, diagnostics=(
-                replace(diag_q.diagnostics[0], interval=hacked_interval),))
+                replace(diag_q.diagnostics[0], interval=hacked_interval),
+                *diag_q.diagnostics[1:]))
             assert hacked.diagnostics == diag_q.diagnostics
             assert hacked.to_json() != diag_q.to_json()
             check = core.verify_quality(hacked, canonical_gpx, policy=diag_policy)
