@@ -269,9 +269,12 @@ class IndependentR2Identity(unittest.TestCase):
                     verified = verify_quality(original.projection, changed, policy=policy)
                     self.assertEqual(verified.outcome, "quality_evidence_unavailable", verified)
                     self.assertIn(issue, [i.code for i in verified.issues])
-                    args = arguments(changed, rectangle(-1, -1, 1, 1))
+                    # Build expected target/policy from valid source first;
+                    # the helper intentionally refuses the forged M2A input.
+                    args = arguments(evidence, rectangle(-1, -1, 1, 1))
                     denied = prove_spatial_relation(
-                        **{**args, "quality_projection": original.projection})
+                        **{**args, "evidence": changed,
+                           "quality_projection": original.projection})
                     self.assertNotEqual(denied.outcome, "produced", denied)
                     self.assertIsNone(denied.proof)
 
