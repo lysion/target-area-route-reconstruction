@@ -431,11 +431,13 @@ class IndependentR2Identity(unittest.TestCase):
                 replace(mapping, source=fake_source), *augmented.observation_sources[1:])),
              "SOURCE_MAPPING_INVALID"),
             (replace(augmented, observation_sources=(
-                ForeignMapping(**asdict(mapping)), *augmented.observation_sources[1:])),
+                ForeignMapping(mapping.position, mapping.source), *augmented.observation_sources[1:])),
              "SOURCE_MAPPING_INVALID"),
-            (replace(augmented, diagnostics=(ForeignDiagnostic(**asdict(diagnostic)),)),
+            (replace(augmented, diagnostics=(ForeignDiagnostic(diagnostic.code, diagnostic.source, diagnostic.field,
+                                  diagnostic.previous_position, diagnostic.next_position),)),
              "SOURCE_DIAGNOSTIC_SOURCE_INVALID"),
-            (ForeignEvidence(**asdict(augmented)), "QUALITY_EVIDENCE_INVALID"),
+            (ForeignEvidence(augmented.outcome, augmented.content_hash, augmented.canonical_track,
+                             augmented.diagnostics, augmented.observation_sources), "QUALITY_EVIDENCE_INVALID"),
         )
         for changed, code in cases:
             with self.subTest(case=code, type=type(changed).__name__):
