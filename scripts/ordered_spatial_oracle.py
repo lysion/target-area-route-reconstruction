@@ -8,6 +8,7 @@ of each traversal; topological set equality is never a coverage proof.
 from __future__ import annotations
 
 import math
+import warnings
 from dataclasses import dataclass
 from typing import Any, Iterator
 
@@ -110,11 +111,26 @@ def observed_edges(track: dict[str, Any]) -> Iterator[tuple[int, int, LineString
                 yield part_index, edge_index, edge
 
 
+def _geos_overlay_or_fail(edge, area, method):
+    """M1's GEOS-based fixtures are NOT an independent numerical oracle.
+
+    A GEOS RuntimeWarning about division by zero or invalid floating-point
+    math invalidates a claimed coverage result even if a geometry is returned.
+    The separate R2 Fraction rectangle witness tests actual math without GEOS.
+    """
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            return getattr(edge, method)(area)
+    except RuntimeWarning as exc:
+        raise ValueError("ORACLE_NUMERICAL_FAILURE") from exc
+
+
 def observed_facts(track: dict[str, Any], area: Any) -> ObservedFacts:
     inside = outside = False
     for _, _, edge in observed_edges(track):
-        inside |= any(True for _ in _linear_components(edge.intersection(area)))
-        outside |= any(True for _ in _linear_components(edge.difference(area)))
+        inside |= any(True for _ in _linear_components(_geos_overlay_or_fail(edge, area, "intersection")))
+        outside |= any(True for _ in _linear_components(_geos_overlay_or_fail(edge, area, "difference")))
     return ObservedFacts(inside, outside)
 
 
@@ -153,7 +169,7 @@ def covered_intervals(track: dict[str, Any], area: Any) -> list[Interval]:
             # gives exact 0/1 for unchanged observation endpoints.
             return (point[axis] - left[axis]) / (right[axis] - left[axis])
 
-        for line in _linear_components(edge.intersection(area)):
+        for line in _linear_components(_geos_overlay_or_fail(edge, area, "intersection")):
             a = fraction(line.coords[0])
             b = fraction(line.coords[-1])
             low, high = sorted((a, b))

@@ -1,5 +1,7 @@
 # Milestone 2 — fresh post-Codex remediation re-exit review
 
+> **HISTORICAL, SUPERSEDED AS CURRENT M2 EXIT:** a second independent Codex full-repository audit of main `d86414f25b15c40da20bb354a69a7e609b4f5e25` found R2-01 P1: positive exact-rectangle intersection was misclassified by GEOS-backed M2C producer + verifier + M1 oracle, with invalid spatial proof accepted. M2 returned to **CHANGES_REQUIRED**; R2-02 typed fraction zero variants also produced inconsistent snapshot identities. This report's PASS applies only to its prior review date, **not current release authority**. See [R2 remediation and new re-exit requirements](milestone2-codex-r2-remediation.md).
+
 **Decision: PASS_WITH_LIMITATIONS — Milestone 2 DONE, scoped strictly to the deterministic, local, one-Activity-at-a-time FIT/GPX pipeline.** This acceptance supersedes the original October 8 PASS at `7059953c`, which was **correctly invalidated** by an independent Codex full-repository audit (F1/F2 P1). The original review and failed counterexamples remain part of the audit trail. **`v0.1.0` is not tagged, published or a complete end-user Agent Skill.**
 
 **Review date:** 2026-10-09 (Asia/Tokyo); GitHub CI/review timestamps may be 2026-10-08 UTC.

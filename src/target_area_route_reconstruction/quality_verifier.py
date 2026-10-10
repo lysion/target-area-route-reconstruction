@@ -66,7 +66,11 @@ def _verify(q, evidence, policy):
                 or not 0 <= i < len(parts[p]["observations"])):
             fail("TRACK_POSITION_OUT_OF_BOUNDS", path)
             return False
-        if (type(f) not in (float, int) or not math.isfinite(f) or not 0 <= f < 1
+        # Even objects manufactured without TrackPosition.__post_init__ may
+        # arrive from an untrusted snapshot. Refuse noncanonical signed zeros
+        # and integer fractions before they enter a revision/digest identity.
+        if (type(f) is not float or not math.isfinite(f) or not 0 <= f < 1
+                or (f == 0.0 and math.copysign(1.0, f) < 0)
                 or (f != 0 and i + 1 == len(parts[p]["observations"]))):
             fail("TRACK_POSITION_INVALID", path)
             return False
@@ -174,6 +178,17 @@ def _verify(q, evidence, policy):
                 fail("EXCLUSION_EVIDENCE_MISMATCH", f"excluded_intervals/{n}")
         if reason is not None:
             expected_diagnostics.append(EdgeDiagnostic(interval, reason))
+    # Dataclass equality accepts 0 == 0.0 == -0.0, but snapshot JSON does
+    # not: diagnostics are hashed into the downstream spatial authority.
+    # Validate every original diagnostic endpoint independently before a
+    # structurally equal claim can be admitted as the canonical projection.
+    for n, diagnostic in enumerate(q.diagnostics):
+        path = f"diagnostics/{n}"
+        if not isinstance(diagnostic, EdgeDiagnostic) or not isinstance(diagnostic.interval, ParentInterval):
+            fail("QUALITY_DIAGNOSTICS_MISMATCH", path)
+            continue
+        position(diagnostic.interval.start, path + "/interval/start")
+        position(diagnostic.interval.end, path + "/interval/end")
     if q.diagnostics != tuple(expected_diagnostics):
         fail("QUALITY_DIAGNOSTICS_MISMATCH", "diagnostics")
 

@@ -22,6 +22,16 @@ class TrackPosition:
     observation_index: int
     fraction_to_next: float = 0.0
 
+    def __post_init__(self):
+        # Representation-independent *identity* requires one canonical form
+        # for a vertex: {0, 0.0, -0.0} all designate the exact same parent
+        # observation and must never yield different quality / assessment
+        # digests. Keep nonzero, NaN and out-of-range values untouched so
+        # the independent verifier can report their precise invalidity.
+        fraction = self.fraction_to_next
+        if type(fraction) in (int, float) and fraction == 0:
+            object.__setattr__(self, "fraction_to_next", 0.0)
+
 
 @dataclass(frozen=True)
 class Diagnostic:

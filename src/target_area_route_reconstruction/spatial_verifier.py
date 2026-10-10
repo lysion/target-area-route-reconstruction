@@ -70,7 +70,8 @@ def _verify(proof, track, area, authority, quality, verified):
         p, i, f = value.part_index, value.observation_index, value.fraction_to_next
         return (type(p) is int and 0 <= p < len(track["parts"]) and type(i) is int
                 and 0 <= i < len(track["parts"][p]["observations"])
-                and type(f) in (int, float) and math.isfinite(f) and 0 <= f < 1
+                and type(f) is float and math.isfinite(f) and 0 <= f < 1
+                and (f != 0.0 or math.copysign(1.0, f) > 0)
                 and (f == 0 or i + 1 < len(track["parts"][p]["observations"])))
 
     actual_spans = {}
@@ -140,6 +141,13 @@ def _verify(proof, track, area, authority, quality, verified):
         reason = ("SOURCE_GAP_TARGET_UNRESOLVED" if gap.kind == "source_gap" else "QUALITY_GAP_TARGET_UNRESOLVED") if unresolved else "GAP_BOUND_DISJOINT"
         if i < len(proof.gap_relevance):
             item = proof.gap_relevance[i]
+            # GapRelevance embeds a *second* gap snapshot in the M2C proof.
+            # Dataclass equality treats 0, 0.0 and -0.0 as identical, while
+            # its serialized bytes are hashed into the M2D revision. Validate
+            # every nested endpoint independently before the equality guard.
+            if ((item.gap.start is not None and not position(item.gap.start))
+                    or (item.gap.end is not None and not position(item.gap.end))):
+                fail("SPATIAL_POSITION_INVALID", f"gaps/{i}/gap")
             if (type(item.gap_index) is not int or item.gap_index != i or item.gap != gap
                     or (item.constraint_index is not None and type(item.constraint_index) is not int)
                     or item.constraint_index != index or item.bound_relation != classification

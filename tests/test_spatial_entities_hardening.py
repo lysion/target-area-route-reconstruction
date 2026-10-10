@@ -182,7 +182,9 @@ class M2DAdmissionTests(unittest.TestCase):
         proof, result = self.build(args)
         g = proof.gap_relevance[0]
         forged = replace(proof, gap_relevance=(replace(g, gap=replace(g.gap, start=replace(g.gap.start, part_index=False))),))
-        self.reject(result.bundle, 'M2D_PROOF_METADATA_MISMATCH', args=args, proof=forged)
+        # M2C now independently rejects invalid nested gap positions before
+        # M2D can examine representation metadata or derive an assessment.
+        self.reject(result.bundle, 'M2D_SPATIAL_PROOF_INVALID', args=args, proof=forged)
 
     def test_all_authority_changes_fail_before_assembly(self):
         alternatives = []
