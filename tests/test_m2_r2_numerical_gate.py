@@ -217,5 +217,64 @@ class IndependentR2Identity(unittest.TestCase):
                     self.assertIsNone(spatial.proof)
 
 
+    def test_m2a_source_positions_cannot_forge_equivalent_evidence_digests(self):
+        # Third independent Codex P2: an upstream M2A ObservationSource or
+        # diagnostic endpoint can have dataclass-equal but JSON-distinct zero.
+        # This boundary must reject before project_quality computes a digest.
+        simple = real_gpx((0, 0), (0.1, 0))
+        gap = ingest_bytes(gpx([
+            ['<trkpt lon="0" lat="0"/>', '<trkpt lon="0.1" lat="0"/>'],
+            ['<trkpt lon="0.2" lat="0"/>', '<trkpt lon="0.3" lat="0"/>'],
+        ]), source_kind="gpx", track_source={"id": "r2-source-gap", "revision_id": "r1"})
+        self.assertEqual(gap.outcome, "success")
+        self.assertTrue(any(d.previous_position is not None and d.next_position is not None
+                            for d in gap.diagnostics), gap.diagnostics)
+        for evidence, category, field, issue in (
+            (simple, "mapping", "position", "SOURCE_MAPPING_INVALID"),
+            (gap, "diagnostic", "previous_position", "SOURCE_DIAGNOSTIC_POSITION_INVALID"),
+            (gap, "diagnostic", "next_position", "SOURCE_DIAGNOSTIC_POSITION_INVALID"),
+        ):
+            policy = QualityPolicy()
+            original = project_quality(evidence, policy=policy)
+            self.assertEqual(original.outcome, "produced", original)
+            self.assertEqual(verify_quality(
+                original.projection, evidence, policy=policy).outcome, "valid")
+            for invalid in (0, -0.0):
+                with self.subTest(category=category, field=field,
+                                  representation=(type(invalid).__name__, repr(invalid))):
+                    if category == "mapping":
+                        row = evidence.observation_sources[0]
+                        before = row.position
+                    else:
+                        row = next(d for d in evidence.diagnostics
+                                   if getattr(d, field) is not None)
+                        before = getattr(row, field)
+                    bad = object.__new__(TrackPosition)
+                    object.__setattr__(bad, "part_index", before.part_index)
+                    object.__setattr__(bad, "observation_index", before.observation_index)
+                    object.__setattr__(bad, "fraction_to_next", invalid)
+                    self.assertEqual(bad, before)  # old equality-based admission
+                    if category == "mapping":
+                        changed = replace(evidence, observation_sources=(
+                            replace(row, position=bad), *evidence.observation_sources[1:]))
+                    else:
+                        idx = evidence.diagnostics.index(row)
+                        diagnostics = list(evidence.diagnostics)
+                        diagnostics[idx] = replace(row, **{field: bad})
+                        changed = replace(evidence, diagnostics=tuple(diagnostics))
+                    self.assertNotEqual(changed.to_json(), evidence.to_json())
+                    produced = project_quality(changed, policy=policy)
+                    self.assertEqual(produced.outcome, "quality_evidence_unavailable", produced)
+                    self.assertIn(issue, [i.code for i in produced.issues])
+                    verified = verify_quality(original.projection, changed, policy=policy)
+                    self.assertEqual(verified.outcome, "quality_evidence_unavailable", verified)
+                    self.assertIn(issue, [i.code for i in verified.issues])
+                    args = arguments(changed, rectangle(-1, -1, 1, 1))
+                    denied = prove_spatial_relation(
+                        **{**args, "quality_projection": original.projection})
+                    self.assertNotEqual(denied.outcome, "produced", denied)
+                    self.assertIsNone(denied.proof)
+
+
 if __name__ == "__main__":
     unittest.main()
