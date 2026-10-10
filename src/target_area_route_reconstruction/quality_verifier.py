@@ -178,6 +178,17 @@ def _verify(q, evidence, policy):
                 fail("EXCLUSION_EVIDENCE_MISMATCH", f"excluded_intervals/{n}")
         if reason is not None:
             expected_diagnostics.append(EdgeDiagnostic(interval, reason))
+    # Dataclass equality accepts 0 == 0.0 == -0.0, but snapshot JSON does
+    # not: diagnostics are hashed into the downstream spatial authority.
+    # Validate every original diagnostic endpoint independently before a
+    # structurally equal claim can be admitted as the canonical projection.
+    for n, diagnostic in enumerate(q.diagnostics):
+        path = f"diagnostics/{n}"
+        if not isinstance(diagnostic, EdgeDiagnostic) or not isinstance(diagnostic.interval, ParentInterval):
+            fail("QUALITY_DIAGNOSTICS_MISMATCH", path)
+            continue
+        position(diagnostic.interval.start, path + "/interval/start")
+        position(diagnostic.interval.end, path + "/interval/end")
     if q.diagnostics != tuple(expected_diagnostics):
         fail("QUALITY_DIAGNOSTICS_MISMATCH", "diagnostics")
 
