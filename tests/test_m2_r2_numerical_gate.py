@@ -352,5 +352,44 @@ class IndependentR2Identity(unittest.TestCase):
                               [issue.code for issue in verified.issues])
 
 
+    def test_gpx_source_indices_reject_bool_and_float_equivalences(self):
+        # Codex P2: source coordinates of *the record index itself* are part
+        # of the M2A hash. Python SourceLocation equality accepts False==0
+        # and 0.0==0, while canonical JSON differs.
+        evidence = real_gpx((0, 0), (0.1, 0))
+        from target_area_route_reconstruction.models import Diagnostic
+        mapped = evidence.observation_sources[0]
+        diagnostic = Diagnostic("TIMESTAMP_UNREPRESENTABLE", mapped.source, "timestamp",
+                                None, mapped.position)
+        with_diag = replace(evidence, diagnostics=(diagnostic,))
+        policy = QualityPolicy()
+        projection = project_quality(with_diag, policy=policy)
+        self.assertEqual(projection.outcome, "produced", projection)
+        for field in ("record_index", "track_index", "segment_index", "point_index"):
+            for replacement in (False, 0.0):
+                with self.subTest(field=field, value=repr(replacement)):
+                    self.assertEqual(getattr(mapped.source, field), 0)
+                    bad_source = replace(mapped.source, **{field: replacement})
+                    self.assertEqual(bad_source, mapped.source)
+                    bad_mapping = replace(with_diag, observation_sources=(
+                        replace(mapped, source=bad_source),
+                        *with_diag.observation_sources[1:]))
+                    self.assertNotEqual(bad_mapping.to_json(), with_diag.to_json())
+                    rejected_map = project_quality(bad_mapping, policy=policy)
+                    self.assertEqual(rejected_map.outcome, "quality_evidence_unavailable", rejected_map)
+                    self.assertIn("SOURCE_MAPPING_INVALID",
+                                  [issue.code for issue in rejected_map.issues])
+                    bad_diag = replace(with_diag, diagnostics=(
+                        replace(diagnostic, source=bad_source),))
+                    self.assertNotEqual(bad_diag.to_json(), with_diag.to_json())
+                    rejected_diag = project_quality(bad_diag, policy=policy)
+                    self.assertEqual(rejected_diag.outcome, "quality_evidence_unavailable", rejected_diag)
+                    self.assertIn("SOURCE_DIAGNOSTIC_SOURCE_INVALID",
+                                  [issue.code for issue in rejected_diag.issues])
+                    self.assertEqual(
+                        verify_quality(projection.projection, bad_diag, policy=policy).outcome,
+                        "quality_evidence_unavailable")
+
+
 if __name__ == "__main__":
     unittest.main()
