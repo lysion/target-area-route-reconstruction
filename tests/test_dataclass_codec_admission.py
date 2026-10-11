@@ -193,6 +193,18 @@ class DataclassCodecAdmission(unittest.TestCase):
         denied = prove_spatial_relation(**{**args, "target_reference": reference})
         self.assertEqual(denied.outcome, "invalid_input")
         self.assertIn("TARGET_REFERENCE_MISMATCH", [i.code for i in denied.issues])
+        class ForeignTarget(dict):
+            def __deepcopy__(self, memo):
+                raise AssertionError("foreign copy must never run")
+        class ForeignFloat(float):
+            def __float__(self):
+                raise AssertionError("foreign conversion must never run")
+        for target in (ForeignTarget(args["target_area"]), copy.deepcopy(args["target_area"])):
+            if type(target) is dict:
+                target["geometry"]["coordinates"][0][0][0] = ForeignFloat(-1.)
+            denied = prove_spatial_relation(**{**args, "target_area": target})
+            self.assertEqual(denied.outcome, "invalid_input")
+            self.assertIn("SPATIAL_INPUT_NONFINITE_OR_MALFORMED", [i.code for i in denied.issues])
 
 
 if __name__ == "__main__":

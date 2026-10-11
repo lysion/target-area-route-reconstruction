@@ -11,7 +11,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 from referencing import Registry, Resource
 from shapely.geometry import shape
 
-from ._canonical_snapshot import QUALITY_TYPES, canonical_snapshot
+from ._canonical_snapshot import QUALITY_TYPES, canonical_json_value, canonical_snapshot
 from .quality_models import ParentReference
 from .quality_verifier import verify_quality
 from .spatial_models import SpatialAlgorithm, SpatialAuthority, SpatialFailure, SpatialIssue, SpatialParameters
@@ -58,12 +58,17 @@ def prepare(*, evidence, quality_projection, quality_policy, target_area, target
         raise SpatialFailure("QUALITY_AUTHORITY_INVALID", issues=[SpatialIssue("QUALITY_AUTHORITY_INVALID")]
                              + [SpatialIssue(i.code, i.path) for i in verified.issues])
     track = copy.deepcopy(evidence.canonical_track)
-    target = copy.deepcopy(target_area)
     try:
+        # Check data BEFORE copying or consulting numeric/schema operations:
+        # subclasses can override deepcopy/conversion while JSON hashes their
+        # base values. The target is JSON, not an executable Python object.
+        if not canonical_json_value(target_area):
+            raise SpatialFailure("SPATIAL_INPUT_NONFINITE_OR_MALFORMED")
+        target = copy.deepcopy(target_area)
         _schema("canonical-track", track)
         _schema("target-area", target)
         target_digest = fingerprint(target)
-    except (TypeError, ValueError, OverflowError) as exc:
+    except (TypeError, ValueError, OverflowError, RecursionError) as exc:
         raise SpatialFailure("SPATIAL_INPUT_NONFINITE_OR_MALFORMED") from exc
     reference = ParentReference(target["id"], target["revision_id"])
     if (type(target_reference) is not ParentReference

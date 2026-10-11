@@ -138,3 +138,8 @@ def canonical_snapshot(value, allowed_types):
         field.name in declared and _matches_declared_type(
             getattr(value, field.name), declared[field.name], allowed_types)
         for field in model_fields)
+
+
+def canonical_json_value(value):
+    """Finite native JSON data, without polymorphic copy/number behavior."""
+    return _matches_declared_type(value, Any, frozenset())
