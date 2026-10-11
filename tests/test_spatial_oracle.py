@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import sys
+import math
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 from jsonschema import Draft202012Validator, FormatChecker
-from shapely.geometry import LineString
+from shapely.geometry import LineString, box
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -55,6 +56,21 @@ class OrderedSpatialOracleTests(unittest.TestCase):
                 self.assertEqual(not errors, case["expect_semantic_valid"], errors)
                 if not case["expect_semantic_valid"]:
                     self.assertIn(case["expect_semantic_issue_code"], {layer_b.issue_code(error) for error in errors})
+
+    def test_r2_geos_runtime_warning_never_counts_as_oracle_fact(self) -> None:
+        # M1's legacy oracle is itself GEOS-backed, not a second numeric
+        # implementation. It cannot certify the second independent Codex
+        # full-repo P1 attack simply by sharing the engine's wrong result.
+        x = 8e-200
+        area = box(x, -1, math.nextafter(x, math.inf), 1)
+        track = {"parts": [{"observations": [
+            {"position": [-9e-200, 0]},
+            {"position": [1.8e-199, 0]},
+        ]}]}
+        with self.assertRaisesRegex(ValueError, "ORACLE_NUMERICAL_FAILURE"):
+            oracle.observed_facts(track, area)
+        with self.assertRaisesRegex(ValueError, "ORACLE_NUMERICAL_FAILURE"):
+            oracle.covered_intervals(track, area)
 
     def test_all_six_relation_completeness_combinations(self) -> None:
         combinations = {

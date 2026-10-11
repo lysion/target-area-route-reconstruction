@@ -2,6 +2,7 @@
 
 from fractions import Fraction
 
+from ._canonical_snapshot import QUALITY_TYPES, canonical_snapshot
 from ._quality_evidence import GAP_CODES, evidence_digest, evidence_issues
 from ._quality_numerics import distance_metres, utc_seconds
 from .models import IngestionResult, TrackPosition
@@ -38,7 +39,7 @@ def _decision(left: dict, right: dict, parameters: QualityParameters) -> str:
 
 def project_quality(evidence: IngestionResult, *, policy: QualityPolicy) -> QualityResult:
     """Policy is explicit, including the choice to disable motion screening."""
-    if not isinstance(policy, QualityPolicy):
+    if type(policy) is not QualityPolicy or not canonical_snapshot(policy, QUALITY_TYPES):
         raise ValueError("QUALITY_POLICY_INVALID")
     issues = evidence_issues(evidence)
     if issues:

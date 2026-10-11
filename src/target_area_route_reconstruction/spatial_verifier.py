@@ -5,6 +5,7 @@ import math
 from shapely.errors import GEOSException
 from shapely.geometry import box
 
+from ._canonical_snapshot import SPATIAL_TYPES, canonical_snapshot
 from ._spatial_geometry import clip_edge, point_covered
 from ._spatial_inputs import algorithm, prepare
 from .models import TrackPosition
@@ -31,8 +32,14 @@ def _verify(proof, track, area, authority, quality, verified):
     def fail(code, path=""):
         errors.append(SpatialIssue(code, path))
     def result():
+        # Report the existing precise semantic error when one exists; otherwise
+        # fail closed for noncanonical nested dataclass identity before VALID.
+        if not errors and not canonical_snapshot(proof, SPATIAL_TYPES):
+            fail("SPATIAL_PROOF_MALFORMED")
+        if not errors:
+            proof.to_json()
         return SpatialVerification("invalid" if errors else "valid", tuple(errors))
-    if not isinstance(proof, SpatialRelationProof):
+    if type(proof) is not SpatialRelationProof:
         fail("SPATIAL_PROOF_MALFORMED")
         return result()
     if proof.authority != authority:
@@ -65,12 +72,16 @@ def _verify(proof, track, area, authority, quality, verified):
             expected_outside.extend(outside)
 
     def position(value):
-        if not isinstance(value, TrackPosition):
+        # Spatial proofs are independently serializable authority. Never
+        # admit TrackPosition subclasses with unverified dataclass fields:
+        # asdict() would hash the extra values into a different M2D revision.
+        if type(value) is not TrackPosition:
             return False
         p, i, f = value.part_index, value.observation_index, value.fraction_to_next
         return (type(p) is int and 0 <= p < len(track["parts"]) and type(i) is int
                 and 0 <= i < len(track["parts"][p]["observations"])
-                and type(f) in (int, float) and math.isfinite(f) and 0 <= f < 1
+                and type(f) is float and math.isfinite(f) and 0 <= f < 1
+                and (f != 0.0 or math.copysign(1.0, f) > 0)
                 and (f == 0 or i + 1 < len(track["parts"][p]["observations"])))
 
     actual_spans = {}
@@ -140,6 +151,13 @@ def _verify(proof, track, area, authority, quality, verified):
         reason = ("SOURCE_GAP_TARGET_UNRESOLVED" if gap.kind == "source_gap" else "QUALITY_GAP_TARGET_UNRESOLVED") if unresolved else "GAP_BOUND_DISJOINT"
         if i < len(proof.gap_relevance):
             item = proof.gap_relevance[i]
+            # GapRelevance embeds a *second* gap snapshot in the M2C proof.
+            # Dataclass equality treats 0, 0.0 and -0.0 as identical, while
+            # its serialized bytes are hashed into the M2D revision. Validate
+            # every nested endpoint independently before the equality guard.
+            if ((item.gap.start is not None and not position(item.gap.start))
+                    or (item.gap.end is not None and not position(item.gap.end))):
+                fail("SPATIAL_POSITION_INVALID", f"gaps/{i}/gap")
             if (type(item.gap_index) is not int or item.gap_index != i or item.gap != gap
                     or (item.constraint_index is not None and type(item.constraint_index) is not int)
                     or item.constraint_index != index or item.bound_relation != classification
@@ -167,6 +185,4 @@ def _verify(proof, track, area, authority, quality, verified):
             fail("RELATION_PROOF_MISMATCH")
         if proof.coverage_completeness != ("incomplete" if relevant else "complete"):
             fail("COMPLETENESS_PROOF_MISMATCH")
-    if not errors:
-        proof.to_json()
     return result()

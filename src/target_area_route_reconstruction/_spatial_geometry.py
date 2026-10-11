@@ -1,9 +1,13 @@
 """Per-original-edge planar CRS84 clipping, with auditable binary64 lineage."""
 
 import math
+import sys
+import warnings
+from fractions import Fraction
 
-from shapely.geometry import LineString, Point, box
+from shapely.geometry import LineString, box
 
+from ._spatial_exact import exact_coverage, exact_point_covered
 from .models import TrackPosition
 from .quality_models import ParentInterval
 from .spatial_models import SpatialFailure
@@ -41,15 +45,90 @@ def _fraction(point, left, right, local_length):
     return fraction
 
 
+# GEOS intersection operates on floating-point expressions whose products
+# can underflow even when both source coordinates and the target are valid
+# binary64 CRS84 values. Never use a squared-length epsilon to delete positive
+# observations. Instead, conservatively refuse to classify a tiny edge whose
+# bounding box meets ANY actual polygon-ring boundary segment. Simple exact
+# coordinate ordering (no GEOS predicates or length arithmetic) is used for
+# this *preflight*, so the check does not share GEOS's underflow failure.
+# Edges wholly separated from every ring boundary (e.g. a 1e-200 degree edge
+# well inside a 2-degree box) remain eligible and retain positive length.
+_GEOMETRY_SQUARE_UNDERFLOW_GUARD = 16 * math.sqrt(sys.float_info.min)
+
+
+def _boundary_segments(geometry):
+    # Read each target's original linear ring vertices without asking GEOS to
+    # construct a new boundary geometry, overlay or length. Polygon holes and
+    # separate MultiPolygon components must all participate in the proof that
+    # no boundary segment envelope can meet the parent edge envelope.
+    if geometry.geom_type == "Polygon":
+        for ring in (geometry.exterior, *geometry.interiors):
+            vertices = list(ring.coords)
+            yield from zip(vertices, vertices[1:])
+    elif geometry.geom_type == "MultiPolygon":
+        for polygon in geometry.geoms:
+            yield from _boundary_segments(polygon)
+    else:
+        raise SpatialFailure("SPATIAL_NUMERICAL_BOUNDARY_UNSUPPORTED")
+
+
+def _preflight_tiny_boundary_contact(left, right, area):
+    dx, dy = right[0] - left[0], right[1] - left[1]
+    if max(abs(dx), abs(dy)) >= _GEOMETRY_SQUARE_UNDERFLOW_GUARD:
+        return None
+    # Positive-length remains a coordinate inequality, not an epsilon test.
+    if tuple(left) == tuple(right):
+        return None
+    x0, x1 = sorted((left[0], right[0]))
+    y0, y1 = sorted((left[1], right[1]))
+    for a, b in _boundary_segments(area):
+        if (max(min(a[0], b[0]), x0) <= min(max(a[0], b[0]), x1)
+                and max(min(a[1], b[1]), y0) <= min(max(a[1], b[1]), y1)):
+            raise SpatialFailure("SPATIAL_NUMERICAL_BOUNDARY_UNRESOLVED")
+    # No ring SEGMENT can intersect the exact axis-aligned parent envelope:
+    # this edge cannot change its inside/outside predicate anywhere. GEOS
+    # overlay itself may silently erase a subnormal positive line even without
+    # a RuntimeWarning, so DO NOT call line.intersection/difference here.
+    # Evaluate stationary point coverage; both endpoints must agree.
+    start_covered = exact_point_covered(left, area)
+    end_covered = exact_point_covered(right, area)
+    if start_covered != end_covered:
+        raise SpatialFailure("SPATIAL_NUMERICAL_POINT_PREDICATE_MISMATCH")
+    return start_covered
+
+
 def clip_edge(part, edge, left, right, area):
     """Return positive inside/outside fragments on ONE admitted parent edge.
 
     No geometric length cutoff, cross-edge merge, union, repair or buffering.
     The two classifications must partition the full parent parameter interval.
     """
+    proven_stationary_class = _preflight_tiny_boundary_contact(left, right, area)
+    if proven_stationary_class is not None:
+        # Check the endpoint predicate with independent exact topology too.
+        exact_inside, exact_outside = exact_coverage(left, right, area)
+        complete_inside = exact_inside == ((0, 1),) and not exact_outside
+        complete_outside = exact_outside == ((0, 1),) and not exact_inside
+        if not (complete_inside if proven_stationary_class else complete_outside):
+            raise SpatialFailure("SPATIAL_EXACT_PARTITION_MISMATCH")
+        # Full ORIGINAL positive edge retains its original parent lineage.
+        whole = (ParentInterval(TrackPosition(part, edge),
+                                TrackPosition(part, edge + 1)),)
+        return (whole, ()) if proven_stationary_class else ((), whole)
     line = LineString((left, right))
     inside, outside = [], []
-    for target, clipped in ((inside, line.intersection(area)), (outside, line.difference(area))):
+    # Shapely can emit NumPy RuntimeWarning instead of raising GEOSException
+    # for division-by-zero/invalid topology math. Such a classification is
+    # NEVER usable evidence, even if it yields an apparently valid partition.
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            clipped_inside = line.intersection(area)
+            clipped_outside = line.difference(area)
+    except RuntimeWarning as exc:
+        raise SpatialFailure("SPATIAL_NUMERICAL_ENGINE_WARNING") from exc
+    for target, clipped in ((inside, clipped_inside), (outside, clipped_outside)):
         for component in linear_components(clipped):
             a, b = component.coords[0], component.coords[-1]
             local_length = min(math.hypot(b[0] - a[0], b[1] - a[1]),
@@ -59,6 +138,77 @@ def clip_edge(part, edge, left, right, area):
                 raise SpatialFailure("SPATIAL_FRAGMENT_COLLAPSED")
             target.append((low, high))
         target.sort()
+    # Independently derive the topology of every positive original edge
+    # using exact rationals, irrespective of *parent edge length*. The old
+    # tiny-edge preflight missed ordinary edges crossing subnormal-width
+    # target rings; GEOS can silently erase those with NO RuntimeWarning.
+    # A lossy binary64 conversion must not erase a mathematically positive
+    # interval. Nor may shared-GEOS producer/verifier agreement confer proof.
+    expected_inside, expected_outside = exact_coverage(left, right, area)
+    for intervals in (expected_inside, expected_outside):
+        for low, high in intervals:
+            if not float(low) < float(high):
+                raise SpatialFailure("SPATIAL_FRACTION_UNREPRESENTABLE")
+
+    # Enforce matching topology and near-binary64 boundary position. GEOS is
+    # used as an optimized producer only when exact geometry confirms its
+    # complete positive-length partition. 8 ulps is the *declared* spatial
+    # comparison budget, never a positive-length deletion threshold.
+    # A boundary-only point touch may split one GEOS outside line into two
+    # adjacent fragments. Such a split has no positive inside length; compare
+    # the maximal union rather than the arbitrary fragment count.
+    def maximal(spans):
+        merged = []
+        for low, high in sorted(spans):
+            if merged and merged[-1][1] == low:
+                merged[-1] = (merged[-1][0], high)
+            else:
+                merged.append((low, high))
+        return merged
+
+    # Propagate coordinate cancellation through the parent parameter, but
+    # cap it by BOTH the absolute policy and the exact local interval. A
+    # remote polygon vertex must not enlarge this edge's error allowance.
+    axis = max(range(2), key=lambda i: abs(right[i] - left[i]))
+    edge_span = abs(Fraction(right[axis]) - Fraction(left[axis]))
+    coordinate_ulp = max(math.ulp(v) for v in (left[axis], right[axis]))
+    coordinate_fraction_guard = 8 * Fraction(coordinate_ulp) / edge_span
+    delta = tuple(Fraction(b) - Fraction(a) for a, b in zip(left, right))
+    absolute_cap = Fraction(1e-12)
+
+    for claimed, expected in ((maximal(inside), expected_inside),
+                              (maximal(outside), expected_outside)):
+        if len(claimed) != len(expected):
+            raise SpatialFailure("SPATIAL_EXACT_PARTITION_MISMATCH")
+        for (actual_low, actual_high), (exact_low, exact_high) in zip(claimed, expected):
+            local_width = exact_high - exact_low
+            local_length_squared = sum((d * local_width) ** 2 for d in delta)
+            for actual, rational in ((actual_low, exact_low), (actual_high, exact_high)):
+                reference = float(rational)
+                if not math.isfinite(reference):
+                    raise SpatialFailure("SPATIAL_FRACTION_UNREPRESENTABLE")
+                allowed_fraction = min(
+                    max(8 * Fraction(math.ulp(actual)),
+                        8 * Fraction(math.ulp(reference)), coordinate_fraction_guard),
+                    absolute_cap / edge_span, local_width / 4)
+                if abs(Fraction(actual) - rational) > allowed_fraction:
+                    raise SpatialFailure("SPATIAL_EXACT_BOUNDARY_MISMATCH")
+                # Fraction agreement alone cannot certify the serialized
+                # coordinates: interpolation can round an endpoint outside
+                # the exact local budget. Compare to the rational boundary,
+                # not merely to the point returned by GEOS. Squared exact
+                # comparisons avoid underflow and a rounded local length.
+                regenerated = tuple(left[i] + actual * (right[i] - left[i])
+                                    for i in range(2))
+                exact_point = tuple(Fraction(left[i]) + rational * delta[i]
+                                    for i in range(2))
+                scale = max(abs(v) for xy in (left, right, regenerated) for v in xy)
+                coordinate_cap = min(absolute_cap, 8 * Fraction(math.ulp(scale)))
+                for coordinate, exact_coordinate in zip(regenerated, exact_point):
+                    error = abs(Fraction(coordinate) - exact_coordinate)
+                    if error > coordinate_cap or error ** 2 > local_length_squared / 16:
+                        raise SpatialFailure("SPATIAL_EXACT_BOUNDARY_MISMATCH")
+
     partition = sorted(inside + outside)
     cursor = 0.0
     for low, high in partition:
@@ -73,7 +223,7 @@ def clip_edge(part, edge, left, right, area):
 
 
 def point_covered(position, area):
-    return bool(area.covers(Point(position)))
+    return exact_point_covered(position, area)
 
 
 def bound_relation(bound, area):

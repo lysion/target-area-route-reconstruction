@@ -1,5 +1,7 @@
 # M2B — deterministic quality projection and gap verification
 
+> **R2-02 AUDIT REOPEN (P2, 2026-10-10):** original Codex F1 0.1.1 maximality fix remains sound. A **second full-repository audit** found equivalent parent fractions `0.0 / 0 / -0.0` could produce different derived snapshot identities without changing the underlying positions. Under [R2 remediation](milestone2-codex-r2-remediation.md), typed `TrackPosition` now canonicalizes all zero forms to positive float `0.0` before snapshot hashing; independent verifiers require canonical float form, `QualityAlgorithm.version=0.1.2`. Until new exact-head/source+wheel tests and independent review, **M2B and overall M2 acceptance remain reopened**. All older status/PASS records below refer to their historical review dates.
+
 > **ORIGINAL ACCEPTANCE REPAIRED AND RE-ACCEPTED:** independent Codex audit of M2 exit invalidated the historical M2B 0.1.0 acceptance: equivalent nonmaximal adjacent `usable_intervals` bypassed verifier and split M2D TargetSegments. Versioned `QualityAlgorithm 0.1.1` now independently enforces maximal canonical admitted runs. Source/installed-wheel F1 adversarial tests and [fresh M2 re-exit](milestone2-codex-reexit-review.md) passed after reviewed PR #18. The original M2B implementation-era statuses below are historical only.
 
 **Status:** implementation handoff for independent review. ROADMAP remains M2B ACTIVE; M2C is NOT STARTED.

@@ -1,8 +1,11 @@
 """Independent coverage, provenance and proof checks. Does not import producer."""
 
 import math
+import json
+from dataclasses import asdict
 from fractions import Fraction
 
+from ._canonical_snapshot import QUALITY_TYPES, canonical_snapshot
 from ._quality_evidence import GAP_CODES, evidence_digest, evidence_issues
 from ._quality_numerics import distance_metres, utc_seconds
 from .models import IngestionResult, TrackPosition
@@ -20,7 +23,7 @@ def verify_quality(projection: QualityProjection, evidence: IngestionResult, *,
     Malformed typed claims fail with stable codes rather than parser exceptions.
     Verification never supplies missing constraints or silently repairs claims.
     """
-    if not isinstance(policy, QualityPolicy):
+    if type(policy) is not QualityPolicy or not canonical_snapshot(policy, QUALITY_TYPES):
         return QualityVerification("invalid", (QualityIssue("QUALITY_POLICY_INVALID"),))
     issues = evidence_issues(evidence)
     if issues:
@@ -36,8 +39,17 @@ def _verify(q, evidence, policy):
     def fail(code, path=""):
         issues.append(QualityIssue(code, path))
     def result(statuses=()):
+        # Preserve specific established validation errors; a structurally
+        # foreign but otherwise equal snapshot is rejected before VALID.
+        if not issues and not canonical_snapshot(q, QUALITY_TYPES):
+            fail("PROJECTION_MALFORMED")
+        # A codec may be called only after complete class-owned admission.
+        # Otherwise a native instance can shadow to_json without changing
+        # dataclass equality or the semantic fields inspected above.
+        if not issues:
+            q.to_json()
         return QualityVerification("invalid" if issues else "valid", tuple(issues), tuple(statuses))
-    if not isinstance(q, QualityProjection):
+    if type(q) is not QualityProjection:
         fail("PROJECTION_MALFORMED")
         return result()
     if any(type(value) is not tuple for value in (q.usable_intervals, q.excluded_intervals,
@@ -52,13 +64,21 @@ def _verify(q, evidence, policy):
     if q.evidence_digest != evidence_digest(evidence):
         fail("EVIDENCE_REFERENCE_MISMATCH", "evidence_digest")
     parameters = QualityParameters(policy)
-    if q.algorithm != QualityAlgorithm(parameters):
+    expected_algorithm = QualityAlgorithm(parameters)
+    if (not canonical_snapshot(q.algorithm, QUALITY_TYPES)
+            or q.algorithm != expected_algorithm or
+            json.dumps(asdict(q.algorithm), sort_keys=True, allow_nan=False) !=
+            json.dumps(asdict(expected_algorithm), sort_keys=True, allow_nan=False)):
         fail("ALGORITHM_CONTRACT_MISMATCH", "algorithm")
     if issues:
         return result()
 
     def position(pos, path):
-        if not isinstance(pos, TrackPosition):
+        # These positions contribute to serialized quality authority. A
+        # dataclass subclass may add fields to asdict()/to_json() while
+        # preserving otherwise valid indices and fractions; isinstance()
+        # would admit multiple digests for the same original parent span.
+        if type(pos) is not TrackPosition:
             fail("TRACK_POSITION_INVALID", path)
             return False
         p, i, f = pos.part_index, pos.observation_index, pos.fraction_to_next
@@ -66,7 +86,11 @@ def _verify(q, evidence, policy):
                 or not 0 <= i < len(parts[p]["observations"])):
             fail("TRACK_POSITION_OUT_OF_BOUNDS", path)
             return False
-        if (type(f) not in (float, int) or not math.isfinite(f) or not 0 <= f < 1
+        # Even objects manufactured without TrackPosition.__post_init__ may
+        # arrive from an untrusted snapshot. Refuse noncanonical signed zeros
+        # and integer fractions before they enter a revision/digest identity.
+        if (type(f) is not float or not math.isfinite(f) or not 0 <= f < 1
+                or (f == 0.0 and math.copysign(1.0, f) < 0)
                 or (f != 0 and i + 1 == len(parts[p]["observations"]))):
             fail("TRACK_POSITION_INVALID", path)
             return False
@@ -174,6 +198,17 @@ def _verify(q, evidence, policy):
                 fail("EXCLUSION_EVIDENCE_MISMATCH", f"excluded_intervals/{n}")
         if reason is not None:
             expected_diagnostics.append(EdgeDiagnostic(interval, reason))
+    # Dataclass equality accepts 0 == 0.0 == -0.0, but snapshot JSON does
+    # not: diagnostics are hashed into the downstream spatial authority.
+    # Validate every original diagnostic endpoint independently before a
+    # structurally equal claim can be admitted as the canonical projection.
+    for n, diagnostic in enumerate(q.diagnostics):
+        path = f"diagnostics/{n}"
+        if not isinstance(diagnostic, EdgeDiagnostic) or not isinstance(diagnostic.interval, ParentInterval):
+            fail("QUALITY_DIAGNOSTICS_MISMATCH", path)
+            continue
+        position(diagnostic.interval.start, path + "/interval/start")
+        position(diagnostic.interval.end, path + "/interval/end")
     if q.diagnostics != tuple(expected_diagnostics):
         fail("QUALITY_DIAGNOSTICS_MISMATCH", "diagnostics")
 
@@ -260,7 +295,5 @@ def _verify(q, evidence, policy):
             fail("CONSTRAINT_POLICY_MISMATCH", "gap_constraints")
     elif q.gap_constraints:
         fail("CONSTRAINT_POLICY_MISMATCH", "gap_constraints")
-    # Also reject mutable/non-serializable values smuggled into typed fields.
-    if not issues:
-        q.to_json()
+    # result() admits the full typed snapshot before invoking its codec.
     return result(statuses)

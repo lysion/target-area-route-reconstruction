@@ -270,7 +270,9 @@ class SpatialRelationTests(unittest.TestCase):
         args = arguments(route([(1, 1), (1.5, 1)]))
         e = args["evidence"]
         changed = replace(e, diagnostics=e.diagnostics + (__import__("target_area_route_reconstruction").Diagnostic("DIFFERENT_EVIDENCE"),))
-        self.input_rejected({**args, "evidence": changed}, "EVIDENCE_REFERENCE_MISMATCH")
+        # Source-independent fabricated diagnostics are rejected at the M2A
+        # identity boundary, before a derived digest mismatch is evaluated.
+        self.input_rejected({**args, "evidence": changed}, "SOURCE_DIAGNOSTIC_POSITION_INVALID")
 
     def test_wrong_target_revision(self):
         args = arguments(route([(1, 1), (1.5, 1)]))

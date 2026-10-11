@@ -1,6 +1,6 @@
 # Numerical policy for the M1 reference oracle
 
-`scripts/ordered_spatial_oracle.py` implements the fixture oracle's policy. It is a reference for M2 tests, not a production GIS engine or a geodesic distance model.
+`scripts/ordered_spatial_oracle.py` implements the fixture oracle's policy. It is a reference for M2 tests, **not** a production GIS engine, a geodesic distance model, or an independent exact-numeric verifier. The second independent Codex full-repository audit found R2-01 P1: the M1 GEOS oracle **shared** extreme-float clipping errors with M2C producer and verifier. The historical M2 PASS was reopened. The new separate [R2 exact-Fraction witness tests](../tests/test_m2_r2_numerical_gate.py) establish positive intersection without GEOS.
 
 ## Positive length and parent identity
 
@@ -23,6 +23,63 @@ For coordinate regeneration and endpoint comparison, the allowed error is the mi
 Parent part and observation indices must match exactly. Fraction comparison propagates the same coordinate budget through division by edge length, or uses eight ULPs at fraction scale if larger. This accounts for cancellation when subtracting large coordinates on short edges (the original 112.9-degree crossing has fraction noise around 7e-13 despite identical regenerated coordinates). Local interval scaling prevents that budget from hiding a halved tiny covered interval. The policy also tolerates ordinary GEOS/interpolation differences around 1e-17 degrees without requiring exact topology equality afterward. There is no independent `area.covers(regenerated_line)` check that would reintroduce incompatible exact endpoint predicates.
 
 Tolerance is only a computation comparison policy. It does not define minimum positive length or permit changing topology, merging parts, buffering targets or discarding visits. M2 should report unsupported/numerically indeterminate input explicitly rather than silently classify it outside. The current oracle is tested on local planar fixtures and the explicit CRS84-domain witness; it does not claim robust geodesic/antimeridian/global clipping or arbitrary precision. Those production policies require M2 tests before implementation is accepted.
+
+## R2 numerical safety boundary and independent oracle (under corrective review)
+
+The original legal finite GPX coordinates `(-9e-200,0)→(1.8e-199,0)` intersect a strictly positive-width target `[8e-200,nextafter(8e-200,+∞)]×[-1,1]` as an exact mathematical fact, yet original GEOS overlay returned `outside+complete` while issuing floating RuntimeWarnings. A second positive intersection `(-1.3e-199,0)→(3e-200,0)` and `[0,5e-324]×[-1,1]` produced a target segment beyond the target boundary. **Finite schema-valid binary64 operands alone do not guarantee GEOS's output is a reliable topology proof.**
+
+Corrective `spatial-proof/0.1.1` in [PR #21](https://github.com/lysion/target-area-route-reconstruction/pull/21) treats GEOS RuntimeWarning as stable `numerical_failure`, and for sufficiently tiny positive parent edges uses exact **per-ring-edge bounding-box comparisons** as a conservative non-intersection preflight. A ring-edge bbox that might intersect the original edge bbox causes fail-closed uncertainty — never a fabricated outside, inside, or snapped geometry. When **every** exterior and interior ring edge bbox is disjoint from the parent edge bbox, the entire positive parent edge has a constant coverage predicate: retain the full observed parent interval, classified by both endpoint predicates. This handles truly positive 1e-200 and 5e-324 degree edges fully within an ordinary 2-degree rectangle without silently discarding them. This magnitude is an engine arithmetic risk guard, **not a minimum route length**.
+
+New mandatory independent tests compute exact rectangle/segment parametric overlap with `fractions.Fraction(float)`, not GEOS, Shapely, a producer shared helper or the M1 oracle, and then exercise **real GPX decimal XML → ingestion → quality → producer → verifier → M2D**; an installed noneditable wheel repeats the two original counterexamples. The M1 oracle's own GEOS RuntimeWarnings now raise `ORACLE_NUMERICAL_FAILURE`, rather than pretending a returned geometry is independent truth. This additional gate **does not** prove arbitrary-precision robust general polygon topology for all possible floating-point inputs; unclear interactions must be reported as numerical failure.
+
+R2-02 separately establishes that all typed `TrackPosition.fraction_to_next = 0, +0.0, -0.0` refer to **one canonical +0.0 binary64 parent vertex identity**, before `QualityProjection` or downstream `SpatialAssessment` hashing. Canonical constructors normalize these representations; verifiers reject untrusted bypassed-constructor noncanonical forms. QualityAlgorithm `0.1.2` and spatial-proof `0.1.1` mark the versioned stronger admission/semantics, **pending independent corrective review**.
+
+### Sloped-boundary local budget correction
+
+Spatial-proof `0.1.3` additionally checks each GEOS interval endpoint against
+the exact rational boundary. The propagated fraction allowance is capped by
+both the absolute coordinate cap and one quarter of the **exact local**
+parameter interval. Target vertices in remote components cannot enlarge it.
+The final binary64 interpolated coordinate is also checked against that exact
+boundary, with the absolute/operand-ULP caps and one quarter of the exact local
+coordinate length. Exact squared comparisons avoid length underflow and
+rounding of the local budget. Agreement between GEOS and fraction recovery is
+not sufficient to certify the exported coordinate.
+
+The regression witness is a diamond centered at binary64 `0.1`, with horizontal
+radius `ulp(0.1)` and vertical radius `1`. At latitude `3/8`, its exact horizontal
+radius is `5*ulp(0.1)/8`. The old output extended to `0.1 ± ulp(0.1)`: a 30%
+local endpoint error, exceeding the 25% budget. Polygon, hole and remote
+MultiPolygon variants now fail explicitly with
+`SPATIAL_EXACT_BOUNDARY_MISMATCH`; no proof or target entity is produced.
+Ordinary representable sloped crossings and exact boundary contacts remain
+eligible. No coordinate snapping, target buffering or positive-length cutoff
+is introduced. This correction does not itself declare M2 DONE; exit status
+remains subject to an independent audit of the final commit.
+
+## Supporting snapshot codec admission
+
+M2A/M2B/M2C hash-bearing dataclass snapshots use the complete field set of
+their exact declared class. An instance cannot override
+`__dataclass_fields__` or `__dataclass_params__`, even with an equal copy.
+It also cannot add undeclared instance attributes, including shadow codecs
+such as `to_dict`/`to_json`. Exact model type plus declared instance state
+preserves the class-owned serialization behavior.
+Such data is rejected recursively before evidence hashing or a valid
+quality/spatial hand-off. This closes the native-instance omission path that
+could hide authority from `asdict()` while preserving dataclass equality.
+
+`asdict()`/`to_json()` remains a convenience serializer, not an admission or
+identity authority for an unverified claim. Hash-bearing pipeline use follows
+the recursive gate; unsupported raw debug serialization does not confer a
+valid proof or entity. Class-owned enumeration and rejection of shadowing
+must remain paired while standard `asdict()` is used.
+
+This is an admission bug correction, not a new geometry/quality policy:
+legal canonical snapshots retain QualityAlgorithm/spatial-proof `0.1.3`
+and their existing identities. Different TargetArea revisions remain bound
+to different assembly revisions. The independent codec regressions run on
+both source and a noneditable installed wheel.
 
 ## Input numbers
 

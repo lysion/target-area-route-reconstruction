@@ -176,13 +176,19 @@ class M2DAdmissionTests(unittest.TestCase):
             parameters=replace(self.proof.algorithm.parameters, comparison_ulps=8.0)))
         result = assemble_spatial_entities(proof=proof, **self.args)
         self.assertEqual(result.outcome, 'invalid_input')
-        self.assertEqual([i.code for i in result.issues], ['M2D_PROOF_METADATA_MISMATCH'])
-        self.reject(self.bundle, 'M2D_PROOF_METADATA_MISMATCH', proof=proof)
+        # R3's closed M2C proof admission now detects the noncanonical
+        # numeric metadata before M2D can compare its serialized identity.
+        # Both entry points must fail closed; retain the stronger boundary.
+        self.assertEqual([i.code for i in result.issues],
+                         ['M2D_SPATIAL_PROOF_INVALID', 'SPATIAL_PROOF_MALFORMED'])
+        self.reject(self.bundle, 'M2D_SPATIAL_PROOF_INVALID', proof=proof)
         args = arguments(route([(-1, 1), (3, 1)], [(4, 1), (5, 1)]))
         proof, result = self.build(args)
         g = proof.gap_relevance[0]
         forged = replace(proof, gap_relevance=(replace(g, gap=replace(g.gap, start=replace(g.gap.start, part_index=False))),))
-        self.reject(result.bundle, 'M2D_PROOF_METADATA_MISMATCH', args=args, proof=forged)
+        # M2C now independently rejects invalid nested gap positions before
+        # M2D can examine representation metadata or derive an assessment.
+        self.reject(result.bundle, 'M2D_SPATIAL_PROOF_INVALID', args=args, proof=forged)
 
     def test_all_authority_changes_fail_before_assembly(self):
         alternatives = []
@@ -381,6 +387,26 @@ class M2DAdmissionTests(unittest.TestCase):
         self.assertGreater(segment['start_position']['fraction_to_next'], 0)
         self.assertLess(segment['end_position']['fraction_to_next'], 1)
 
+    def test_noncanonical_spatial_snapshot_gate_is_assertion_killed(self):
+        # R3 supersedes an earlier M2D-only metadata admission: M2C now
+        # refuses inherited supporting snapshots before an M2D identity is
+        # computed. This new witness targets the actual admission boundary.
+        from dataclasses import fields, make_dataclass
+        from target_area_route_reconstruction.spatial_verifier import verify_spatial_relation
+        gap = self.proof.gap_relevance
+        args = arguments(route([(-1, 1), (3, 1)], [(4, 1), (5, 1)]))
+        proof, _ = self.build(args)
+        base = proof.gap_relevance[0]
+        inherited_type = make_dataclass(
+            "NoncanonicalGapRelevance", [("untrusted_extra", str, "alien")],
+            bases=(type(base),), frozen=True)
+        inherited = inherited_type(**{field.name: getattr(base, field.name)
+                                       for field in fields(base)})
+        altered = replace(proof, gap_relevance=(inherited,))
+        verification = verify_spatial_relation(altered, **args)
+        self.assertEqual(verification.outcome, 'invalid', verification)
+        self.assertIn('SPATIAL_PROOF_MALFORMED', [i.code for i in verification.issues])
+
     def test_admission_mutations_are_assertion_killed(self):
         import target_area_route_reconstruction as package
         mutations = [
@@ -390,7 +416,7 @@ class M2DAdmissionTests(unittest.TestCase):
             ('spatial_entities_verifier.py', 'if canonical_json(item) != canonical_json(expected_segment):', 'if False:', 'test_schema_legal_segment_content_is_revision_bound'),
             ('spatial_entities_verifier.py', 'if not geometry_matches_parent(item["geometry"], info["geometry"], evidence.canonical_track):', 'if item["geometry"] != info["geometry"]:', 'test_pr9_one_ulp_is_semantic_not_snapshot_equivalence'),
             ('_m2d_common.py', 'if value == 0 and Decimal(number) != 0:', 'if False:', 'test_nonzero_json_underflow_is_not_silently_zero'),
-            ('spatial_entities.py', 'if not exact_proof_metadata(proof, quality_projection):', 'if False:', 'test_type_sensitive_proof_metadata_gate'),
+            ('spatial_verifier.py', 'if not errors and not canonical_snapshot(proof, SPATIAL_TYPES):', 'if False:', 'test_noncanonical_spatial_snapshot_gate_is_assertion_killed'),
         ]
         for filename, old, new, witness in mutations:
             with self.subTest(witness=witness, mutation=new):

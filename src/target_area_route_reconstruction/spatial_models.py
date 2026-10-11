@@ -21,7 +21,7 @@ class SpatialParameters:
 class SpatialAlgorithm:
     parameters: SpatialParameters
     name: str = "target-area-route-reconstruction.spatial-proof"
-    version: str = "0.1.0"
+    version: str = "0.1.3"
 
 
 @dataclass(frozen=True)
