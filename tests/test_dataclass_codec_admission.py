@@ -103,6 +103,16 @@ class DataclassCodecAdmission(unittest.TestCase):
                         evidence_digest(evidence)
                     self.assertEqual(sha.call_count, 0)
                 callback.assert_not_called()
+        class HiddenState(dict):
+            def __iter__(self):
+                raise AssertionError("foreign instance namespace must never be iterated")
+        evidence = copy.deepcopy(args["evidence"])
+        d = evidence.diagnostics[0]
+        object.__setattr__(d, "__dict__", HiddenState({**vars(d), "__dataclass_fields__": {}}))
+        with patch("hashlib.sha256", wraps=hashlib.sha256) as sha:
+            self.assertEqual(project_quality(evidence, policy=args["quality_policy"]).outcome,
+                             "quality_evidence_unavailable")
+            self.assertEqual(sha.call_count, 0)
 
     def test_quality_metadata_never_becomes_spatial_authority(self):
         args, _, _ = fixture()

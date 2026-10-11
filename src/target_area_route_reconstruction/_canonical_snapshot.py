@@ -116,7 +116,9 @@ def canonical_snapshot(value, allowed_types):
     # to_json (the pipeline's codec), without changing type or equality.
     # Class-owned enumeration and rejection of shadowing must stay paired.
     model_fields = fields(type(value))
-    if not set(getattr(value, "__dict__", {})) <= {field.name for field in model_fields}:
+    state = getattr(value, "__dict__", {})
+    if (type(state) is not dict or any(type(key) is not str for key in state)
+            or not set(state) <= {field.name for field in model_fields}):
         return False
     if type(value) is TrackPosition:
         fraction = value.fraction_to_next
