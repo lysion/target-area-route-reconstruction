@@ -1,5 +1,8 @@
 # Milestone 2 — second Codex full-repository audit remediation (R2)
 
+> Historical remediation record. Current acceptance is the [final numerical/codec exit audit](milestone2-final-exit-audit.md), PASS_WITH_LIMITATIONS. The pending/REOPENED statements below describe the repair-time state and are retained as history. M3 remains NOT STARTED.
+
+
 **Current state: M2 REOPENED — CHANGES_REQUIRED. Fixes are under independent source, wheel and Codex review; NO current M2 PASS or M3 start is asserted.**
 
 **Independent audit baseline:** `d86414f25b15c40da20bb354a69a7e609b4f5e25` (2026-10-10). The user supplied a full Codex Remote second audit of the **entire repository**, distinct from GitHub PR code review. Its 277 pre-existing Python tests, 260 schema, 56 semantic, 29 edge cases, Node map and wheel gates passed, but two **independent exact-rational** real-GPX public-API clipping counterexamples **FAILED** on both Python 3.11 and 3.12. Result: **CHANGES_REQUIRED; M2 DONE no longer justified**. No upstream private audit-workspace paths are claimed to be in this repository.

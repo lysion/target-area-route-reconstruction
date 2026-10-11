@@ -1,5 +1,8 @@
 # M2 R3 D-01 — source diagnostic and declared-type admission repair
 
+> Historical remediation record. Current acceptance is the [final numerical/codec exit audit](milestone2-final-exit-audit.md), PASS_WITH_LIMITATIONS. The pending/REOPENED statements below describe the repair-time state and are retained as history. M3 remains NOT STARTED.
+
+
 **M2 remains REOPENED. This is a repair record, not an independent exit acceptance, merge approval, release or M3 start. A new full-repository audit must review the final repair SHA.**
 
 ## Failed baseline and retained upstream repair
