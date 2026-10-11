@@ -26,6 +26,8 @@ def digest(value) -> str:
 def evidence_digest(evidence: IngestionResult) -> str:
     # This helper must not turn an unvalidated source shape into an identity,
     # even when called directly rather than after the public hand-off gate.
+    if type(evidence) is not IngestionResult:
+        raise ValueError("QUALITY_EVIDENCE_INVALID")
     try:
         canonical = canonical_snapshot(evidence, EVIDENCE_TYPES)
     except (AttributeError, TypeError, ValueError, RecursionError):

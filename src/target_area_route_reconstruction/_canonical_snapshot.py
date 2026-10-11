@@ -111,6 +111,13 @@ def canonical_snapshot(value, allowed_types):
     """
     if type(value) not in allowed_types or not is_dataclass(value):
         return False
+    # Only declared data may live on an exact model instance. Otherwise it
+    # can shadow __dataclass_fields__ (asdict's field source) OR to_dict /
+    # to_json (the pipeline's codec), without changing type or equality.
+    # Class-owned enumeration and rejection of shadowing must stay paired.
+    model_fields = fields(type(value))
+    if not set(vars(value)) <= {field.name for field in model_fields}:
+        return False
     if type(value) is TrackPosition:
         fraction = value.fraction_to_next
         if (type(fraction) is not float or not math.isfinite(fraction)
@@ -130,4 +137,4 @@ def canonical_snapshot(value, allowed_types):
     return all(
         field.name in declared and _matches_declared_type(
             getattr(value, field.name), declared[field.name], allowed_types)
-        for field in fields(value))
+        for field in model_fields)

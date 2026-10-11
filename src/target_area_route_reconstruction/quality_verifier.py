@@ -43,6 +43,11 @@ def _verify(q, evidence, policy):
         # foreign but otherwise equal snapshot is rejected before VALID.
         if not issues and not canonical_snapshot(q, QUALITY_TYPES):
             fail("PROJECTION_MALFORMED")
+        # A codec may be called only after complete class-owned admission.
+        # Otherwise a native instance can shadow to_json without changing
+        # dataclass equality or the semantic fields inspected above.
+        if not issues:
+            q.to_json()
         return QualityVerification("invalid" if issues else "valid", tuple(issues), tuple(statuses))
     if type(q) is not QualityProjection:
         fail("PROJECTION_MALFORMED")
@@ -289,7 +294,5 @@ def _verify(q, evidence, policy):
             fail("CONSTRAINT_POLICY_MISMATCH", "gap_constraints")
     elif q.gap_constraints:
         fail("CONSTRAINT_POLICY_MISMATCH", "gap_constraints")
-    # Also reject mutable/non-serializable values smuggled into typed fields.
-    if not issues:
-        q.to_json()
+    # result() admits the full typed snapshot before invoking its codec.
     return result(statuses)

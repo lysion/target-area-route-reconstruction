@@ -36,6 +36,8 @@ def _verify(proof, track, area, authority, quality, verified):
         # fail closed for noncanonical nested dataclass identity before VALID.
         if not errors and not canonical_snapshot(proof, SPATIAL_TYPES):
             fail("SPATIAL_PROOF_MALFORMED")
+        if not errors:
+            proof.to_json()
         return SpatialVerification("invalid" if errors else "valid", tuple(errors))
     if type(proof) is not SpatialRelationProof:
         fail("SPATIAL_PROOF_MALFORMED")
@@ -183,6 +185,4 @@ def _verify(proof, track, area, authority, quality, verified):
             fail("RELATION_PROOF_MISMATCH")
         if proof.coverage_completeness != ("incomplete" if relevant else "complete"):
             fail("COMPLETENESS_PROOF_MISMATCH")
-    if not errors:
-        proof.to_json()
     return result()

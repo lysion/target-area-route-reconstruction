@@ -57,6 +57,30 @@ eligible. No coordinate snapping, target buffering or positive-length cutoff
 is introduced. This correction does not itself declare M2 DONE; exit status
 remains subject to an independent audit of the final commit.
 
+## Supporting snapshot codec admission
+
+M2A/M2B/M2C hash-bearing dataclass snapshots use the complete field set of
+their exact declared class. An instance cannot override
+`__dataclass_fields__` or `__dataclass_params__`, even with an equal copy.
+It also cannot add undeclared instance attributes, including shadow codecs
+such as `to_dict`/`to_json`. Exact model type plus declared instance state
+preserves the class-owned serialization behavior.
+Such data is rejected recursively before evidence hashing or a valid
+quality/spatial hand-off. This closes the native-instance omission path that
+could hide authority from `asdict()` while preserving dataclass equality.
+
+`asdict()`/`to_json()` remains a convenience serializer, not an admission or
+identity authority for an unverified claim. Hash-bearing pipeline use follows
+the recursive gate; unsupported raw debug serialization does not confer a
+valid proof or entity. Class-owned enumeration and rejection of shadowing
+must remain paired while standard `asdict()` is used.
+
+This is an admission bug correction, not a new geometry/quality policy:
+legal canonical snapshots retain QualityAlgorithm/spatial-proof `0.1.3`
+and their existing identities. Different TargetArea revisions remain bound
+to different assembly revisions. The independent codec regressions run on
+both source and a noneditable installed wheel.
+
 ## Input numbers
 
 All validation tooling and test fixture readers use `scripts/strict_json.py`. Non-standard `NaN`, `Infinity`, `-Infinity`, and finite-looking numeric text that overflows binary64 (`1e9999`) fail before schema/semantic evaluation. Core coordinate bounds then enforce CRS84 ranges. This avoids treating Python's permissive JSON decoder as proof of standard JSON conformance.
