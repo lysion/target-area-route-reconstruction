@@ -78,6 +78,48 @@ class SlopedBoundaryBudget(unittest.TestCase):
         for export in (export_geojson, export_temporal_geojson):
             self.assertNotEqual(export(bundle=None, proof=forged, **args).outcome, "produced")
 
+    def test_coordinate_rounding_requires_its_own_local_budget(self):
+        left = (.099995, 45.0000022064579)
+        right = (.10000500000000001, 44.99999877363298)
+        args = arguments()
+        ring = [[math.nextafter(.1, -math.inf), 45.], [.1, 45.000002],
+                [math.nextafter(.1, math.inf), 45.], [.1, 44.999998],
+                [math.nextafter(.1, -math.inf), 45.]]
+        args["target_area"]["geometry"]["coordinates"] = [ring]
+        raw = ('<gpx version="1.1" creator="coordinate-budget" '
+               'xmlns="http://www.topografix.com/GPX/1/1"><trk><trkseg>' +
+               ''.join(f'<trkpt lon="{x}" lat="{y}"/>' for x, y in (left, right)) +
+               '</trkseg></trk></gpx>').encode()
+        evidence = ingest_bytes(raw, source_kind="gpx",
+                                track_source={"id": "budget-source", "revision_id": "r1"})
+        args["evidence"] = evidence
+        args["quality_projection"] = project_quality(evidence, policy=args["quality_policy"]).projection
+        # Independent clockwise half-plane clipping, using binary64 operands
+        # as exact rationals. This witness has positive, representable t width
+        # but cannot represent its latitude endpoints within the local budget.
+        low, high = F(0), F(1)
+        delta = [F(right[i])-F(left[i]) for i in range(2)]
+        for a, b in zip(ring, ring[1:]):
+            dx, dy = F(b[0])-F(a[0]), F(b[1])-F(a[1])
+            c = dx*(F(left[1])-F(a[1])) - dy*(F(left[0])-F(a[0]))
+            slope = dx*delta[1] - dy*delta[0]
+            if slope > 0:
+                high = min(high, -c/slope)
+            elif slope < 0:
+                low = max(low, -c/slope)
+            else:
+                self.assertLessEqual(c, 0)
+        self.assertLess(float(low), float(high))
+        local_squared = sum((d*(high-low))**2 for d in delta)
+        for t in (low, high):
+            latitude = F(left[1]) + t*delta[1]
+            error = abs(F(float(latitude))-latitude)
+            self.assertGreater(error**2, local_squared/16)
+        result = prove_spatial_relation(**args)
+        self.assertEqual(result.outcome, "numerical_failure", result)
+        self.assertIsNone(result.proof)
+        self.assertIn("SPATIAL_EXACT_BOUNDARY_MISMATCH", [i.code for i in result.issues])
+
     def test_representable_sloped_crossing_and_boundary_remain_accepted(self):
         # Ordinary widths and exact vertices should not become unsupported.
         for y in (0., .375, 1.):
