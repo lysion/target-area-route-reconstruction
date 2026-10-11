@@ -182,6 +182,17 @@ class DataclassCodecAdmission(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "QUALITY_EVIDENCE_INVALID"):
                 evidence_digest(Diagnostic("ADMITTED"))
             self.assertEqual(sha.call_count, 0)
+        policy = copy.deepcopy(args["quality_policy"])
+        object.__setattr__(policy, "__dataclass_fields__", {})
+        with patch("hashlib.sha256", wraps=hashlib.sha256) as sha:
+            with self.assertRaisesRegex(ValueError, "QUALITY_POLICY_INVALID"):
+                project_quality(args["evidence"], policy=policy)
+            self.assertEqual(sha.call_count, 0)
+        reference = copy.deepcopy(args["target_reference"])
+        object.__setattr__(reference, "__dataclass_fields__", {})
+        denied = prove_spatial_relation(**{**args, "target_reference": reference})
+        self.assertEqual(denied.outcome, "invalid_input")
+        self.assertIn("TARGET_REFERENCE_MISMATCH", [i.code for i in denied.issues])
 
 
 if __name__ == "__main__":

@@ -11,6 +11,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 from referencing import Registry, Resource
 from shapely.geometry import shape
 
+from ._canonical_snapshot import QUALITY_TYPES, canonical_snapshot
 from .quality_models import ParentReference
 from .quality_verifier import verify_quality
 from .spatial_models import SpatialAlgorithm, SpatialAuthority, SpatialFailure, SpatialIssue, SpatialParameters
@@ -65,7 +66,9 @@ def prepare(*, evidence, quality_projection, quality_policy, target_area, target
     except (TypeError, ValueError, OverflowError) as exc:
         raise SpatialFailure("SPATIAL_INPUT_NONFINITE_OR_MALFORMED") from exc
     reference = ParentReference(target["id"], target["revision_id"])
-    if not isinstance(target_reference, ParentReference) or reference != target_reference:
+    if (type(target_reference) is not ParentReference
+            or not canonical_snapshot(target_reference, QUALITY_TYPES)
+            or reference != target_reference):
         raise SpatialFailure("TARGET_REFERENCE_MISMATCH")
     # GEOS accepts unclosed rings by silently closing them; domain inputs may not.
     polygons = [target["geometry"]["coordinates"]] if target["geometry"]["type"] == "Polygon" else target["geometry"]["coordinates"]
