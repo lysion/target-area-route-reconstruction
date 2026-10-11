@@ -176,8 +176,12 @@ class M2DAdmissionTests(unittest.TestCase):
             parameters=replace(self.proof.algorithm.parameters, comparison_ulps=8.0)))
         result = assemble_spatial_entities(proof=proof, **self.args)
         self.assertEqual(result.outcome, 'invalid_input')
-        self.assertEqual([i.code for i in result.issues], ['M2D_PROOF_METADATA_MISMATCH'])
-        self.reject(self.bundle, 'M2D_PROOF_METADATA_MISMATCH', proof=proof)
+        # R3's closed M2C proof admission now detects the noncanonical
+        # numeric metadata before M2D can compare its serialized identity.
+        # Both entry points must fail closed; retain the stronger boundary.
+        self.assertEqual([i.code for i in result.issues],
+                         ['M2D_SPATIAL_PROOF_INVALID', 'SPATIAL_ALGORITHM_MISMATCH'])
+        self.reject(self.bundle, 'M2D_SPATIAL_PROOF_INVALID', proof=proof)
         args = arguments(route([(-1, 1), (3, 1)], [(4, 1), (5, 1)]))
         proof, result = self.build(args)
         g = proof.gap_relevance[0]
