@@ -110,6 +110,15 @@ def evidence_issues(evidence: IngestionResult) -> tuple[QualityIssue, ...]:
             return (QualityIssue("SOURCE_MAPPING_INVALID"),)
         if any(type(diag) is not Diagnostic for diag in evidence.diagnostics):
             return (QualityIssue("SOURCE_DIAGNOSTIC_SOURCE_INVALID"),)
+        # M2A diagnostics are hashed verbatim into the evidence identity.
+        # A bool/int/float `code` or `field` can pass the subsequent
+        # non-gap provenance checks but serialize to a different JSON digest.
+        # Validate the exact declared primitives *before* consulting code
+        # membership or comparing provenance. Retain None for optional field.
+        if any(type(diag.code) is not str
+               or (diag.field is not None and type(diag.field) is not str)
+               for diag in evidence.diagnostics):
+            return (QualityIssue("SOURCE_DIAGNOSTIC_TYPE_INVALID"),)
         if any(not _canonical_source_location(m.source)
                or type(m.source.record_index) is not int
                or (m.source.source_kind == "gpx" and type(m.source.point_index) is not int)

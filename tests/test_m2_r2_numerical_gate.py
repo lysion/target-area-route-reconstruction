@@ -443,6 +443,70 @@ class IndependentR2Identity(unittest.TestCase):
                               [issue.code for issue in verified.issues])
 
 
+    def test_real_gpx_warning_diagnostic_primitive_types_are_identity_bound(self):
+        # R3 full Cloud audit D-01: the public M2A handoff used to accept
+        # False/0/0.0/-0.0 as Diagnostic.field/code, then issue distinct
+        # evidence, proof and M2D identities for unchanged raw source bytes.
+        # Use a real GPX warning, not a synthetic forged baseline warning.
+        raw = gpx([[
+            '<trkpt lon="0" lat="0"><time>2026-01-01T00:00:00</time></trkpt>',
+            '<trkpt lon="0.1" lat="0"><time>2026-01-01T00:01:00Z</time></trkpt>',
+        ]])
+        evidence = ingest_bytes(raw, source_kind="gpx",
+                                track_source={"id":"r3-d01-diagnostic","revision_id":"r1"})
+        self.assertEqual(evidence.outcome, "success", evidence)
+        self.assertTrue(evidence.diagnostics, evidence)
+        diagnostic = next(d for d in evidence.diagnostics
+                          if d.code == "TIMESTAMP_TIMEZONE_MISSING")
+        self.assertIs(type(diagnostic.code), str)
+        self.assertEqual(diagnostic.field, "timestamp")
+        policy = QualityPolicy()
+        positive = project_quality(evidence, policy=policy)
+        self.assertEqual(positive.outcome, "produced", positive)
+        self.assertEqual(verify_quality(positive.projection, evidence,
+                                        policy=policy).outcome, "valid")
+        area = rectangle(-1, -1, 1, 1)
+        args = arguments(evidence, area)
+        spatial = prove_spatial_relation(**args)
+        self.assertEqual(spatial.outcome, "produced", spatial)
+        self.assertEqual(verify_spatial_relation(spatial.proof, **args).outcome, "valid")
+        baseline = assemble_spatial_entities(proof=spatial.proof, **args)
+        self.assertEqual(baseline.outcome, "produced", baseline)
+
+        # field=None is explicitly legal (Optional[str]); code=None is not.
+        optional = replace(evidence, diagnostics=tuple(
+            replace(d, field=None) if d is diagnostic else d
+            for d in evidence.diagnostics))
+        self.assertEqual(project_quality(optional, policy=policy).outcome, "produced")
+        for name, bad_values in (
+            ("field", (False, 0, 0.0, -0.0, True, 1.0)),
+            ("code", (False, 0, 0.0, -0.0, True, 1.0, None)),
+        ):
+            for value in bad_values:
+                with self.subTest(name=name, spelling=repr(value)):
+                    altered = replace(evidence, diagnostics=tuple(
+                        replace(d, **{name:value}) if d is diagnostic else d
+                        for d in evidence.diagnostics))
+                    self.assertNotEqual(altered.to_json(), evidence.to_json())
+                    projected = project_quality(altered, policy=policy)
+                    self.assertEqual(projected.outcome,
+                                     "quality_evidence_unavailable", projected)
+                    self.assertIn("SOURCE_DIAGNOSTIC_TYPE_INVALID",
+                                  {issue.code for issue in projected.issues})
+                    verified = verify_quality(positive.projection, altered,
+                                              policy=policy)
+                    self.assertEqual(verified.outcome,
+                                     "quality_evidence_unavailable", verified)
+                    self.assertIn("SOURCE_DIAGNOSTIC_TYPE_INVALID",
+                                  {issue.code for issue in verified.issues})
+                    denied_args = {**args, "evidence": altered}
+                    denied = prove_spatial_relation(**denied_args)
+                    self.assertNotEqual(denied.outcome, "produced", denied)
+                    self.assertIsNone(denied.proof)
+                    downstream = assemble_spatial_entities(
+                        proof=spatial.proof, **denied_args)
+                    self.assertNotEqual(downstream.outcome, "produced", downstream)
+
     def test_gpx_source_indices_reject_bool_and_float_equivalences(self):
         # Codex P2: source coordinates of *the record index itself* are part
         # of the M2A hash. Python SourceLocation equality accepts False==0

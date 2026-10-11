@@ -472,6 +472,66 @@ def main():
             clean_projection.projection, bad_evidence, policy=diag_policy)
         assert rejected.outcome == "quality_evidence_unavailable", rejected
 
+    # Independent audit D-01: a genuine parser-emitted GPX time warning
+    # must survive M2A-M2F, but malformed primitive diagnostic fields
+    # must be refused by M2B, M2C and M2D on the isolated installed wheel.
+    from dataclasses import replace
+    raw_warning = (
+        '<gpx version="1.1" creator="r3-d01" xmlns="http://www.topografix.com/GPX/1/1">'
+        '<trk><trkseg>'
+        '<trkpt lon="112.904" lat="28.2"><time>2026-01-01T00:00:00</time></trkpt>'
+        '<trkpt lon="112.905" lat="28.2"><time>2026-01-01T00:01:00Z</time></trkpt>'
+        '</trkseg></trk></gpx>').encode()
+    warning_evidence = core.ingest_bytes(
+        raw_warning, source_kind="gpx",
+        track_source={"id":"r3-wheel-d01","revision_id":"r1"})
+    assert warning_evidence.outcome == "success", warning_evidence
+    original_warning = next(d for d in warning_evidence.diagnostics
+                            if d.code == "TIMESTAMP_TIMEZONE_MISSING")
+    assert original_warning.field == "timestamp"
+    valid_policy = core.QualityPolicy()
+    valid_quality = core.project_quality(warning_evidence, policy=valid_policy)
+    assert valid_quality.outcome == "produced", valid_quality
+    assert core.verify_quality(
+        valid_quality.projection, warning_evidence,
+        policy=valid_policy).outcome == "valid"
+    valid_args = dict(
+        evidence=warning_evidence, quality_projection=valid_quality.projection,
+        quality_policy=valid_policy, target_area=polygon,
+        target_reference=ParentReference(polygon["id"], polygon["revision_id"]))
+    valid_proof = core.prove_spatial_relation(**valid_args)
+    assert valid_proof.outcome == "produced", valid_proof
+    assert core.verify_spatial_relation(valid_proof.proof, **valid_args).outcome == "valid"
+    valid_entities = core.assemble_spatial_entities(proof=valid_proof.proof, **valid_args)
+    assert valid_entities.outcome == "produced", valid_entities
+    valid_temporal = core.export_temporal_geojson(
+        bundle=valid_entities.bundle, proof=valid_proof.proof, **valid_args)
+    assert valid_temporal.outcome == "produced", valid_temporal
+    for name, invalid in (
+        ("field", False), ("field", 0), ("field", 0.0),
+        ("field", -0.0), ("code", False), ("code", 0),
+        ("code", 0.0), ("code", -0.0),
+    ):
+        changed_evidence = replace(warning_evidence, diagnostics=tuple(
+            replace(d, **{name:invalid}) if d is original_warning else d
+            for d in warning_evidence.diagnostics))
+        assert changed_evidence.to_json() != warning_evidence.to_json()
+        projected = core.project_quality(changed_evidence, policy=valid_policy)
+        assert projected.outcome == "quality_evidence_unavailable", projected
+        assert "SOURCE_DIAGNOSTIC_TYPE_INVALID" in {
+            issue.code for issue in projected.issues}, projected
+        verified = core.verify_quality(
+            valid_quality.projection, changed_evidence, policy=valid_policy)
+        assert verified.outcome == "quality_evidence_unavailable", verified
+        invalid_args = {**valid_args, "evidence": changed_evidence}
+        assert core.prove_spatial_relation(**invalid_args).outcome != "produced"
+        assert core.assemble_spatial_entities(
+            proof=valid_proof.proof, **invalid_args).outcome != "produced"
+        assert core.export_temporal_geojson(
+            bundle=valid_entities.bundle, proof=valid_proof.proof,
+            **invalid_args).outcome != "produced"
+    print("M2 EXIT ISOLATED WHEEL: R3 D-01 Diagnostic primitive types rejected")
+
     # Type-sensitive source lineage witness: these are *equal* as Python
     # SourceLocation values, but their JSON spellings and fingerprints differ.
     # Check both observation mapping and diagnostic copies against the wheel.
