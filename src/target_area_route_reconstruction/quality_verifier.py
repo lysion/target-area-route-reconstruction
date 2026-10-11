@@ -65,7 +65,8 @@ def _verify(q, evidence, policy):
         fail("EVIDENCE_REFERENCE_MISMATCH", "evidence_digest")
     parameters = QualityParameters(policy)
     expected_algorithm = QualityAlgorithm(parameters)
-    if (q.algorithm != expected_algorithm or
+    if (not canonical_snapshot(q.algorithm, QUALITY_TYPES)
+            or q.algorithm != expected_algorithm or
             json.dumps(asdict(q.algorithm), sort_keys=True, allow_nan=False) !=
             json.dumps(asdict(expected_algorithm), sort_keys=True, allow_nan=False)):
         fail("ALGORITHM_CONTRACT_MISMATCH", "algorithm")

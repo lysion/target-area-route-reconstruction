@@ -138,6 +138,15 @@ class DataclassCodecAdmission(unittest.TestCase):
             self.assertEqual(prove_spatial_relation(**{**args, "quality_projection": changed}).outcome,
                              "invalid_input")
             callback.assert_not_called()
+        class ForeignFields(dict):
+            def values(self):
+                raise AssertionError("foreign algorithm field codec must never run")
+        changed = copy.deepcopy(args["quality_projection"])
+        object.__setattr__(changed.algorithm, "__dataclass_fields__", ForeignFields())
+        self.assertEqual(verify_quality(changed, args["evidence"],
+                         policy=args["quality_policy"]).outcome, "invalid")
+        self.assertEqual(prove_spatial_relation(**{**args, "quality_projection": changed}).outcome,
+                         "invalid_input")
 
     def test_proof_metadata_rejected_before_entity_and_exports(self):
         args, proof, bundle = fixture()
