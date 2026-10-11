@@ -180,7 +180,7 @@ class M2DAdmissionTests(unittest.TestCase):
         # numeric metadata before M2D can compare its serialized identity.
         # Both entry points must fail closed; retain the stronger boundary.
         self.assertEqual([i.code for i in result.issues],
-                         ['M2D_SPATIAL_PROOF_INVALID', 'SPATIAL_ALGORITHM_MISMATCH'])
+                         ['M2D_SPATIAL_PROOF_INVALID', 'SPATIAL_PROOF_MALFORMED'])
         self.reject(self.bundle, 'M2D_SPATIAL_PROOF_INVALID', proof=proof)
         args = arguments(route([(-1, 1), (3, 1)], [(4, 1), (5, 1)]))
         proof, result = self.build(args)
