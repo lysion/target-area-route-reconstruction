@@ -32,8 +32,12 @@ def _verify(proof, track, area, authority, quality, verified):
     def fail(code, path=""):
         errors.append(SpatialIssue(code, path))
     def result():
+        # Report the existing precise semantic error when one exists; otherwise
+        # fail closed for noncanonical nested dataclass identity before VALID.
+        if not errors and not canonical_snapshot(proof, SPATIAL_TYPES):
+            fail("SPATIAL_PROOF_MALFORMED")
         return SpatialVerification("invalid" if errors else "valid", tuple(errors))
-    if type(proof) is not SpatialRelationProof or not canonical_snapshot(proof, SPATIAL_TYPES):
+    if type(proof) is not SpatialRelationProof:
         fail("SPATIAL_PROOF_MALFORMED")
         return result()
     if proof.authority != authority:
