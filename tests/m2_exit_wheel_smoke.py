@@ -408,6 +408,44 @@ def main():
             downstream = core.assemble_spatial_entities(proof=bad_proof, **gap_args)
             assert downstream.outcome != "produced", downstream
 
+    # R3 exact-head P2: a nested source gap must not accept bool/float
+    # aliases of diagnostic indices. These variants compare equal to canonical
+    # ints in dataclass equality but create distinct installed-wheel JSON.
+    saw_diagnostic_index = False
+    for gap_index, original_rel in enumerate(spatial_gap.proof.gap_relevance):
+        gap = original_rel.gap
+        if not gap.diagnostic_indices:
+            continue
+        saw_diagnostic_index = True
+        index = gap.diagnostic_indices[0]
+        candidates = [float(index)] + ([False] if index == 0 else [])
+        for candidate in candidates:
+            modified_gap = replace(gap, diagnostic_indices=(
+                candidate, *gap.diagnostic_indices[1:]))
+            assert modified_gap == gap
+            wrong_quality = replace(gap_quality, gaps=tuple(
+                modified_gap if i == gap_index else item
+                for i, item in enumerate(gap_quality.gaps)))
+            assert wrong_quality.to_json() != gap_quality.to_json()
+            assert core.verify_quality(
+                wrong_quality, gap_evidence, policy=diag_policy).outcome == "invalid"
+            assert core.prove_spatial_relation(**{
+                **gap_args, "quality_projection": wrong_quality}).outcome != "produced"
+
+            modified_rel = replace(original_rel, gap=modified_gap)
+            wrong_proof = replace(spatial_gap.proof, gap_relevance=tuple(
+                modified_rel if i == gap_index else item
+                for i, item in enumerate(spatial_gap.proof.gap_relevance)))
+            assert wrong_proof.to_json() != spatial_gap.proof.to_json()
+            invalid = core.verify_spatial_relation(wrong_proof, **gap_args)
+            assert invalid.outcome == "invalid" and any(
+                issue.code == "SPATIAL_PROOF_MALFORMED"
+                for issue in invalid.issues), invalid
+            denied = core.assemble_spatial_entities(proof=wrong_proof, **gap_args)
+            assert denied.outcome != "produced", denied
+    assert saw_diagnostic_index, "Gap diagnostic identity witness is required"
+    print("M2 EXIT ISOLATED WHEEL: strict nested Gap diagnostic integer identity PASS")
+
     # Codex P2: even a fully typed positive-zero non-gap M2A diagnostic
     # must name its own positioned record and exact predecessor. Source
     # acceptance cannot rely on in-bounds checks alone.
