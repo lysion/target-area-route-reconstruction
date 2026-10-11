@@ -3,6 +3,7 @@
 import math
 import sys
 import warnings
+from fractions import Fraction
 
 from shapely.geometry import LineString, box
 
@@ -165,29 +166,48 @@ def clip_edge(part, edge, left, right, area):
                 merged.append((low, high))
         return merged
 
-    # Parameter error budget derives from the binary64 error of original
-    # CRS84 coordinates divided by original edge span. It is a positional
-    # comparison bound, NEVER a license to discard positive intersections.
+    # Propagate coordinate cancellation through the parent parameter, but
+    # cap it by BOTH the absolute policy and the exact local interval. A
+    # remote polygon vertex must not enlarge this edge's error allowance.
     axis = max(range(2), key=lambda i: abs(right[i] - left[i]))
-    edge_span = abs(right[axis] - left[axis])
+    edge_span = abs(Fraction(right[axis]) - Fraction(left[axis]))
     coordinate_ulp = max(math.ulp(v) for v in (left[axis], right[axis]))
-    for a, b in _boundary_segments(area):
-        coordinate_ulp = max(coordinate_ulp, math.ulp(a[axis]), math.ulp(b[axis]))
-    coordinate_fraction_guard = 8 * coordinate_ulp / edge_span
+    coordinate_fraction_guard = 8 * Fraction(coordinate_ulp) / edge_span
+    delta = tuple(Fraction(b) - Fraction(a) for a, b in zip(left, right))
+    absolute_cap = Fraction(1e-12)
 
     for claimed, expected in ((maximal(inside), expected_inside),
                               (maximal(outside), expected_outside)):
         if len(claimed) != len(expected):
             raise SpatialFailure("SPATIAL_EXACT_PARTITION_MISMATCH")
         for (actual_low, actual_high), (exact_low, exact_high) in zip(claimed, expected):
+            local_width = exact_high - exact_low
+            local_length_squared = sum((d * local_width) ** 2 for d in delta)
             for actual, rational in ((actual_low, exact_low), (actual_high, exact_high)):
                 reference = float(rational)
                 if not math.isfinite(reference):
                     raise SpatialFailure("SPATIAL_FRACTION_UNREPRESENTABLE")
-                if abs(actual - reference) > max(
-                        8 * math.ulp(actual), 8 * math.ulp(reference),
-                        coordinate_fraction_guard):
+                allowed_fraction = min(
+                    max(8 * Fraction(math.ulp(actual)),
+                        8 * Fraction(math.ulp(reference)), coordinate_fraction_guard),
+                    absolute_cap / edge_span, local_width / 4)
+                if abs(Fraction(actual) - rational) > allowed_fraction:
                     raise SpatialFailure("SPATIAL_EXACT_BOUNDARY_MISMATCH")
+                # Fraction agreement alone cannot certify the serialized
+                # coordinates: interpolation can round an endpoint outside
+                # the exact local budget. Compare to the rational boundary,
+                # not merely to the point returned by GEOS. Squared exact
+                # comparisons avoid underflow and a rounded local length.
+                regenerated = tuple(left[i] + actual * (right[i] - left[i])
+                                    for i in range(2))
+                exact_point = tuple(Fraction(left[i]) + rational * delta[i]
+                                    for i in range(2))
+                scale = max(abs(v) for xy in (left, right, regenerated) for v in xy)
+                coordinate_cap = min(absolute_cap, 8 * Fraction(math.ulp(scale)))
+                for coordinate, exact_coordinate in zip(regenerated, exact_point):
+                    error = abs(Fraction(coordinate) - exact_coordinate)
+                    if error > coordinate_cap or error ** 2 > local_length_squared / 16:
+                        raise SpatialFailure("SPATIAL_EXACT_BOUNDARY_MISMATCH")
 
     partition = sorted(inside + outside)
     cursor = 0.0

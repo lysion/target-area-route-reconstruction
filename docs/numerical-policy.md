@@ -34,6 +34,29 @@ New mandatory independent tests compute exact rectangle/segment parametric overl
 
 R2-02 separately establishes that all typed `TrackPosition.fraction_to_next = 0, +0.0, -0.0` refer to **one canonical +0.0 binary64 parent vertex identity**, before `QualityProjection` or downstream `SpatialAssessment` hashing. Canonical constructors normalize these representations; verifiers reject untrusted bypassed-constructor noncanonical forms. QualityAlgorithm `0.1.2` and spatial-proof `0.1.1` mark the versioned stronger admission/semantics, **pending independent corrective review**.
 
+### Sloped-boundary local budget correction
+
+Spatial-proof `0.1.3` additionally checks each GEOS interval endpoint against
+the exact rational boundary. The propagated fraction allowance is capped by
+both the absolute coordinate cap and one quarter of the **exact local**
+parameter interval. Target vertices in remote components cannot enlarge it.
+The final binary64 interpolated coordinate is also checked against that exact
+boundary, with the absolute/operand-ULP caps and one quarter of the exact local
+coordinate length. Exact squared comparisons avoid length underflow and
+rounding of the local budget. Agreement between GEOS and fraction recovery is
+not sufficient to certify the exported coordinate.
+
+The regression witness is a diamond centered at binary64 `0.1`, with horizontal
+radius `ulp(0.1)` and vertical radius `1`. At latitude `3/8`, its exact horizontal
+radius is `5*ulp(0.1)/8`. The old output extended to `0.1 ± ulp(0.1)`: a 30%
+local endpoint error, exceeding the 25% budget. Polygon, hole and remote
+MultiPolygon variants now fail explicitly with
+`SPATIAL_EXACT_BOUNDARY_MISMATCH`; no proof or target entity is produced.
+Ordinary representable sloped crossings and exact boundary contacts remain
+eligible. No coordinate snapping, target buffering or positive-length cutoff
+is introduced. This correction does not itself declare M2 DONE; exit status
+remains subject to an independent audit of the final commit.
+
 ## Input numbers
 
 All validation tooling and test fixture readers use `scripts/strict_json.py`. Non-standard `NaN`, `Infinity`, `-Infinity`, and finite-looking numeric text that overflows binary64 (`1e9999`) fail before schema/semantic evaluation. Core coordinate bounds then enforce CRS84 ranges. This avoids treating Python's permissive JSON decoder as proof of standard JSON conformance.
