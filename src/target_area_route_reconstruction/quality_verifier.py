@@ -58,7 +58,11 @@ def _verify(q, evidence, policy):
         return result()
 
     def position(pos, path):
-        if not isinstance(pos, TrackPosition):
+        # These positions contribute to serialized quality authority. A
+        # dataclass subclass may add fields to asdict()/to_json() while
+        # preserving otherwise valid indices and fractions; isinstance()
+        # would admit multiple digests for the same original parent span.
+        if type(pos) is not TrackPosition:
             fail("TRACK_POSITION_INVALID", path)
             return False
         p, i, f = pos.part_index, pos.observation_index, pos.fraction_to_next
