@@ -5,6 +5,7 @@ import math
 from shapely.errors import GEOSException
 from shapely.geometry import box
 
+from ._canonical_snapshot import SPATIAL_TYPES, canonical_snapshot
 from ._spatial_geometry import clip_edge, point_covered
 from ._spatial_inputs import algorithm, prepare
 from .models import TrackPosition
@@ -32,7 +33,7 @@ def _verify(proof, track, area, authority, quality, verified):
         errors.append(SpatialIssue(code, path))
     def result():
         return SpatialVerification("invalid" if errors else "valid", tuple(errors))
-    if not isinstance(proof, SpatialRelationProof):
+    if type(proof) is not SpatialRelationProof or not canonical_snapshot(proof, SPATIAL_TYPES):
         fail("SPATIAL_PROOF_MALFORMED")
         return result()
     if proof.authority != authority:

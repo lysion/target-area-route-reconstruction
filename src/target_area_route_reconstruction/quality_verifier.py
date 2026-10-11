@@ -1,8 +1,11 @@
 """Independent coverage, provenance and proof checks. Does not import producer."""
 
 import math
+import json
+from dataclasses import asdict
 from fractions import Fraction
 
+from ._canonical_snapshot import QUALITY_TYPES, canonical_snapshot
 from ._quality_evidence import GAP_CODES, evidence_digest, evidence_issues
 from ._quality_numerics import distance_metres, utc_seconds
 from .models import IngestionResult, TrackPosition
@@ -20,7 +23,7 @@ def verify_quality(projection: QualityProjection, evidence: IngestionResult, *,
     Malformed typed claims fail with stable codes rather than parser exceptions.
     Verification never supplies missing constraints or silently repairs claims.
     """
-    if not isinstance(policy, QualityPolicy):
+    if type(policy) is not QualityPolicy or not canonical_snapshot(policy, QUALITY_TYPES):
         return QualityVerification("invalid", (QualityIssue("QUALITY_POLICY_INVALID"),))
     issues = evidence_issues(evidence)
     if issues:
@@ -37,7 +40,7 @@ def _verify(q, evidence, policy):
         issues.append(QualityIssue(code, path))
     def result(statuses=()):
         return QualityVerification("invalid" if issues else "valid", tuple(issues), tuple(statuses))
-    if not isinstance(q, QualityProjection):
+    if type(q) is not QualityProjection or not canonical_snapshot(q, QUALITY_TYPES):
         fail("PROJECTION_MALFORMED")
         return result()
     if any(type(value) is not tuple for value in (q.usable_intervals, q.excluded_intervals,
@@ -52,7 +55,10 @@ def _verify(q, evidence, policy):
     if q.evidence_digest != evidence_digest(evidence):
         fail("EVIDENCE_REFERENCE_MISMATCH", "evidence_digest")
     parameters = QualityParameters(policy)
-    if q.algorithm != QualityAlgorithm(parameters):
+    expected_algorithm = QualityAlgorithm(parameters)
+    if (q.algorithm != expected_algorithm or
+            json.dumps(asdict(q.algorithm), sort_keys=True, allow_nan=False) !=
+            json.dumps(asdict(expected_algorithm), sort_keys=True, allow_nan=False)):
         fail("ALGORITHM_CONTRACT_MISMATCH", "algorithm")
     if issues:
         return result()

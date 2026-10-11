@@ -57,7 +57,7 @@ class QualityParameters:
 class QualityAlgorithm:
     parameters: QualityParameters
     name: str = "target-area-route-reconstruction.quality"
-    version: str = "0.1.2"
+    version: str = "0.1.3"
 
 
 @dataclass(frozen=True)

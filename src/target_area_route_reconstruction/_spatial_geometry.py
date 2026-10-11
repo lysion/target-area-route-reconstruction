@@ -4,8 +4,9 @@ import math
 import sys
 import warnings
 
-from shapely.geometry import LineString, Point, box
+from shapely.geometry import LineString, box
 
+from ._spatial_exact import exact_coverage, exact_point_covered
 from .models import TrackPosition
 from .quality_models import ParentInterval
 from .spatial_models import SpatialFailure
@@ -89,13 +90,8 @@ def _preflight_tiny_boundary_contact(left, right, area):
     # overlay itself may silently erase a subnormal positive line even without
     # a RuntimeWarning, so DO NOT call line.intersection/difference here.
     # Evaluate stationary point coverage; both endpoints must agree.
-    try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("error", RuntimeWarning)
-            start_covered = bool(area.covers(Point(left)))
-            end_covered = bool(area.covers(Point(right)))
-    except RuntimeWarning as exc:
-        raise SpatialFailure("SPATIAL_NUMERICAL_ENGINE_WARNING") from exc
+    start_covered = exact_point_covered(left, area)
+    end_covered = exact_point_covered(right, area)
     if start_covered != end_covered:
         raise SpatialFailure("SPATIAL_NUMERICAL_POINT_PREDICATE_MISMATCH")
     return start_covered
@@ -109,6 +105,12 @@ def clip_edge(part, edge, left, right, area):
     """
     proven_stationary_class = _preflight_tiny_boundary_contact(left, right, area)
     if proven_stationary_class is not None:
+        # Check the endpoint predicate with independent exact topology too.
+        exact_inside, exact_outside = exact_coverage(left, right, area)
+        complete_inside = exact_inside == ((0, 1),) and not exact_outside
+        complete_outside = exact_outside == ((0, 1),) and not exact_inside
+        if not (complete_inside if proven_stationary_class else complete_outside):
+            raise SpatialFailure("SPATIAL_EXACT_PARTITION_MISMATCH")
         # Full ORIGINAL positive edge retains its original parent lineage.
         whole = (ParentInterval(TrackPosition(part, edge),
                                 TrackPosition(part, edge + 1)),)
@@ -135,6 +137,33 @@ def clip_edge(part, edge, left, right, area):
                 raise SpatialFailure("SPATIAL_FRAGMENT_COLLAPSED")
             target.append((low, high))
         target.sort()
+    # Independently derive the topology of every positive original edge
+    # using exact rationals, irrespective of *parent edge length*. The old
+    # tiny-edge preflight missed ordinary edges crossing subnormal-width
+    # target rings; GEOS can silently erase those with NO RuntimeWarning.
+    # A lossy binary64 conversion must not erase a mathematically positive
+    # interval. Nor may shared-GEOS producer/verifier agreement confer proof.
+    expected_inside, expected_outside = exact_coverage(left, right, area)
+    for intervals in (expected_inside, expected_outside):
+        for low, high in intervals:
+            if not float(low) < float(high):
+                raise SpatialFailure("SPATIAL_FRACTION_UNREPRESENTABLE")
+
+    # Enforce matching topology and near-binary64 boundary position. GEOS is
+    # used as an optimized producer only when exact geometry confirms its
+    # complete positive-length partition. 8 ulps is the *declared* spatial
+    # comparison budget, never a positive-length deletion threshold.
+    for claimed, expected in ((inside, expected_inside), (outside, expected_outside)):
+        if len(claimed) != len(expected):
+            raise SpatialFailure("SPATIAL_EXACT_PARTITION_MISMATCH")
+        for (actual_low, actual_high), (exact_low, exact_high) in zip(claimed, expected):
+            for actual, rational in ((actual_low, exact_low), (actual_high, exact_high)):
+                reference = float(rational)
+                if not math.isfinite(reference):
+                    raise SpatialFailure("SPATIAL_FRACTION_UNREPRESENTABLE")
+                if abs(actual - reference) > 8 * max(math.ulp(actual), math.ulp(reference)):
+                    raise SpatialFailure("SPATIAL_EXACT_BOUNDARY_MISMATCH")
+
     partition = sorted(inside + outside)
     cursor = 0.0
     for low, high in partition:
@@ -149,7 +178,7 @@ def clip_edge(part, edge, left, right, area):
 
 
 def point_covered(position, area):
-    return bool(area.covers(Point(position)))
+    return exact_point_covered(position, area)
 
 
 def bound_relation(bound, area):

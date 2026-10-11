@@ -145,7 +145,7 @@ def main():
     original = core.project_quality(canonical_gpx, policy=policy)
     assert original.outcome == "produced"
     q = original.projection
-    assert q.algorithm.version == "0.1.2"
+    assert q.algorithm.version == "0.1.3"
     assert len(q.usable_intervals) == 1
     split = replace(q, usable_intervals=(
         ParentInterval(TrackPosition(0, 0), TrackPosition(0, 1)),
@@ -251,6 +251,53 @@ def main():
         assert rejected.outcome == "numerical_failure" and rejected.proof is None, rejected
         assert any(issue.code.startswith("SPATIAL_NUMERICAL_") for issue in rejected.issues)
 
+    # R3 P1: an ordinary-length edge crosses a positive-width target strip
+    # that GEOS previously dropped *without* any numerical warning. Real
+    # GPX -> installed wheel must never admit an incorrect complete relation.
+    def r3_polygon(rings, multi=False):
+        result = target()
+        result["geometry"] = {
+            "type": "MultiPolygon" if multi else "Polygon",
+            "coordinates": rings,
+        }
+        return result
+
+    def r3_ring(x0, y0, x1, y1):
+        return [[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]]
+
+    for scale in (1e-154, 1e-160):
+        next_scale = math.nextafter(scale, math.inf)
+        assert Fraction(next_scale) > Fraction(scale)
+        examples = (
+            r3_polygon([r3_ring(scale, -scale, next_scale, scale)]),
+            r3_polygon([r3_ring(-2, -2, 2, 2),
+                        r3_ring(scale, -scale, next_scale, scale)]),
+            r3_polygon([[r3_ring(scale, -scale, next_scale, scale)],
+                        [r3_ring(-1.9, 0.5, -1.8, 0.6)]], multi=True),
+        )
+        for r3_area in examples:
+            r3_evidence = core.ingest_bytes(
+                numerical_gpx(-1.0, 1.0), source_kind="gpx",
+                track_source={"id":"r3-wheel-numerics", "revision_id":"r1"})
+            assert r3_evidence.outcome == "success", r3_evidence
+            r3_policy = core.QualityPolicy()
+            r3_q = core.project_quality(r3_evidence, policy=r3_policy)
+            assert r3_q.outcome == "produced", r3_q
+            assert r3_q.projection.algorithm.version == "0.1.3"
+            r3_args = dict(
+                evidence=r3_evidence, quality_projection=r3_q.projection,
+                quality_policy=r3_policy, target_area=r3_area,
+                target_reference=ParentReference(r3_area["id"], r3_area["revision_id"]))
+            r3 = core.prove_spatial_relation(**r3_args)
+            # Safe, explicitly uncertain output is required for these
+            # geometrically positive, binary64-unrepresentable tiny slices.
+            assert r3.outcome == "numerical_failure" and r3.proof is None, r3
+
+    assert core.prove_spatial_relation(**{
+        **args, "quality_projection": core.project_quality(
+            canonical_gpx, policy=policy).projection}).outcome != "numerical_failure"
+    print("M2 EXIT ISOLATED WHEEL: R3 six thin-strip/hole/multipolygon cases fail closed")
+
     # R2-02: all equivalent signed/integer zero parent positions must have
     # one canonical JSON representation before snapshot identity/digest.
     for variant in (0.0, 0, -0.0):
@@ -259,7 +306,7 @@ def main():
         assert math.copysign(1.0, t.fraction_to_next) == 1.0
         assert t == TrackPosition(0, 0)
         assert str(t) == str(TrackPosition(0, 0))
-    assert q.projection.algorithm.version == "0.1.2"
+    assert q.projection.algorithm.version == "0.1.3"
 
     # PR #21 Codex P2: dataclass-equal diagnostic endpoints must not admit
     # alternative JSON representations of the same quality evidence. Run
@@ -496,6 +543,39 @@ def main():
             issue.code == "SPATIAL_POSITION_INVALID" for issue in checked.issues), checked
         denied = core.assemble_spatial_entities(proof=forged_spatial, **gap_args)
         assert denied.outcome != "produced", denied
+
+    # R3 P2: inherited supporting dataclasses can carry new JSON fields
+    # even when their base-class fields compare equal. Reject BEFORE digest.
+    from dataclasses import fields, make_dataclass
+    def r3_extended(value):
+        kind = type(value)
+        extended = make_dataclass(
+            "R3Extended" + kind.__name__, [("untrusted_extension", str, "forged")],
+            bases=(kind,), frozen=True)
+        return extended(**{f.name: getattr(value, f.name) for f in fields(value)})
+
+    original_span = diag_q.usable_intervals[0]
+    bad_quality = replace(diag_q, usable_intervals=(
+        r3_extended(original_span), *diag_q.usable_intervals[1:]))
+    assert bad_quality.to_json() != diag_q.to_json()
+    checked = core.verify_quality(bad_quality, canonical_gpx, policy=diag_policy)
+    assert checked.outcome == "invalid", checked
+    refused = core.prove_spatial_relation(
+        evidence=canonical_gpx, quality_projection=bad_quality,
+        quality_policy=diag_policy, target_area=polygon,
+        target_reference=ParentReference(polygon["id"], polygon["revision_id"]))
+    assert refused.outcome != "produced" and refused.proof is None, refused
+
+    prior = spatial_gap.proof
+    inherited_rel = r3_extended(prior.gap_relevance[0])
+    bad_spatial = replace(prior, gap_relevance=(
+        inherited_rel, *prior.gap_relevance[1:]))
+    assert bad_spatial.to_json() != prior.to_json()
+    checked = core.verify_spatial_relation(bad_spatial, **gap_args)
+    assert checked.outcome == "invalid", checked
+    refused = core.assemble_spatial_entities(proof=bad_spatial, **gap_args)
+    assert refused.outcome != "produced", refused
+    print("M2 EXIT ISOLATED WHEEL: R3 inherited ParentInterval/GapRelevance digest aliases rejected")
 
     print("M2 EXIT ISOLATED WHEEL: TrackPosition subclass hash-identity attacks fail closed at M2B/M2C/M2D")
 
