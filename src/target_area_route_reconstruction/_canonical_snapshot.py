@@ -116,7 +116,7 @@ def canonical_snapshot(value, allowed_types):
     # to_json (the pipeline's codec), without changing type or equality.
     # Class-owned enumeration and rejection of shadowing must stay paired.
     model_fields = fields(type(value))
-    if not set(vars(value)) <= {field.name for field in model_fields}:
+    if not set(getattr(value, "__dict__", {})) <= {field.name for field in model_fields}:
         return False
     if type(value) is TrackPosition:
         fraction = value.fraction_to_next
@@ -134,10 +134,13 @@ def canonical_snapshot(value, allowed_types):
             return False
 
     declared = _declared_fields(type(value))
-    return all(
-        field.name in declared and _matches_declared_type(
-            getattr(value, field.name), declared[field.name], allowed_types)
-        for field in model_fields)
+    try:
+        return all(
+            field.name in declared and _matches_declared_type(
+                getattr(value, field.name), declared[field.name], allowed_types)
+            for field in model_fields)
+    except AttributeError:
+        return False  # a bypassed constructor cannot omit required fields
 
 
 def canonical_json_value(value):

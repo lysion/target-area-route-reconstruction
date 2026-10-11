@@ -193,6 +193,10 @@ class DataclassCodecAdmission(unittest.TestCase):
         denied = prove_spatial_relation(**{**args, "target_reference": reference})
         self.assertEqual(denied.outcome, "invalid_input")
         self.assertIn("TARGET_REFERENCE_MISMATCH", [i.code for i in denied.issues])
+        incomplete = object.__new__(ParentReference)
+        denied = prove_spatial_relation(**{**args, "target_reference": incomplete})
+        self.assertEqual(denied.outcome, "invalid_input")
+        self.assertIn("TARGET_REFERENCE_MISMATCH", [i.code for i in denied.issues])
         class ForeignTarget(dict):
             def __deepcopy__(self, memo):
                 raise AssertionError("foreign copy must never run")
