@@ -153,7 +153,30 @@ def clip_edge(part, edge, left, right, area):
     # used as an optimized producer only when exact geometry confirms its
     # complete positive-length partition. 8 ulps is the *declared* spatial
     # comparison budget, never a positive-length deletion threshold.
-    for claimed, expected in ((inside, expected_inside), (outside, expected_outside)):
+    # A boundary-only point touch may split one GEOS outside line into two
+    # adjacent fragments. Such a split has no positive inside length; compare
+    # the maximal union rather than the arbitrary fragment count.
+    def maximal(spans):
+        merged = []
+        for low, high in sorted(spans):
+            if merged and merged[-1][1] == low:
+                merged[-1] = (merged[-1][0], high)
+            else:
+                merged.append((low, high))
+        return merged
+
+    # Parameter error budget derives from the binary64 error of original
+    # CRS84 coordinates divided by original edge span. It is a positional
+    # comparison bound, NEVER a license to discard positive intersections.
+    axis = max(range(2), key=lambda i: abs(right[i] - left[i]))
+    edge_span = abs(right[axis] - left[axis])
+    coordinate_ulp = max(math.ulp(v) for v in (left[axis], right[axis]))
+    for a, b in _boundary_segments(area):
+        coordinate_ulp = max(coordinate_ulp, math.ulp(a[axis]), math.ulp(b[axis]))
+    coordinate_fraction_guard = 8 * coordinate_ulp / edge_span
+
+    for claimed, expected in ((maximal(inside), expected_inside),
+                              (maximal(outside), expected_outside)):
         if len(claimed) != len(expected):
             raise SpatialFailure("SPATIAL_EXACT_PARTITION_MISMATCH")
         for (actual_low, actual_high), (exact_low, exact_high) in zip(claimed, expected):
@@ -161,7 +184,9 @@ def clip_edge(part, edge, left, right, area):
                 reference = float(rational)
                 if not math.isfinite(reference):
                     raise SpatialFailure("SPATIAL_FRACTION_UNREPRESENTABLE")
-                if abs(actual - reference) > 8 * max(math.ulp(actual), math.ulp(reference)):
+                if abs(actual - reference) > max(
+                        8 * math.ulp(actual), 8 * math.ulp(reference),
+                        coordinate_fraction_guard):
                     raise SpatialFailure("SPATIAL_EXACT_BOUNDARY_MISMATCH")
 
     partition = sorted(inside + outside)
