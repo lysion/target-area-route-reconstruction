@@ -65,7 +65,10 @@ def _verify(proof, track, area, authority, quality, verified):
             expected_outside.extend(outside)
 
     def position(value):
-        if not isinstance(value, TrackPosition):
+        # Spatial proofs are independently serializable authority. Never
+        # admit TrackPosition subclasses with unverified dataclass fields:
+        # asdict() would hash the extra values into a different M2D revision.
+        if type(value) is not TrackPosition:
             return False
         p, i, f = value.part_index, value.observation_index, value.fraction_to_next
         return (type(p) is int and 0 <= p < len(track["parts"]) and type(i) is int
