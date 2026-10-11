@@ -1,4 +1,4 @@
-"""Closed, type-precise admission of M2B/M2C hash-bearing snapshots.
+"""Closed, type-precise admission of M2A/M2B/M2C hash-bearing snapshots.
 
 Python dataclass equality conflates primitive values such as False, 0, 0.0;
 asdict()/JSON preserve their different representations. All declared nested
@@ -11,9 +11,9 @@ import math
 from dataclasses import fields, is_dataclass
 from functools import lru_cache
 from types import UnionType
-from typing import Union, get_args, get_origin, get_type_hints
+from typing import Any, Union, get_args, get_origin, get_type_hints
 
-from .models import TrackPosition
+from .models import Diagnostic, IngestionResult, ObservationSource, SourceLocation, TrackPosition
 from .quality_models import (
     DomainBound, DomainProofParameters, EdgeDiagnostic, ExcludedInterval, Gap,
     GapConstraint, ParentInterval, ParentReference, QualityAlgorithm,
@@ -24,6 +24,9 @@ from .spatial_models import (
     SpatialRelationProof, StationaryEvidence,
 )
 
+EVIDENCE_TYPES = frozenset((
+    IngestionResult, Diagnostic, ObservationSource, SourceLocation, TrackPosition,
+))
 QUALITY_TYPES = frozenset((
     TrackPosition, ParentReference, QualityPolicy, QualityParameters,
     QualityAlgorithm, ParentInterval, ExcludedInterval, EdgeDiagnostic, Gap,
@@ -48,6 +51,20 @@ def _matches_declared_type(value, annotation, allowed_types):
     and a tuple containing any of these values can compare equal while
     producing a different JSON fingerprint.
     """
+    if annotation is Any:
+        # Canonical entities use dict[str, Any], but the payload is still
+        # native finite JSON. Do not let asdict() silently serialize a foreign
+        # dataclass or a container subclass hidden inside the entity snapshot.
+        if value is None or type(value) in (str, int, bool):
+            return True
+        if type(value) is float:
+            return math.isfinite(value)
+        if type(value) is list:
+            return all(_matches_declared_type(item, Any, allowed_types) for item in value)
+        if type(value) is dict:
+            return all(type(key) is str and _matches_declared_type(item, Any, allowed_types)
+                       for key, item in value.items())
+        return False
     if annotation is type(None):
         return value is None
     if annotation is int:
@@ -73,6 +90,11 @@ def _matches_declared_type(value, annotation, allowed_types):
         return len(value) == len(members) and all(
             _matches_declared_type(item, expected, allowed_types)
             for item, expected in zip(value, members))
+    if origin is dict:
+        return type(value) is dict and all(
+            _matches_declared_type(key, members[0], allowed_types)
+            and _matches_declared_type(item, members[1], allowed_types)
+            for key, item in value.items())
 
     # Only explicitly listed identity models may appear in these structures.
     # No isinstance: dataclass subclasses can serialize additional fields.

@@ -10,6 +10,7 @@ import math
 import re
 from bisect import bisect_left
 
+from ._canonical_snapshot import EVIDENCE_TYPES, canonical_snapshot
 from .models import Diagnostic, IngestionResult, ObservationSource, SourceLocation, TrackPosition
 from .quality_models import QualityIssue
 
@@ -23,6 +24,14 @@ def digest(value) -> str:
 
 
 def evidence_digest(evidence: IngestionResult) -> str:
+    # This helper must not turn an unvalidated source shape into an identity,
+    # even when called directly rather than after the public hand-off gate.
+    try:
+        canonical = canonical_snapshot(evidence, EVIDENCE_TYPES)
+    except (AttributeError, TypeError, ValueError, RecursionError):
+        canonical = False
+    if not canonical:
+        raise ValueError("QUALITY_EVIDENCE_INVALID")
     return digest(evidence.to_dict())
 
 
@@ -73,8 +82,13 @@ def evidence_issues(evidence: IngestionResult) -> tuple[QualityIssue, ...]:
     """Check the supported M2A hand-off, including unchanged revision content."""
     if type(evidence) is not IngestionResult:
         return (QualityIssue("QUALITY_EVIDENCE_INVALID"),)
-    if evidence.outcome != "success" or evidence.canonical_track is None:
-        return (QualityIssue("QUALITY_EVIDENCE_UNAVAILABLE"),)
+    try:
+        if type(evidence.outcome) is not str:
+            return (QualityIssue("QUALITY_EVIDENCE_INVALID"),)
+        if evidence.outcome != "success" or evidence.canonical_track is None:
+            return (QualityIssue("QUALITY_EVIDENCE_UNAVAILABLE"),)
+    except AttributeError:
+        return (QualityIssue("QUALITY_EVIDENCE_INVALID"),)
     try:
         track = evidence.canonical_track
         if (track["schema_version"] != "0.1.0" or track["spatial_reference"] != "OGC:CRS84"
@@ -83,32 +97,15 @@ def evidence_issues(evidence: IngestionResult) -> tuple[QualityIssue, ...]:
         if (evidence.content_hash["algorithm"] != "sha256"
                 or re.fullmatch("[0-9a-f]{64}", evidence.content_hash["digest"]) is None):
             return (QualityIssue("QUALITY_EVIDENCE_INVALID"),)
-        if (track["id"] != "canonical-track:" + digest(track["track_source"])
-                or track["revision_id"] != "sha256:" + digest({
-                    "track_source": track["track_source"], "content_hash": evidence.content_hash,
-                    "parts": track["parts"], "normalizer": track["normalizer"]})):
-            return (QualityIssue("PARENT_CONTENT_REVISION_MISMATCH"),)
-        expected_positions = []
-        parts = track["parts"]
-        if not parts:
-            return (QualityIssue("QUALITY_EVIDENCE_INVALID"),)
-        for p, part in enumerate(track["parts"]):
-            if not part["observations"]:
-                return (QualityIssue("QUALITY_EVIDENCE_INVALID"),)
-            for i, obs in enumerate(part["observations"]):
-                xy = obs["position"]
-                if (len(xy) != 2 or any(type(v) not in (int, float) or not math.isfinite(v) for v in xy)
-                        or not -180 <= xy[0] <= 180 or not -90 <= xy[1] <= 90):
-                    return (QualityIssue("QUALITY_EVIDENCE_INVALID"),)
-                expected_positions.append(TrackPosition(p, i))
         mappings = evidence.observation_sources
         # Exact typed input shapes are part of the snapshot authority. A
         # dataclass subclass can append fields which asdict() hashes, even
         # though inherited source coordinates remain unchanged. Refuse it
         # instead of silently accepting a second identity for the same fact.
-        if any(type(m) is not ObservationSource for m in mappings):
+        if type(mappings) is not tuple or any(type(m) is not ObservationSource for m in mappings):
             return (QualityIssue("SOURCE_MAPPING_INVALID"),)
-        if any(type(diag) is not Diagnostic for diag in evidence.diagnostics):
+        if (type(evidence.diagnostics) is not tuple
+                or any(type(diag) is not Diagnostic for diag in evidence.diagnostics)):
             return (QualityIssue("SOURCE_DIAGNOSTIC_SOURCE_INVALID"),)
         # M2A diagnostics are hashed verbatim into the evidence identity.
         # A bool/int/float `code` or `field` can pass the subsequent
@@ -127,12 +124,45 @@ def evidence_issues(evidence: IngestionResult) -> tuple[QualityIssue, ...]:
         if any(diag.source is not None and not _canonical_source_location(diag.source)
                for diag in evidence.diagnostics):
             return (QualityIssue("SOURCE_DIAGNOSTIC_SOURCE_INVALID"),)
-        if (any(not _canonical_source_vertex(m.position, parts) for m in mappings)
-                or [m.position for m in mappings] != expected_positions):
+        if any(not canonical_snapshot(m.position, EVIDENCE_TYPES) for m in mappings):
             return (QualityIssue("SOURCE_MAPPING_INVALID"),)
         # Every diagnostic, including a non-gap warning, contributes to the
         # source-evidence digest. Check its optional endpoint representations
         # before dataclass-equality provenance checks or any derived identity.
+        if any(pos is not None and not canonical_snapshot(pos, EVIDENCE_TYPES)
+               for diag in evidence.diagnostics
+               for pos in (diag.previous_position, diag.next_position)):
+            return (QualityIssue("SOURCE_DIAGNOSTIC_POSITION_INVALID"),)
+        # The specific source errors above remain stable; then validate ALL
+        # declared M2A fields before hashing any source/parent content. This
+        # closes the same omission for containers and JSON payload fields,
+        # not just the two Diagnostic primitives found by the audit.
+        if not canonical_snapshot(evidence, EVIDENCE_TYPES):
+            return (QualityIssue("QUALITY_EVIDENCE_INVALID"),)
+        if (track["id"] != "canonical-track:" + digest(track["track_source"])
+                or track["revision_id"] != "sha256:" + digest({
+                    "track_source": track["track_source"], "content_hash": evidence.content_hash,
+                    "parts": track["parts"], "normalizer": track["normalizer"]})):
+            return (QualityIssue("PARENT_CONTENT_REVISION_MISMATCH"),)
+        # Parent-content mismatch retains precedence over lineage/range
+        # errors caused by an in-place parent edit. Shape checks above still
+        # precede hashing, while these checks reference the verified parent.
+        expected_positions = []
+        parts = track["parts"]
+        if not parts:
+            return (QualityIssue("QUALITY_EVIDENCE_INVALID"),)
+        for p, part in enumerate(parts):
+            if not part["observations"]:
+                return (QualityIssue("QUALITY_EVIDENCE_INVALID"),)
+            for i, obs in enumerate(part["observations"]):
+                xy = obs["position"]
+                if (len(xy) != 2 or any(type(v) not in (int, float) or not math.isfinite(v) for v in xy)
+                        or not -180 <= xy[0] <= 180 or not -90 <= xy[1] <= 90):
+                    return (QualityIssue("QUALITY_EVIDENCE_INVALID"),)
+                expected_positions.append(TrackPosition(p, i))
+        if (any(not _canonical_source_vertex(m.position, parts) for m in mappings)
+                or [m.position for m in mappings] != expected_positions):
+            return (QualityIssue("SOURCE_MAPPING_INVALID"),)
         if any(pos is not None and not _canonical_source_vertex(pos, parts)
                for diag in evidence.diagnostics
                for pos in (diag.previous_position, diag.next_position)):
@@ -202,6 +232,6 @@ def evidence_issues(evidence: IngestionResult) -> tuple[QualityIssue, ...]:
         if sorted(accounted) != list(range(len(accounted))):
             return (QualityIssue("SOURCE_MAPPING_INVALID"),)
         evidence_digest(evidence)  # fail closed on any non-finite serialized value
-    except (KeyError, TypeError, ValueError, AttributeError, OverflowError):
+    except (KeyError, TypeError, ValueError, AttributeError, OverflowError, RecursionError):
         return (QualityIssue("QUALITY_EVIDENCE_INVALID"),)
     return ()

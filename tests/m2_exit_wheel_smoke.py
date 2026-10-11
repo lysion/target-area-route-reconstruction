@@ -532,6 +532,41 @@ def main():
             **invalid_args).outcome != "produced"
     print("M2 EXIT ISOLATED WHEEL: R3 D-01 Diagnostic primitive types rejected")
 
+    # The closed M2A gate also covers containers and JSON payloads. A valid
+    # projection/proof must not authorize a differently typed source snapshot,
+    # even if list/tuple happen to encode the same JSON. No hash is reached.
+    from unittest.mock import patch
+    from target_area_route_reconstruction._quality_evidence import evidence_digest
+    malformed_sources = (
+        replace(warning_evidence, diagnostics=list(warning_evidence.diagnostics)),
+        replace(warning_evidence, observation_sources=list(warning_evidence.observation_sources)),
+        replace(warning_evidence, outcome=False),
+        replace(warning_evidence, content_hash={**warning_evidence.content_hash, "digest": False}),
+        replace(warning_evidence, canonical_track={
+            **warning_evidence.canonical_track,
+            "parts": tuple(warning_evidence.canonical_track["parts"])}),
+        replace(warning_evidence, canonical_track={
+            **warning_evidence.canonical_track, "extra": original_warning}),
+    )
+    for changed in malformed_sources:
+        with patch("target_area_route_reconstruction._quality_evidence.digest",
+                   side_effect=AssertionError("noncanonical source reached a hash")):
+            assert core.project_quality(changed, policy=valid_policy).projection is None
+            assert core.verify_quality(valid_quality.projection, changed,
+                                       policy=valid_policy).outcome != "valid"
+            try:
+                evidence_digest(changed)
+            except ValueError as error:
+                assert str(error) == "QUALITY_EVIDENCE_INVALID"
+            else:
+                raise AssertionError("malformed M2A source received a digest")
+            denied_args = {**valid_args, "evidence": changed}
+            assert core.prove_spatial_relation(**denied_args).proof is None
+            assert core.assemble_spatial_entities(proof=valid_proof.proof, **denied_args).bundle is None
+            assert core.export_temporal_geojson(bundle=valid_entities.bundle,
+                                               proof=valid_proof.proof, **denied_args).geojson_json is None
+    print("M2 EXIT ISOLATED WHEEL: closed M2A source types rejected before hashing")
+
     # Type-sensitive source lineage witness: these are *equal* as Python
     # SourceLocation values, but their JSON spellings and fingerprints differ.
     # Check both observation mapping and diagnostic copies against the wheel.
