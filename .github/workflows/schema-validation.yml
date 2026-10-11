@@ -73,3 +73,5 @@ jobs:
           env -u PYTHONPATH "$wheel_check_dir/venv/bin/python" sloped-budget.py -v
           cp "$GITHUB_WORKSPACE/tests/test_dataclass_codec_admission.py" "$wheel_check_dir/codec-admission.py"
           env -u PYTHONPATH "$wheel_check_dir/venv/bin/python" codec-admission.py -v
+          cp "$GITHUB_WORKSPACE/tests/test_bounded_file_ingestion.py" "$wheel_check_dir/bounded-file.py"
+          env -u PYTHONPATH "$wheel_check_dir/venv/bin/python" bounded-file.py -v
