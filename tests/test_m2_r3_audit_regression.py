@@ -133,6 +133,102 @@ class R3Correctness(unittest.TestCase):
             self.assertEqual(verify_spatial_relation(proof,**args).outcome,'invalid')
             self.assertNotEqual(assemble_spatial_entities(proof=proof,**args).outcome,'produced')
 
+    def test_nested_gap_integer_spelling_cannot_alias_serialized_proof(self):
+        # Exact-head Codex P2: False == 0 == 0.0 in Python dataclass
+        # equality, but each has a different JSON value/digest. Validate
+        # at both the M2B parent and the independently copied M2C gap.
+        from pathlib import Path
+        from target_area_route_reconstruction import ingest_file
+        from dataclasses import replace
+
+        evidence = ingest_file(
+            Path(__file__).parent / 'source-fixtures/gpx/discontinuity.gpx',
+            source_kind='gpx',
+            track_source={'id': 'r3-p2-source-gap', 'revision_id': 'r1'})
+        self.assertEqual(evidence.outcome, 'success')
+        policy = QualityPolicy()
+        args = arguments(evidence, target([ring(-180, -90, 180, 90)]), policy)
+        quality = args['quality_projection']
+        self.assertEqual(verify_quality(quality, evidence, policy=policy).outcome, 'valid')
+        spatial = prove_spatial_relation(**args)
+        self.assertEqual(spatial.outcome, 'produced', spatial)
+        self.assertEqual(verify_spatial_relation(spatial.proof, **args).outcome, 'valid')
+
+        gap_idx = next(i for i, gap in enumerate(quality.gaps)
+                       if gap.diagnostic_indices and gap.diagnostic_indices[0] == 0)
+        base_gap = quality.gaps[gap_idx]
+        base_rel = spatial.proof.gap_relevance[gap_idx]
+        for spelling in (False, 0.0):
+            with self.subTest(field='diagnostic_indices', spelling=repr(spelling)):
+                changed = replace(base_gap, diagnostic_indices=(
+                    spelling, *base_gap.diagnostic_indices[1:]))
+                self.assertEqual(changed, base_gap)
+                wrong_quality = replace(quality, gaps=(
+                    *quality.gaps[:gap_idx], changed, *quality.gaps[gap_idx + 1:]))
+                self.assertNotEqual(wrong_quality.to_json(), quality.to_json())
+                self.assertEqual(
+                    verify_quality(wrong_quality, evidence, policy=policy).outcome, 'invalid')
+                self.assertNotEqual(prove_spatial_relation(**{
+                    **args, 'quality_projection': wrong_quality}).outcome, 'produced')
+
+                bad_rel = replace(base_rel, gap=changed)
+                bad_proof = replace(spatial.proof, gap_relevance=(
+                    *spatial.proof.gap_relevance[:gap_idx], bad_rel,
+                    *spatial.proof.gap_relevance[gap_idx + 1:]))
+                self.assertEqual(bad_rel, base_rel)
+                self.assertNotEqual(bad_proof.to_json(), spatial.proof.to_json())
+                checked = verify_spatial_relation(bad_proof, **args)
+                self.assertEqual(checked.outcome, 'invalid', checked)
+                self.assertIn('SPATIAL_PROOF_MALFORMED',
+                              {issue.code for issue in checked.issues})
+                denied = assemble_spatial_entities(proof=bad_proof, **args)
+                self.assertNotEqual(denied.outcome, 'produced', denied)
+
+    def test_quality_exclusion_index_has_one_integer_identity(self):
+        # Even an internally equal quality gap cannot carry a bool/float
+        # alternative to the integer excluded_interval_index.
+        raw = (
+            '<gpx version="1.1" creator="r3" xmlns="http://www.topografix.com/GPX/1/1">'
+            '<trk><trkseg>'
+            '<trkpt lon="0" lat="0"><time>2026-10-07T00:00:00Z</time></trkpt>'
+            '<trkpt lon="0.00001" lat="0"><time>2026-10-07T00:01:00Z</time></trkpt>'
+            '<trkpt lon="0.1" lat="0"><time>2026-10-07T00:01:01Z</time></trkpt>'
+            '</trkseg></trk></gpx>').encode()
+        evidence = ingest_bytes(raw, source_kind='gpx',
+                                track_source={'id': 'r3-p2-quality-gap', 'revision_id': 'r1'})
+        self.assertEqual(evidence.outcome, 'success')
+        policy = QualityPolicy(max_implied_speed_mps=10.0)
+        args = arguments(evidence, target([ring(-1, -1, 1, 1)]), policy)
+        quality = args['quality_projection']
+        self.assertEqual(verify_quality(quality, evidence, policy=policy).outcome, 'valid')
+        gap_idx = next(i for i, gap in enumerate(quality.gaps)
+                       if gap.kind == 'quality_exclusion' and gap.excluded_interval_index == 0)
+        original = quality.gaps[gap_idx]
+        spatial = prove_spatial_relation(**args)
+        self.assertEqual(spatial.outcome, 'produced', spatial)
+        self.assertEqual(verify_spatial_relation(spatial.proof, **args).outcome, 'valid')
+        for spelling in (False, 0.0):
+            with self.subTest(spelling=repr(spelling)):
+                changed = replace(original, excluded_interval_index=spelling)
+                self.assertEqual(changed, original)
+                wrong = replace(quality, gaps=tuple(
+                    changed if index == gap_idx else gap
+                    for index, gap in enumerate(quality.gaps)))
+                self.assertNotEqual(wrong.to_json(), quality.to_json())
+                self.assertEqual(verify_quality(wrong, evidence, policy=policy).outcome,
+                                 'invalid')
+                bad_rel = replace(spatial.proof.gap_relevance[gap_idx], gap=changed)
+                proof = replace(spatial.proof, gap_relevance=tuple(
+                    bad_rel if index == gap_idx else item
+                    for index, item in enumerate(spatial.proof.gap_relevance)))
+                self.assertNotEqual(proof.to_json(), spatial.proof.to_json())
+                verified = verify_spatial_relation(proof, **args)
+                self.assertEqual(verified.outcome, 'invalid', verified)
+                self.assertIn('SPATIAL_PROOF_MALFORMED',
+                              {issue.code for issue in verified.issues})
+                self.assertNotEqual(assemble_spatial_entities(proof=proof, **args).outcome,
+                                    'produced')
+
     def test_bypassed_policy_constructor_cannot_create_second_identity(self):
         ev=source([(0,0),(.001,0)])
         policy=QualityPolicy(max_implied_speed_mps=1.0)
