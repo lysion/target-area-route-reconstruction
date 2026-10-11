@@ -39,8 +39,12 @@ def _verify(q, evidence, policy):
     def fail(code, path=""):
         issues.append(QualityIssue(code, path))
     def result(statuses=()):
+        # Preserve specific established validation errors; a structurally
+        # foreign but otherwise equal snapshot is rejected before VALID.
+        if not issues and not canonical_snapshot(q, QUALITY_TYPES):
+            fail("PROJECTION_MALFORMED")
         return QualityVerification("invalid" if issues else "valid", tuple(issues), tuple(statuses))
-    if type(q) is not QualityProjection or not canonical_snapshot(q, QUALITY_TYPES):
+    if type(q) is not QualityProjection:
         fail("PROJECTION_MALFORMED")
         return result()
     if any(type(value) is not tuple for value in (q.usable_intervals, q.excluded_intervals,
