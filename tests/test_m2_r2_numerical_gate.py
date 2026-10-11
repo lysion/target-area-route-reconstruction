@@ -164,6 +164,97 @@ class IndependentR2Identity(unittest.TestCase):
                                  b.proof.authority.quality_projection_digest)
                 self.assertEqual(a.proof.to_json(), b.proof.to_json())
 
+    def test_trackposition_subclass_cannot_extend_quality_or_spatial_identity(self):
+        # Codex PR #21 P2: isinstance(TrackPosition) admits an inherited
+        # dataclass with additional asdict() fields. Even without changing
+        # the original edge coordinates, this changes serialized authority
+        # and downstream M2D identity. Both verifier boundaries are strict.
+        from dataclasses import dataclass
+
+        @dataclass(frozen=True)
+        class ExtendedTrackPosition(TrackPosition):
+            injected_identity: str = "untrusted-extra-field"
+
+        evidence = ingest_bytes(gpx([
+            ['<trkpt lon="0" lat="0"/>', '<trkpt lon="0.1" lat="0"/>'],
+            ['<trkpt lon="0.2" lat="0"/>', '<trkpt lon="0.3" lat="0"/>'],
+        ]), source_kind="gpx",
+            track_source={"id": "r2-subclass-authority", "revision_id": "r1"})
+        self.assertEqual(evidence.outcome, "success")
+        policy = QualityPolicy()
+        projection = project_quality(evidence, policy=policy).projection
+        self.assertEqual(verify_quality(projection, evidence, policy=policy).outcome, "valid")
+        self.assertTrue(projection.diagnostics and projection.gaps)
+
+        args = arguments(evidence, rectangle(-1, -1, 1, 1))
+        baseline_result = prove_spatial_relation(**args)
+        self.assertEqual(baseline_result.outcome, "produced", baseline_result)
+        proof = baseline_result.proof
+        self.assertEqual(verify_spatial_relation(proof, **args).outcome, "valid")
+
+        def extra(pos):
+            value = ExtendedTrackPosition(
+                pos.part_index, pos.observation_index, pos.fraction_to_next)
+            self.assertIsInstance(value, TrackPosition)
+            self.assertIsNot(type(value), TrackPosition)
+            return value
+
+        span = projection.usable_intervals[0]
+        diag = projection.diagnostics[0]
+        gap = projection.gaps[0]
+        quality_cases = (
+            ("usable_start", replace(projection, usable_intervals=(
+                replace(span, start=extra(span.start)), *projection.usable_intervals[1:]))),
+            ("usable_end", replace(projection, usable_intervals=(
+                replace(span, end=extra(span.end)), *projection.usable_intervals[1:]))),
+            ("diagnostic_start", replace(projection, diagnostics=(
+                replace(diag, interval=replace(diag.interval, start=extra(diag.interval.start))),
+                *projection.diagnostics[1:]))),
+            ("diagnostic_end", replace(projection, diagnostics=(
+                replace(diag, interval=replace(diag.interval, end=extra(diag.interval.end))),
+                *projection.diagnostics[1:]))),
+            ("gap_start", replace(projection, gaps=(
+                replace(gap, start=extra(gap.start)), *projection.gaps[1:]))),
+            ("gap_end", replace(projection, gaps=(
+                replace(gap, end=extra(gap.end)), *projection.gaps[1:]))),
+        )
+        for label, forged in quality_cases:
+            with self.subTest(layer="M2B", case=label):
+                self.assertNotEqual(forged.to_json(), projection.to_json())
+                verified = verify_quality(forged, evidence, policy=policy)
+                self.assertEqual(verified.outcome, "invalid", verified)
+                self.assertIn("TRACK_POSITION_INVALID",
+                              [issue.code for issue in verified.issues], verified)
+                denied = prove_spatial_relation(**{**args, "quality_projection": forged})
+                self.assertNotEqual(denied.outcome, "produced", denied)
+                self.assertIsNone(denied.proof)
+
+        cover = proof.target_coverage_intervals[0]
+        relevance = proof.gap_relevance[0]
+        nested = relevance.gap
+        spatial_cases = (
+            ("target_start", replace(proof, target_coverage_intervals=(
+                replace(cover, start=extra(cover.start)), *proof.target_coverage_intervals[1:]))),
+            ("target_end", replace(proof, target_coverage_intervals=(
+                replace(cover, end=extra(cover.end)), *proof.target_coverage_intervals[1:]))),
+            ("nested_gap_start", replace(proof, gap_relevance=(
+                replace(relevance, gap=replace(nested, start=extra(nested.start))),
+                *proof.gap_relevance[1:]))),
+            ("nested_gap_end", replace(proof, gap_relevance=(
+                replace(relevance, gap=replace(nested, end=extra(nested.end))),
+                *proof.gap_relevance[1:]))),
+        )
+        for label, forged in spatial_cases:
+            with self.subTest(layer="M2C", case=label):
+                self.assertNotEqual(forged.to_json(), proof.to_json())
+                verified = verify_spatial_relation(forged, **args)
+                self.assertEqual(verified.outcome, "invalid", verified)
+                self.assertIn("SPATIAL_POSITION_INVALID",
+                              [issue.code for issue in verified.issues], verified)
+                downstream = assemble_spatial_entities(proof=forged, **args)
+                self.assertNotEqual(downstream.outcome, "produced", downstream)
+
+
     def test_manually_bypassed_trackposition_constructor_is_rejected(self):
         evidence = real_gpx((0, 0), (.1, 0))
         policy = QualityPolicy()
