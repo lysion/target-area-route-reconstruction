@@ -457,6 +457,48 @@ def main():
         assert check.outcome == "quality_evidence_unavailable" and any(
             issue.code == "SOURCE_DIAGNOSTIC_SOURCE_INVALID" for issue in check.issues), check
 
+    # Codex PR #21 P2: a subclass of TrackPosition retains numerically
+    # valid coordinates, but adds a serialized field to the quality/spatial
+    # SHA identity. Check both public independent verifiers on the wheel.
+    @dataclass(frozen=True)
+    class ExtendedTrackPosition(TrackPosition):
+        injected_identity: str = "untrusted-wheel-field"
+
+    def inherited_position(value):
+        return ExtendedTrackPosition(value.part_index, value.observation_index,
+                                     value.fraction_to_next)
+
+    quality_span = diag_q.usable_intervals[0]
+    for endname in ("start", "end"):
+        changed_span = replace(quality_span,
+                               **{endname: inherited_position(getattr(quality_span, endname))})
+        forged_quality = replace(diag_q, usable_intervals=(
+            changed_span, *diag_q.usable_intervals[1:]))
+        assert forged_quality.to_json() != diag_q.to_json()
+        check = core.verify_quality(forged_quality, canonical_gpx, policy=diag_policy)
+        assert check.outcome == "invalid" and any(
+            issue.code == "TRACK_POSITION_INVALID" for issue in check.issues), check
+        refused = core.prove_spatial_relation(
+            evidence=canonical_gpx, quality_projection=forged_quality,
+            quality_policy=diag_policy, target_area=polygon,
+            target_reference=ParentReference(polygon["id"], polygon["revision_id"]))
+        assert refused.outcome != "produced" and refused.proof is None, refused
+
+    spatial_span = spatial_gap.proof.target_coverage_intervals[0]
+    for endname in ("start", "end"):
+        changed_span = replace(spatial_span,
+                               **{endname: inherited_position(getattr(spatial_span, endname))})
+        forged_spatial = replace(spatial_gap.proof, target_coverage_intervals=(
+            changed_span, *spatial_gap.proof.target_coverage_intervals[1:]))
+        assert forged_spatial.to_json() != spatial_gap.proof.to_json()
+        checked = core.verify_spatial_relation(forged_spatial, **gap_args)
+        assert checked.outcome == "invalid" and any(
+            issue.code == "SPATIAL_POSITION_INVALID" for issue in checked.issues), checked
+        denied = core.assemble_spatial_entities(proof=forged_spatial, **gap_args)
+        assert denied.outcome != "produced", denied
+
+    print("M2 EXIT ISOLATED WHEEL: TrackPosition subclass hash-identity attacks fail closed at M2B/M2C/M2D")
+
     print("M2 EXIT ISOLATED WHEEL: R2-01 Fraction GPX numerical attacks fail closed; R2-02 canonical M2A FIT/GPX source shapes, M2B diagnostics and M2C nested gaps PASS")
 
     # No positioned observations is not "outside".
