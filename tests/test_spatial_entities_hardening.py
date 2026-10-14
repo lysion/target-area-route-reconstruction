@@ -410,12 +410,12 @@ class M2DAdmissionTests(unittest.TestCase):
     def test_admission_mutations_are_assertion_killed(self):
         import target_area_route_reconstruction as package
         mutations = [
-            ('_m2d_common.py', '            if key in result:', '            if False and key in result:', 'test_pr9_duplicate_relation'),
-            ('_m2d_common.py', 'raise BundleJSONError("M2D_DUPLICATE_JSON_MEMBER")', 'raise BundleJSONError("M2D_NONFINITE_JSON")', 'test_pr9_duplicate_relation'),
+            ('strict_json.py', '            if key in result:', '            if False and key in result:', 'test_pr9_duplicate_relation'),
+            ('strict_json.py', 'raise StrictJSONError("M2D_DUPLICATE_JSON_MEMBER")', 'raise StrictJSONError("M2D_NONFINITE_JSON")', 'test_pr9_duplicate_relation'),
             ('spatial_entities_verifier.py', 'if canonical_json(assessment) != canonical_json(expected_assessment):', 'if False:', 'test_schema_legal_assessment_content_is_revision_bound'),
             ('spatial_entities_verifier.py', 'if canonical_json(item) != canonical_json(expected_segment):', 'if False:', 'test_schema_legal_segment_content_is_revision_bound'),
             ('spatial_entities_verifier.py', 'if not geometry_matches_parent(item["geometry"], info["geometry"], evidence.canonical_track):', 'if item["geometry"] != info["geometry"]:', 'test_pr9_one_ulp_is_semantic_not_snapshot_equivalence'),
-            ('_m2d_common.py', 'if value == 0 and Decimal(number) != 0:', 'if False:', 'test_nonzero_json_underflow_is_not_silently_zero'),
+            ('strict_json.py', 'if value == 0 and Decimal(number) != 0:', 'if False:', 'test_nonzero_json_underflow_is_not_silently_zero'),
             ('spatial_verifier.py', 'if not errors and not canonical_snapshot(proof, SPATIAL_TYPES):', 'if False:', 'test_noncanonical_spatial_snapshot_gate_is_assertion_killed'),
         ]
         for filename, old, new, witness in mutations:

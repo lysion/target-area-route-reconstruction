@@ -132,7 +132,7 @@ The independent-audit re-exit additionally requires ordered interval/multiplicit
 
 ## Milestone 2 — Deterministic Core
 
-**Status:** DONE — PASS_WITH_LIMITATIONS after the [final numerical/codec exit audit](docs/milestone2-final-exit-audit.md) of `82e62b5e033ae4a0dfaff7828103fe989c468ca6`. Prior reopening by the **second independent Codex full-repository audit CHANGES_REQUIRED** at `d86414f25b15c40da20bb354a69a7e609b4f5e25`: R2-01 P1 GEOS tiny-boundary misclassification accepted by M2C proof and verifier; R2-02 P2 noncanonical signed-zero parent identity. The previous [post-first-Codex PASS](docs/milestone2-codex-reexit-review.md) is **historical, superseded**. [R2 remediation](docs/milestone2-codex-r2-remediation.md) and subsequent R3 numerical/type/codec repairs are accepted by the final review in PR #21. No release; M3 NOT STARTED.
+**Status:** DONE — PASS_WITH_LIMITATIONS after the [final numerical/codec exit audit](docs/milestone2-final-exit-audit.md) of `82e62b5e033ae4a0dfaff7828103fe989c468ca6`. Prior reopening by the **second independent Codex full-repository audit CHANGES_REQUIRED** at `d86414f25b15c40da20bb354a69a7e609b4f5e25`: R2-01 P1 GEOS tiny-boundary misclassification accepted by M2C proof and verifier; R2-02 P2 noncanonical signed-zero parent identity. The previous [post-first-Codex PASS](docs/milestone2-codex-reexit-review.md) is **historical, superseded**. [R2 remediation](docs/milestone2-codex-r2-remediation.md) and subsequent R3 numerical/type/codec repairs are accepted by the final review in PR #21. No release; M3 IN PROGRESS (strict JSON foundation).
 **Release target:** v0.1.0
 
 **M2A checkpoint:** DONE after independent review and merge of PR #2. Deterministic local FIT/GPX ingestion now normalizes preserved source evidence into the frozen `CanonicalTrack` shape while retaining source order, continuity boundaries, repeated observations, and missing-position diagnostics. See [implementation and acceptance record](docs/milestone2a-canonical-ingestion.md).
@@ -312,7 +312,7 @@ These obligations are not separate checkpoints, but they must be closed before M
 
 ## Milestone 3 — Persistent Runtime
 
-**Status:** NOT STARTED — mandatory [immutable evidence-custody / verifiable-reload contract](docs/milestone3-evidence-custody-contract.md) and [F3–F6 owned action gates](docs/post-m2-f3-f6-action-plan.md) documented; design requirements are **not** implemented persistence.
+**Status:** IN PROGRESS — first implementation: shared strict JSON admission (F5 prerequisite). See [progress and remaining gates](docs/milestone3-progress.md). Mandatory [immutable evidence-custody / verifiable-reload contract](docs/milestone3-evidence-custody-contract.md) and [F3–F6 owned action gates](docs/post-m2-f3-f6-action-plan.md) documented; design requirements are **not** implemented persistence.
 **Release target:** v0.2.0
 
 ### Goal
@@ -644,7 +644,7 @@ No project decision should rely solely on chat history.
 
 ## Current execution point
 
-**Current milestone transition:** Milestone 2 is **DONE — PASS_WITH_LIMITATIONS** under the [final exit audit](docs/milestone2-final-exit-audit.md). Numerical/identity/codec counterexamples, complete source/wheel regression and code-head CI passed. Earlier PASS/reopening records remain historical. M3 is NOT STARTED and v0.1.0 is not released.
+**Current milestone transition:** Milestone 2 is **DONE — PASS_WITH_LIMITATIONS** under the [final exit audit](docs/milestone2-final-exit-audit.md). Numerical/identity/codec counterexamples, complete source/wheel regression and code-head CI passed. Earlier PASS/reopening records remain historical. M3 is IN PROGRESS with the strict JSON prerequisite; custody and trusted reload are not implemented and v0.1.0 is not released.
 
 **Milestone 0 outcome: DONE**
 

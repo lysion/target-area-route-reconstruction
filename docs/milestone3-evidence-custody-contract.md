@@ -1,6 +1,6 @@
 # Milestone 3 — immutable evidence custody and verifiable derived-snapshot reload contract
 
-**Status: REQUIRED M3 DESIGN / IMPLEMENTATION NOT STARTED.** This is a normative engineering and acceptance contract for the next milestone, not an existing persistence feature, schema release, database implementation, cryptographic proof of vendor authenticity or new seventh M0 core entity.
+**Status: REQUIRED M3 DESIGN / IMPLEMENTATION IN PROGRESS (strict JSON prerequisite only).** See [progress](milestone3-progress.md); signed custody and finality are not implemented. This is a normative engineering and acceptance contract for the next milestone, not an existing persistence feature, schema release, database implementation, cryptographic proof of vendor authenticity or new seventh M0 core entity.
 
 **Non-negotiable goal:** establish an **immutable original-evidence → complete derived-snapshot binding that can be reloaded, independently verified and never confused with another source, revision, policy, area or algorithm**. A database that merely saves current dictionaries and hashes and can re-hash forged values does **not** satisfy M3.
 
@@ -178,6 +178,6 @@ The tests below are **M3 exit blockers**, not optional documentation examples. C
 - **M3B — snapshot graph and reload:** complete typed M2A–M2F records, separately signed full-DAG GraphCommit root-manifest digest and expected selector, **attested exact executable/native binary digests**, deterministic re-ingest and independent M2B/M2C/M2D verification; C02/C06–C08/C11/C14–C16/C18/C21.
 - **M3C — idempotent runtime:** retry/resume, crash recovery, concurrency, exact cache keys and manual decision audit C09/C10.
 - **M3D — reliability gates:** [F5](post-m2-f3-f6-action-plan.md) strict JSON parity C12; [F6](post-m2-f3-f6-action-plan.md) numeric 200/400/800/1600-part ≤2.8 median scaling thresholds, ≤1.0s/512MiB fixture limits and explicit default/ceiling budgets C13/C22; preserve correctness and fully atomic failure before any bulk-history guarantee.
-- **M3 exit:** passing unit, adversarial, installed-wheel **and restart/reload persistent integration** tests, executable attestation, graph-root co-forgery, TrackSource Activity binding, signer/principal/rollback and numeric F6 gates **C01–C23**, exact final-head CI and independent scrutiny of real attack behavior; ROADMAP may mark M3 DONE only after recorded evidence. **M3 is NOT STARTED until a subsequent implementation PR actually begins.**
+- **M3 exit:** passing unit, adversarial, installed-wheel **and restart/reload persistent integration** tests, executable attestation, graph-root co-forgery, TrackSource Activity binding, signer/principal/rollback and numeric F6 gates **C01–C23**, exact final-head CI and independent scrutiny of real attack behavior; ROADMAP may mark M3 DONE only after recorded evidence. **M3 implementation has now begun with the strict JSON prerequisite; no M3 exit is claimed.**
 
 **Rule of interpretation:** this document **establishes the required binding contract**; it does not claim that immutable custody, SQLite tables, independent anchor, reload verifier or M3 tests have already been implemented.

@@ -11,7 +11,6 @@ import hashlib
 import json
 import math
 from dataclasses import asdict
-from decimal import Decimal
 from functools import lru_cache
 from importlib.resources import files
 
@@ -94,49 +93,14 @@ def schema_issues(name, instance):
                         key=lambda e: (tuple(map(str, e.absolute_path)), str(e.validator))))
 
 
+# Historical imports retain the same exception class and parse error codes.
+from .strict_json import StrictJSONError as BundleJSONError, loads_json
+
+
 def strict_load(text):
-    """Decode unambiguous UTF-8 JSON, without last-member-wins authority."""
     if type(text) is not str:
         raise BundleJSONError("M2D_BUNDLE_MALFORMED")
-    def illegal_constant(value):
-        raise BundleJSONError("M2D_NONFINITE_JSON")
-    def unique_object(pairs):
-        result = {}
-        for key, value in pairs:
-            if key in result:
-                raise BundleJSONError("M2D_DUPLICATE_JSON_MEMBER")
-            result[key] = value
-        return result
-    def binary64(number):
-        value = float(number)
-        if not math.isfinite(value):
-            raise BundleJSONError("M2D_NONFINITE_JSON")
-        if value == 0 and Decimal(number) != 0:
-            raise BundleJSONError("M2D_JSON_NUMBER_UNREPRESENTABLE")
-        return value
-    value = json.loads(text, parse_constant=illegal_constant,
-                       object_pairs_hook=unique_object, parse_float=binary64)
-    def walk(item):
-        if isinstance(item, float) and not math.isfinite(item):
-            raise BundleJSONError("M2D_NONFINITE_JSON")
-        if isinstance(item, str):
-            item.encode("utf-8", errors="strict")
-        if isinstance(item, dict):
-            for k, v in item.items():
-                walk(k)
-                walk(v)
-        elif isinstance(item, list):
-            for v in item:
-                walk(v)
-    walk(value)
-    return value
-
-
-class BundleJSONError(ValueError):
-    """Stable parse category, independent of decoder exception prose."""
-    def __init__(self, code):
-        self.code = code
-        super().__init__(code)
+    return loads_json(text)
 
 
 def exact_proof_metadata(proof, quality):
