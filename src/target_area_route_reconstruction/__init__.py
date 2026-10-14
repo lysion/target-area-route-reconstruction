@@ -17,7 +17,10 @@ from .temporal_overlay import export_temporal_geojson
 from .local_evidence import LocalEvidenceStore, LocalEvidenceError, SourceAdmission, SourceReload
 from .local_graph import LocalGraphStore, GraphCommit, GraphReload
 
+from .local_review import LocalReviewStore, ManualDecision, EffectiveReview
+
 __all__ = [
+    "LocalReviewStore", "ManualDecision", "EffectiveReview",
     "LocalGraphStore", "GraphCommit", "GraphReload",
     "LocalEvidenceStore", "LocalEvidenceError", "SourceAdmission", "SourceReload",
     "ingest_bytes", "ingest_file", "Diagnostic", "IngestionResult",
