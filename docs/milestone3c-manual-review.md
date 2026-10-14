@@ -36,4 +36,4 @@ Native types are required before replay/hash. Each canonical record ≤64 KiB, e
 
 ## Remaining gates
 
-General task scheduling/resume, verified cache orchestration, administrative backup/recovery and quarantine, F6 full input/time/memory/scaling gates, and final independent exit audit remain open. Basic-local trusts application/OS/storage: coherent hostile rewriting of all facts and expectations is not authenticated. Actor and UTC timestamp are caller provenance. Enhanced custody remains explicitly unavailable.
+[Caller-driven task lifecycle and verified reuse](milestone3c-task-runtime.md) are implemented in the next batch. Administrative backup/recovery and quarantine, F6 full input/time/memory/scaling gates, and final independent exit audit remain open. Basic-local trusts application/OS/storage: coherent hostile rewriting of all facts and expectations is not authenticated. Actor and UTC timestamp are caller provenance. Enhanced custody remains explicitly unavailable.

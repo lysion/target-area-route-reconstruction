@@ -85,3 +85,5 @@ jobs:
           env -u PYTHONPATH M3_SOURCE_FIXTURES="$GITHUB_WORKSPACE/tests/source-fixtures" "$wheel_check_dir/venv/bin/python" local-graph.py -v
           cp "$GITHUB_WORKSPACE/tests/test_local_review_store.py" "$wheel_check_dir/local-review.py"
           env -u PYTHONPATH M3_SOURCE_FIXTURES="$GITHUB_WORKSPACE/tests/source-fixtures" "$wheel_check_dir/venv/bin/python" local-review.py -v
+          cp "$GITHUB_WORKSPACE/tests/test_local_task_store.py" "$wheel_check_dir/local-tasks.py"
+          env -u PYTHONPATH M3_SOURCE_FIXTURES="$GITHUB_WORKSPACE/tests/source-fixtures" "$wheel_check_dir/venv/bin/python" local-tasks.py -v

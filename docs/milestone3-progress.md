@@ -22,4 +22,10 @@ Current implementation includes the JSON prerequisite and [M3A local source admi
 
 [Local review API](milestone3c-manual-review.md) and [ADR-0016](decisions/0016-m3-local-manual-review-audit.md) implement explicit schema v3 migration, exact verified graph/assessment binding, task-scoped immutable decisions, corrections/revocations, idempotent retry, concurrent predecessor conflict, cold replay and commit crash recovery. Effective task classification exposes algorithmic relation and ordered manual provenance; it never changes spatial evidence, completeness, segments or metrics. Native type checks precede hashing; record/stream bounds apply. Actor/time are local claimed provenance, not authentication.
 
-M3C is partially implemented: general task lifecycle/resume, exact verified-cache orchestration and administrative backup/quarantine remain open, as do all remaining F6 resource/scaling gates and final independent exit audit. No M3 DONE or enhanced-custody claim.
+At the manual-review checkpoint, task lifecycle/resume and verified-cache orchestration were still open; the next batch below implements their caller-driven baseline. Administrative backup/quarantine, remaining F6 resource/scaling gates and final independent exit audit remain open. No M3 DONE or enhanced-custody claim.
+
+## M3C next batch: task attempts and explicit verified reuse
+
+[Task runtime](milestone3c-task-runtime.md) and [ADR-0017](decisions/0017-m3-local-task-lifecycle.md) add opt-in v4 immutable requests and hash-linked lifecycle journals. Complete source/target/policy/options/artifact selectors are pinned; explicit expected graph reuse always replays, never falls back. Concurrent claims, stale-worker fencing, failed-attempt retry, interrupted-process recovery, terminal commit crashes and v3 graph/review preservation are tested. Task metadata is not verification authority; task_result performs fresh replay. Negative evaluation outcomes remain negative.
+
+Baseline task orchestration is synchronous and caller-driven, with explicit recovery and no automatic leases/distributed scheduler. Remaining work is administrative backup/quarantine/recovery, full F6 resource/scaling evidence, acceptance-matrix consolidation and independent M3 exit audit. M3 is still IN PROGRESS.
