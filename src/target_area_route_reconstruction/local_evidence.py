@@ -173,7 +173,7 @@ class LocalEvidenceStore:
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version not in (0, 1, 2):
+            if version not in (0, 1, 2, 3):
                 raise LocalEvidenceError("M3_SCHEMA_UNAVAILABLE")
             if version == 0:
                 if db.execute("SELECT count(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'").fetchone()[0]:
