@@ -312,7 +312,7 @@ These obligations are not separate checkpoints, but they must be closed before M
 
 ## Milestone 3 — Persistent Runtime
 
-**Status:** IN PROGRESS — first implementation: shared strict JSON admission (F5 prerequisite). See [progress and remaining gates](docs/milestone3-progress.md). Mandatory [immutable evidence-custody / verifiable-reload contract](docs/milestone3-evidence-custody-contract.md) and [F3–F6 owned action gates](docs/post-m2-f3-f6-action-plan.md) documented; design requirements are **not** implemented persistence.
+**Status:** IN PROGRESS — shared strict JSON plus partial M3A local source/M2A custody and replay. See [progress and remaining gates](docs/milestone3-progress.md). Mandatory [immutable evidence-custody / verifiable-reload contract](docs/milestone3-evidence-custody-contract.md) and [F3–F6 owned action gates](docs/post-m2-f3-f6-action-plan.md) documented; design requirements are **not** implemented persistence.
 **Release target:** v0.2.0
 
 ### Goal
@@ -337,7 +337,7 @@ Baseline M3 exit requires all **B** requirements in [C01–C23 profile mapping](
 
 Enhanced acceptance additionally requires all **E** requirements, real deployed key/log/checkpoint isolation, finalized-history rollback and coherent whole-graph forgery rejection, receipt immutability before/after separate finality and recovery across protection domains. Missing enhanced backend is `trust_backend_unavailable` and its tests remain NOT_IMPLEMENTED/NOT_TESTED. It does not block basic acceptance.
 
-Publish scope explicitly: **M3 basic-local accepted; enhanced-custody unavailable or separately accepted**. M3 remains IN PROGRESS; no storage or custody acceptance exists yet. Neither mode authenticates external device telemetry. M0/M1 schemas and current M2 numeric/identity contracts are unchanged.
+Publish scope explicitly: **M3 basic-local accepted; enhanced-custody unavailable or separately accepted**. M3 remains IN PROGRESS; [source admission/M2A replay](docs/milestone3a-local-source-admission.md) is implemented, full graph/runtime acceptance remains open. Neither mode authenticates external device telemetry. M0/M1 schemas and current M2 numeric/identity contracts are unchanged.
 
 ---
 
@@ -631,7 +631,7 @@ No project decision should rely solely on chat history.
 
 ## Current execution point
 
-**Current milestone transition:** Milestone 2 is **DONE — PASS_WITH_LIMITATIONS** under the [final exit audit](docs/milestone2-final-exit-audit.md). Numerical/identity/codec counterexamples, complete source/wheel regression and code-head CI passed. Earlier PASS/reopening records remain historical. M3 is IN PROGRESS with the strict JSON prerequisite; custody and trusted reload are not implemented and v0.1.0 is not released.
+**Current milestone transition:** Milestone 2 is **DONE — PASS_WITH_LIMITATIONS** under the [final exit audit](docs/milestone2-final-exit-audit.md). Numerical/identity/codec counterexamples, complete source/wheel regression and code-head CI passed. Earlier PASS/reopening records remain historical. M3 is IN PROGRESS with strict JSON and source/M2A custody/replay; full graph and enhanced custody are not implemented and v0.1.0 is not released.
 
 **Milestone 0 outcome: DONE**
 
