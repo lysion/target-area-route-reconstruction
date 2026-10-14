@@ -22,6 +22,7 @@ from pathlib import Path
 from jsonschema import Draft202012Validator, FormatChecker
 from referencing import Registry, Resource
 
+from ._quality_evidence import evidence_digest
 from .ingestion import DEFAULT_SOURCE_BYTES, MAX_SOURCE_BYTES, ingest_bytes, _read_regular_file
 from .models import IngestionResult, SourceFailure
 from .normalization import NORMALIZER
@@ -123,6 +124,14 @@ def parser_artifacts():
     artifacts["python"] = _sha(Path(sys.executable).read_bytes())
     return {"purpose": "m2a-replay-v1", "python": sys.version, "platform": platform.platform(),
             "artifacts": artifacts}
+
+
+def _admit_ingestion(evidence):
+    # Reuse the audited recursive M2A gate before any snapshot codec/hash.
+    try:
+        evidence_digest(evidence)
+    except ValueError as exc:
+        raise LocalEvidenceError("QUALITY_EVIDENCE_INVALID") from exc
 
 
 def _recipe(kind):
@@ -241,6 +250,7 @@ class LocalEvidenceStore:
                 return self._admission(record, row[2])
             ingestion = ingest_bytes(data, source_kind=source_kind,
                                      track_source={"id": source["id"], "revision_id": source["revision_id"]})
+            _admit_ingestion(ingestion)
             try:
                 artifacts, recipe = parser_artifacts(), _recipe(source_kind)
             except (OSError, metadata.PackageNotFoundError) as exc:
@@ -317,6 +327,7 @@ class LocalEvidenceStore:
             return SourceReload("historical_unverified", admission, source_json, None, ("algorithm_recipe_mismatch",))
         ingestion = ingest_bytes(data, source_kind=record["source_kind"],
                                  track_source={"id": source_id, "revision_id": revision_id})
+        _admit_ingestion(ingestion)
         if ingestion.to_json() != record["ingestion_json"]:
             raise LocalEvidenceError("M3_REINGEST_MISMATCH")
         return SourceReload("verified_local", admission, source_json, ingestion)

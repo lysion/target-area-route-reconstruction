@@ -82,6 +82,20 @@ class LocalEvidenceTests(unittest.TestCase):
                 self.store.admit_file(fifo,source_kind="fit",track_source=source(kind="fit"))
         self.assertEqual(self.counts(),(0,0))
 
+    def test_noncanonical_ingestion_is_rejected_before_snapshot_serialization(self):
+        from dataclasses import replace, make_dataclass, fields
+        from target_area_route_reconstruction import Diagnostic, IngestionResult
+        valid=ingest_bytes(GPX,source_kind="gpx",track_source={"id":"s","revision_id":"r1"})
+        inherited=make_dataclass("ExtendedIngestion",[("extra",str,"alien")],bases=(IngestionResult,),frozen=True)
+        bad_values=[replace(valid,diagnostics=(Diagnostic(value),)) for value in (False,0,0.0,-0.0)]
+        bad_values.extend(replace(valid,diagnostics=(Diagnostic("TEST",field=value),)) for value in (False,0,0.0,-0.0))
+        bad_values.append(inherited(**{f.name:getattr(valid,f.name) for f in fields(valid)}))
+        for value in bad_values:
+            with self.subTest(value=type(value).__name__), patch('target_area_route_reconstruction.local_evidence.ingest_bytes',return_value=value), patch.object(IngestionResult,'to_json',side_effect=AssertionError("no noncanonical snapshot codec")):
+                with self.assertRaisesRegex(LocalEvidenceError,"QUALITY_EVIDENCE_INVALID"):
+                    self.store.admit_bytes(GPX,source_kind="gpx",track_source=source())
+                self.assertEqual(self.counts(),(0,0))
+
     def test_json_aliases_preserve_admission_identity(self):
         a={**source(),"extensions":{"number":0,"bool":False}}
         b={**source(),"extensions":{"number":-0.0,"bool":False}}

@@ -29,6 +29,7 @@ FIT uses explicit `source_kind="fit"` and `media_type="application/vnd.ant.fit"`
 - Complete schema-valid source/provenance/Activity binding, raw SHA/length and optional content_hash guard.
 - Raw content deduplication separate from source/Activity identity, exact repeat idempotence and serialized revision conflict rejection.
 - SQLite BLOB raw bytes and full M2A JSON committed atomically with local admission; synchronous FULL, rollback journal, schema v1. No cross-filesystem publication dependency.
+- Apply the audited recursive M2A dataclass admission before snapshot serialization/hash and after replay; noncanonical producer values cannot publish a source snapshot.
 - Preserve success, failure and no_positioned_observations, missing time and multi-part evidence; never create inferred paths.
 - Named parser/normalizer versions and fixed parameters, actual execution bytes, and exact native canonical admission encoding; integer/float equality aliases and signed zero normalize in source JSON, boolean remains distinct. Existing M2 payload is kept as exact JSON string and M2 identities remain unchanged.
 - Explicit expected digest, raw and record corruption checks, current actual parser artifact comparison and fresh original-byte re-ingestion. Missing/mismatched artifacts yield historical_unverified with no usable ingestion. Re-admission cannot rewrite historical parser evidence.
