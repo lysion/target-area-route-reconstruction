@@ -19,7 +19,10 @@ from .local_graph import LocalGraphStore, GraphCommit, GraphReload
 
 from .local_review import LocalReviewStore, ManualDecision, EffectiveReview
 
+from .local_tasks import LocalTaskStore, TaskSnapshot
+
 __all__ = [
+    "LocalTaskStore", "TaskSnapshot",
     "LocalReviewStore", "ManualDecision", "EffectiveReview",
     "LocalGraphStore", "GraphCommit", "GraphReload",
     "LocalEvidenceStore", "LocalEvidenceError", "SourceAdmission", "SourceReload",
