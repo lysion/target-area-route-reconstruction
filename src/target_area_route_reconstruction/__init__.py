@@ -14,8 +14,10 @@ from .spatial_entities_models import SpatialAssemblyResult, SpatialEntityBundle,
 from .geojson_export import export_geojson, GeoJSONExportResult, GeoJSONIssue
 from .map_html import render_geojson_map
 from .temporal_overlay import export_temporal_geojson
+from .local_evidence import LocalEvidenceStore, LocalEvidenceError, SourceAdmission, SourceReload
 
 __all__ = [
+    "LocalEvidenceStore", "LocalEvidenceError", "SourceAdmission", "SourceReload",
     "ingest_bytes", "ingest_file", "Diagnostic", "IngestionResult",
     "ObservationSource", "SourceLocation", "TrackPosition",
     "project_quality", "verify_quality", "QualityPolicy", "QualityProjection",

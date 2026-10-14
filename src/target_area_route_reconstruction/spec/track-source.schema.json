@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TrackSource",
+  "description": "Immutable original track evidence and provenance associated with one Activity. TrackSource is source-agnostic and is not limited to filesystem files.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "revision_id",
+    "activity",
+    "origin",
+    "representation"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "common.schema.json#/$defs/schemaVersion"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/entityId"
+    },
+    "revision_id": {
+      "$ref": "common.schema.json#/$defs/revisionId"
+    },
+    "activity": {
+      "$ref": "common.schema.json#/$defs/entityRef",
+      "description": "Stable project-local Activity identity to which this source evidence belongs."
+    },
+    "origin": {
+      "$ref": "#/$defs/sourceOrigin",
+      "description": "Source namespace/origin and source-native provenance. These values never become global Activity identity by themselves."
+    },
+    "representation": {
+      "$ref": "#/$defs/sourceRepresentation",
+      "description": "Description of the durable source evidence representation. This is intentionally not file-only."
+    },
+    "extensions": {
+      "$ref": "common.schema.json#/$defs/extensions"
+    }
+  },
+  "$defs": {
+    "sourceOrigin": {
+      "type": "object",
+      "required": [
+        "namespace"
+      ],
+      "properties": {
+        "namespace": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Namespaced source/origin identifier such as a local import namespace or provider namespace. No fixed provider enum is imposed by the portable core."
+        },
+        "native_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Optional source-native identifier, meaningful only within namespace."
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "description": "Optional provenance locator or source reference. A remote URL by itself does not prove durable acquisition."
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sourceRepresentation": {
+      "type": "object",
+      "required": [
+        "media_type"
+      ],
+      "properties": {
+        "media_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Media/representation type of the preserved source evidence, for example application/gpx+xml, application/json, or a FIT media type."
+        },
+        "original_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "Optional original display/file name. It is provenance only and is not identity."
+        },
+        "content_hash": {
+          "$ref": "common.schema.json#/$defs/sha256Hash",
+          "description": "Optional SHA-256 content identity when byte/content hashing is available. Runtime idempotency policy remains a later milestone concern."
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

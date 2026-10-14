@@ -58,12 +58,17 @@ def ingest_file(path: str | Path, *, source_kind: str, track_source: dict[str, s
     not a path stat followed by a separate open. No partial-source hash is emitted.
     """
     _reference(track_source)
+    try:
+        data = _read_regular_file(path, max_source_bytes)
+    except SourceFailure as exc:
+        return IngestionResult("failure", None, None, (exc.diagnostic,))
+    return ingest_bytes(data, source_kind=source_kind, track_source=track_source, expected_sha256=expected_sha256)
+
+
+def _read_regular_file(path: str | Path, max_source_bytes: int) -> bytes:
+    """Shared bounded acquisition; failure never yields partial-source bytes."""
     if type(max_source_bytes) is not int or not 1 <= max_source_bytes <= MAX_SOURCE_BYTES:
         raise ValueError("INVALID_SOURCE_BYTES_LIMIT")
-
-    def failure(code: str) -> IngestionResult:
-        return IngestionResult("failure", None, None, (Diagnostic(code),))
-
     try:
         # Nonblocking open prevents a FIFO from waiting for a writer before fstat.
         flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0)
@@ -71,9 +76,9 @@ def ingest_file(path: str | Path, *, source_kind: str, track_source: dict[str, s
         try:
             metadata = os.fstat(descriptor)
             if not stat.S_ISREG(metadata.st_mode):
-                return failure("SOURCE_NOT_REGULAR_FILE")
+                raise SourceFailure("SOURCE_NOT_REGULAR_FILE")
             if metadata.st_size > max_source_bytes:
-                return failure("SOURCE_BYTES_LIMIT_EXCEEDED")
+                raise SourceFailure("SOURCE_BYTES_LIMIT_EXCEEDED")
             data = bytearray()
             # Read at most budget + one sentinel byte even if the file grows
             # after fstat. Never hash, parse or return a truncated source.
@@ -83,9 +88,9 @@ def ingest_file(path: str | Path, *, source_kind: str, track_source: dict[str, s
                     break
                 data.extend(chunk)
             if len(data) > max_source_bytes:
-                return failure("SOURCE_BYTES_LIMIT_EXCEEDED")
+                raise SourceFailure("SOURCE_BYTES_LIMIT_EXCEEDED")
         finally:
             os.close(descriptor)
-    except OSError:
-        return failure("SOURCE_READ_FAILED")
-    return ingest_bytes(bytes(data), source_kind=source_kind, track_source=track_source, expected_sha256=expected_sha256)
+    except OSError as exc:
+        raise SourceFailure("SOURCE_READ_FAILED") from exc
+    return bytes(data)
