@@ -101,7 +101,7 @@ Current design artifacts:
 - [M2 fresh post-Codex re-exit review — PASS_WITH_LIMITATIONS](docs/milestone2-codex-reexit-review.md) (historical, superseded by second audit)
 - [Second full-repo Codex audit R2 — P1 spatial numerical remediation, M2 reopened](docs/milestone2-codex-r2-remediation.md)
 - [Post-M2 F3–F6 engineering owners and acceptance tests](docs/post-m2-f3-f6-action-plan.md)
-- [M3 immutable original-evidence custody and verifiable derived-snapshot reload contract](docs/milestone3-evidence-custody-contract.md)
+- [M3 two-profile persistence and evidence-custody contract](docs/milestone3-evidence-custody-contract.md)
 
 ## Status
 
@@ -109,4 +109,4 @@ Early public development. **Milestone 0 and Milestone 1 are DONE. Milestone 2 is
 
 Earlier [M2 exit](docs/milestone2-exit-review.md), [first re-exit](docs/milestone2-codex-reexit-review.md), [R2 remediation](docs/milestone2-codex-r2-remediation.md) and [R3 diagnostic repair](docs/milestone2-r3-diagnostic-admission-remediation.md) remain historical evidence, including the failed baselines. Their green tests did not substitute for this audit's independent mathematical and serialization witnesses.
 
-**M3 is IN PROGRESS — strict JSON admission foundation.** See [implementation progress](docs/milestone3-progress.md). Its [evidence-custody/reload contract](docs/milestone3-evidence-custody-contract.md) and [F3–F6 action gates](docs/post-m2-f3-f6-action-plan.md) are requirements, not implemented persistence. No v0.1.0 tag, PyPI publication or end-user skill release is claimed.
+**M3 is IN PROGRESS — strict JSON foundation, basic-local persistence planned, enhanced custody separately gated.** See [implementation progress](docs/milestone3-progress.md). Its [evidence-custody/reload contract](docs/milestone3-evidence-custody-contract.md) and [F3–F6 action gates](docs/post-m2-f3-f6-action-plan.md) are requirements, not implemented persistence. No v0.1.0 tag, PyPI publication or end-user skill release is claimed.
