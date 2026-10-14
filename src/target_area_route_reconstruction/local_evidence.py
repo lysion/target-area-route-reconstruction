@@ -173,7 +173,7 @@ class LocalEvidenceStore:
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version not in (0, 1):
+            if version not in (0, 1, 2):
                 raise LocalEvidenceError("M3_SCHEMA_UNAVAILABLE")
             if version == 0:
                 if db.execute("SELECT count(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'").fetchone()[0]:
@@ -298,9 +298,9 @@ class LocalEvidenceStore:
         except (KeyError, TypeError) as exc:
             raise LocalEvidenceError("M3_STORE_CORRUPT") from exc
 
-    def reload_source(self, source_id: str, revision_id: str, *, expected_record_digest: str,
-                      max_source_bytes: int = DEFAULT_SOURCE_BYTES) -> SourceReload:
-        """Compare explicit expected admission, raw integrity and fresh M2A replay."""
+    def _material(self, source_id: str, revision_id: str, *, expected_record_digest: str,
+                      max_source_bytes: int = DEFAULT_SOURCE_BYTES):
+        """Read one expected source/root snapshot, independently of old artifacts."""
         _limit(max_source_bytes)
         if (any(type(v) is not str or not v for v in (source_id, revision_id, expected_record_digest))
                 or len(expected_record_digest) != 64 or any(c not in "0123456789abcdef" for c in expected_record_digest)):
@@ -313,8 +313,16 @@ class LocalEvidenceStore:
             if row[2] != expected_record_digest:
                 raise LocalEvidenceError("M3_EXPECTED_RECORD_MISMATCH")
             data = self._raw(db, record, max_source_bytes)
+        _source(record["source"], record["source_kind"], record["raw"]["sha256"])
+        return record, row[2], data
+
+    def reload_source(self, source_id: str, revision_id: str, *, expected_record_digest: str,
+                      max_source_bytes: int = DEFAULT_SOURCE_BYTES) -> SourceReload:
+        """Compare explicit expected admission, raw integrity and fresh M2A replay."""
+        record, digest, data = self._material(source_id, revision_id,
+            expected_record_digest=expected_record_digest, max_source_bytes=max_source_bytes)
         source = _source(record["source"], record["source_kind"], record["raw"]["sha256"])
-        admission = self._admission(record, row[2])
+        admission = self._admission(record, digest)
         source_json = canonical_record(source).decode("utf-8")
         try:
             current_artifacts = parser_artifacts()

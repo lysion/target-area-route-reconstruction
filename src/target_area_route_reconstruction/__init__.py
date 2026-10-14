@@ -15,8 +15,10 @@ from .geojson_export import export_geojson, GeoJSONExportResult, GeoJSONIssue
 from .map_html import render_geojson_map
 from .temporal_overlay import export_temporal_geojson
 from .local_evidence import LocalEvidenceStore, LocalEvidenceError, SourceAdmission, SourceReload
+from .local_graph import LocalGraphStore, GraphCommit, GraphReload
 
 __all__ = [
+    "LocalGraphStore", "GraphCommit", "GraphReload",
     "LocalEvidenceStore", "LocalEvidenceError", "SourceAdmission", "SourceReload",
     "ingest_bytes", "ingest_file", "Diagnostic", "IngestionResult",
     "ObservationSource", "SourceLocation", "TrackPosition",
