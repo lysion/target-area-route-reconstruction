@@ -29,3 +29,9 @@ At the manual-review checkpoint, task lifecycle/resume and verified-cache orches
 [Task runtime](milestone3c-task-runtime.md) and [ADR-0017](decisions/0017-m3-local-task-lifecycle.md) add opt-in v4 immutable requests and hash-linked lifecycle journals. Complete source/target/policy/options/artifact selectors are pinned; explicit expected graph reuse always replays, never falls back. Concurrent claims, stale-worker fencing, failed-attempt retry, interrupted-process recovery, terminal commit crashes and v3 graph/review preservation are tested. Task metadata is not verification authority; task_result performs fresh replay. Negative evaluation outcomes remain negative.
 
 Baseline task orchestration is synchronous and caller-driven, with explicit recovery and no automatic leases/distributed scheduler. Remaining work is administrative backup/quarantine/recovery, full F6 resource/scaling evidence, acceptance-matrix consolidation and independent M3 exit audit. M3 is still IN PROGRESS.
+
+## M3D next batch: basic-local backup, quarantine and restore
+
+[Backup/recovery API](milestone3d-backup-recovery.md) and [ADR-0018](decisions/0018-m3-backup-quarantine-recovery.md) add SQLite online snapshots, bounded read-only integrity scans, byte-preserving quarantine and no-overwrite restore. Scan checks the complete v4 schema, SQLite integrity/foreign keys, raw/source bindings, graph closures, review streams, task journals and cross-row selectors before publication. Restore scans before and after copying to a new path; normal source/graph/review/task access still performs fresh verification. Suspect evidence remains in place; incomplete quarantine publication cannot look complete.
+
+Basic-local archive support is implemented, pending PR review and exact-head CI. Automated backup scheduling/retention, independent off-device digest/key custody and operator exercises remain outside the API. F6 and final M3 exit audit remain open; M3 stays IN PROGRESS.

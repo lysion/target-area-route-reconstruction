@@ -70,7 +70,7 @@ All cases below remain tracked. **B** is mandatory baseline evidence; **E** is a
 
 - **M3A:** basic raw/full-source storage, identity conflicts and negative outcomes; define encoding and transaction recovery before tables. No multi-principal deployment prerequisite for this profile.
 - **M3B:** complete DAG, explicit graph selectors, actual artifact hashes and separate-process verified replay.
-- **M3C:** idempotence, concurrency, crash recovery, exact cache and manual audit. [Manual audit](milestone3c-manual-review.md) is implemented with local transactional predecessor checks; [caller-driven task lifecycle and exact verified reuse](milestone3c-task-runtime.md) are implemented; administrative recovery and F6 gates remain open.
+- **M3C:** idempotence, concurrency, crash recovery, exact cache and manual audit. [Manual audit](milestone3c-manual-review.md) is implemented with local transactional predecessor checks; [caller-driven task lifecycle and exact verified reuse](milestone3c-task-runtime.md) are implemented; [basic-local snapshot backup, evidence quarantine and no-overwrite restore](milestone3d-backup-recovery.md) are implemented; scheduling/retention and F6 gates remain open.
 - **M3D:** storage F5 integration, all F6 admission budgets, reproducible performance/scaling evidence and independent exit audit.
 - **Enhanced extension:** independently deploy/test signer, protected log and checkpoint/finality; satisfy E requirements before claiming enhanced capability. This does not block basic-local M3 exit.
 
