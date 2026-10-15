@@ -41,6 +41,28 @@ class ResourceBudgetTests(unittest.TestCase):
         with self.assertRaisesRegex(SourceFailure, "PART_OR_INTERVAL_LIMIT_EXCEEDED"):
             parse_gpx(gpx, max_parts=1)
 
+    def test_gpx_source_is_streamed_instead_of_materialized_as_a_tree(self):
+        # The XSD is parsed from its packaged bytes; source XML must only flow
+        # through the streaming parser. This protects the memory admission
+        # guarantee independently of the returned bounded canonical model.
+        raw_source = (b'<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="stream">'
+                      b'<trk><trkseg>' +
+                      b''.join(b'<trkpt lat="0" lon="0"/>' for _ in range(256)) +
+                      b'</trkseg></trk></gpx>')
+        import target_area_route_reconstruction.gpx as gpx_module
+        original = gpx_module.etree.fromstring
+
+        def reject_source_tree(payload, *args, **kwargs):
+            if payload == raw_source:
+                raise AssertionError("GPX source was materialized with fromstring")
+            return original(payload, *args, **kwargs)
+
+        with patch.object(gpx_module.etree, "fromstring", side_effect=reject_source_tree):
+            result = parse_gpx(raw_source, max_observations=256)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(len(result[0].samples), 256)
+        self.assertEqual(result[0].samples[-1].source.point_index, 255)
+
     def test_target_complexity_is_rejected_before_canonical_serialization(self):
         area = {
             "schema_version": "0.1.0", "id": "t", "revision_id": "r",
