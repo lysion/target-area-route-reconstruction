@@ -12,10 +12,12 @@ from .fit import parse_fit
 from .gpx import parse_gpx
 from .models import Diagnostic, IngestionResult, SourceFailure
 from .normalization import normalize
+from .resource_limits import (
+    DEFAULT_SOURCE_BYTES, MAX_SOURCE_BYTES, DEFAULT_POSITIONED_OBSERVATIONS,
+    MAX_POSITIONED_OBSERVATIONS, DEFAULT_CONTINUITY_PARTS, MAX_CONTINUITY_PARTS,
+    validate_limit,
+)
 
-
-DEFAULT_SOURCE_BYTES = 64 * 1024 * 1024
-MAX_SOURCE_BYTES = 256 * 1024 * 1024
 _READ_CHUNK_BYTES = 64 * 1024
 
 
@@ -28,11 +30,19 @@ def _reference(track_source: dict[str, str]) -> dict[str, str]:
 
 
 def ingest_bytes(data: bytes, *, source_kind: str, track_source: dict[str, str],
-                 expected_sha256: str | None = None) -> IngestionResult:
+                 expected_sha256: str | None = None,
+                 max_source_bytes: int = DEFAULT_SOURCE_BYTES,
+                 max_observations: int = DEFAULT_POSITIONED_OBSERVATIONS,
+                 max_parts: int = DEFAULT_CONTINUITY_PARTS) -> IngestionResult:
     """Normalize one preserved source. Activity/TrackSource identity is caller-owned."""
     reference = _reference(track_source)
     if not isinstance(data, bytes):
         raise TypeError("SOURCE_BYTES_REQUIRED")
+    validate_limit(max_source_bytes, MAX_SOURCE_BYTES, "INVALID_SOURCE_BYTES_LIMIT")
+    validate_limit(max_observations, MAX_POSITIONED_OBSERVATIONS, "INVALID_OBSERVATION_LIMIT")
+    validate_limit(max_parts, MAX_CONTINUITY_PARTS, "INVALID_PART_LIMIT")
+    if len(data) > max_source_bytes:
+        return IngestionResult("failure", None, None, (Diagnostic("SOURCE_BYTES_LIMIT_EXCEEDED"),))
     content_hash = {"algorithm": "sha256", "digest": hashlib.sha256(data).hexdigest()}
     if expected_sha256 is not None and (
         not isinstance(expected_sha256, str) or re.fullmatch(r"[0-9a-f]{64}", expected_sha256) is None
@@ -43,7 +53,12 @@ def ingest_bytes(data: bytes, *, source_kind: str, track_source: dict[str, str],
     if source_kind not in parsers:
         return IngestionResult("failure", content_hash, None, (Diagnostic("UNSUPPORTED_SOURCE_KIND"),))
     try:
-        parts = parsers[source_kind](data)
+        if source_kind == "fit":
+            parts = parse_fit(data, max_observations=max_observations,
+                              max_parts=max_parts)
+        else:
+            parts = parse_gpx(data, max_observations=max_observations,
+                              max_parts=max_parts)
     except SourceFailure as exc:
         return IngestionResult("failure", content_hash, None, (exc.diagnostic,))
     return normalize(parts, reference, content_hash)
@@ -62,13 +77,13 @@ def ingest_file(path: str | Path, *, source_kind: str, track_source: dict[str, s
         data = _read_regular_file(path, max_source_bytes)
     except SourceFailure as exc:
         return IngestionResult("failure", None, None, (exc.diagnostic,))
-    return ingest_bytes(data, source_kind=source_kind, track_source=track_source, expected_sha256=expected_sha256)
+    return ingest_bytes(data, source_kind=source_kind, track_source=track_source,
+                        expected_sha256=expected_sha256, max_source_bytes=max_source_bytes)
 
 
 def _read_regular_file(path: str | Path, max_source_bytes: int) -> bytes:
     """Shared bounded acquisition; failure never yields partial-source bytes."""
-    if type(max_source_bytes) is not int or not 1 <= max_source_bytes <= MAX_SOURCE_BYTES:
-        raise ValueError("INVALID_SOURCE_BYTES_LIMIT")
+    validate_limit(max_source_bytes, MAX_SOURCE_BYTES, "INVALID_SOURCE_BYTES_LIMIT")
     try:
         # Nonblocking open prevents a FIFO from waiting for a writer before fstat.
         flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0)

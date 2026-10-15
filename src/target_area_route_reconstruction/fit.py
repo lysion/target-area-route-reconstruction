@@ -10,6 +10,7 @@ import fitdecode
 
 from ._values import finite_number, utc_timestamp
 from .models import Diagnostic, ParsedPart, ParsedSample, SourceFailure, SourceLocation
+from .resource_limits import MAX_POSITIONED_OBSERVATIONS, MAX_CONTINUITY_PARTS, validate_limit
 
 
 def _value(frame: Any, name: str) -> Any:
@@ -63,7 +64,12 @@ def _record(frame: Any, index: int) -> ParsedSample:
     return ParsedSample(location, observation, diagnostics)
 
 
-def parse_fit(data: bytes) -> tuple[ParsedPart, ...]:
+def parse_fit(data: bytes, *, max_observations: int = MAX_POSITIONED_OBSERVATIONS,
+              max_parts: int = MAX_CONTINUITY_PARTS) -> tuple[ParsedPart, ...]:
+    validate_limit(max_observations, MAX_POSITIONED_OBSERVATIONS, "INVALID_OBSERVATION_LIMIT")
+    validate_limit(max_parts, MAX_CONTINUITY_PARTS, "INVALID_PART_LIMIT")
+    if max_parts < 1:
+        raise SourceFailure("PART_OR_INTERVAL_LIMIT_EXCEEDED")
     samples: list[ParsedSample] = []
     file_ids = 0
     headers = 0
@@ -85,6 +91,8 @@ def parse_fit(data: bytes) -> tuple[ParsedPart, ...]:
                     elif frame.name == "record":
                         if not file_ids:
                             raise SourceFailure("FIT_FILE_ID_MISSING")
+                        if len(samples) >= max_observations:
+                            raise SourceFailure("OBSERVATION_LIMIT_EXCEEDED")
                         samples.append(_record(frame, len(samples)))
     except fitdecode.FitCRCError as exc:
         raise SourceFailure("FIT_CRC_MISMATCH") from exc
