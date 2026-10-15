@@ -16,12 +16,38 @@ from target_area_route_reconstruction.local_evidence import LocalEvidenceError
 from target_area_route_reconstruction.spatial_entities_models import SpatialEntityBundle
 from target_area_route_reconstruction.models import SourceFailure
 from target_area_route_reconstruction.quality_models import QualityPolicy
+from target_area_route_reconstruction import TaskResourceProfile
+from target_area_route_reconstruction.resource_limits import normalize_task_resource_profile
 
 FIXTURES = Path(os.environ.get("M3_SOURCE_FIXTURES", Path(__file__).resolve().parent / "source-fixtures"))
 SOURCE = {"id": "bounded", "revision_id": "r1"}
 
 
 class ResourceBudgetTests(unittest.TestCase):
+    def test_task_resource_profile_is_strict_bounded_and_identity_relevant(self):
+        from dataclasses import replace
+        from target_area_route_reconstruction.local_graph import _request
+
+        profile = replace(TaskResourceProfile(), max_observations=1234,
+                          max_quality_fragments=2345, max_target_vertices=456,
+                          max_output_vertices=7890)
+        self.assertEqual(normalize_task_resource_profile(profile)["max_quality_fragments"], 2345)
+        with self.assertRaisesRegex(ValueError, "INVALID_OBSERVATION_LIMIT"):
+            normalize_task_resource_profile(replace(profile, max_observations=True))
+        with self.assertRaisesRegex(ValueError, "INVALID_TARGET_VERTEX_LIMIT"):
+            normalize_task_resource_profile(replace(profile, max_target_vertices=100_001))
+        with self.assertRaisesRegex(ValueError, "INVALID_TASK_RESOURCE_PROFILE"):
+            normalize_task_resource_profile(type("Foreign", (), {})())
+
+        area = {"schema_version": "0.1.0", "id": "t", "revision_id": "r",
+                "spatial_reference": "OGC:CRS84",
+                "geometry": {"type": "Polygon", "coordinates": [[[0, 0], [1, 0], [1, 1]]]},
+                "definition_provenance": {"description": "profile identity"}}
+        base = _request(area, QualityPolicy(), True, "speed_mps")
+        varied = _request(area, QualityPolicy(), True, "speed_mps", profile)
+        self.assertNotEqual(base["resource_profile"], varied["resource_profile"])
+        self.assertNotEqual(json.dumps(base, sort_keys=True), json.dumps(varied, sort_keys=True))
+
     @staticmethod
     def _fragmented_gpx():
         # Every other parent edge is a fast one-degree jump; the intervening
@@ -133,17 +159,18 @@ class ResourceBudgetTests(unittest.TestCase):
                 "spatial_reference": "OGC:CRS84",
                 "geometry": {"type": "Polygon", "coordinates": [[[0, -1], [4, -1], [4, 1], [0, 1], [0, -1]]]},
                 "definition_provenance": {"description": "quality fragmentation test"}}
-        import target_area_route_reconstruction.quality as quality
-        from functools import partial
+        from dataclasses import replace
+        from target_area_route_reconstruction.resource_limits import DEFAULT_TASK_RESOURCE_PROFILE
         with tempfile.TemporaryDirectory() as directory:
             store = LocalGraphStore(Path(directory) / "fragment.sqlite")
             admission = store.admit_bytes(self._fragmented_gpx(), source_kind="gpx", track_source=source)
-            with patch("target_area_route_reconstruction.local_graph.project_quality",
-                       side_effect=partial(quality.project_quality, max_fragments=5)):
-                commit = store.derive_graph("fragment", "r1", expected_record_digest=admission.record_digest,
-                                            target_area=area, policy=QualityPolicy(max_implied_speed_mps=1.0))
-                reloaded = store.reload_graph(commit.graph_digest, expected_source_digest=admission.record_digest,
-                                              target_area=area, policy=QualityPolicy(max_implied_speed_mps=1.0))
+            profile = replace(DEFAULT_TASK_RESOURCE_PROFILE, max_quality_fragments=5)
+            commit = store.derive_graph("fragment", "r1", expected_record_digest=admission.record_digest,
+                                        target_area=area, policy=QualityPolicy(max_implied_speed_mps=1.0),
+                                        resource_profile=profile)
+            reloaded = store.reload_graph(commit.graph_digest, expected_source_digest=admission.record_digest,
+                                          target_area=area, policy=QualityPolicy(max_implied_speed_mps=1.0),
+                                          resource_profile=profile)
             self.assertEqual(commit.outcome, "stage_unavailable")
             self.assertEqual(reloaded.status, "verified_local")
             manifest = json.loads(reloaded.manifest_json)
@@ -171,34 +198,35 @@ class ResourceBudgetTests(unittest.TestCase):
     def test_vertex_limits_accept_exact_ceiling_and_reject_next_vertex(self):
         import target_area_route_reconstruction.local_graph as graph
         area = {"geometry": {"type": "Polygon", "coordinates": [[[0, 0], [1, 0], [1, 1]]]}}
-        with patch.object(graph, "DEFAULT_TARGET_VERTICES", 3):
-            self.assertEqual(_target_vertices(area), 3)
-            area["geometry"]["coordinates"][0].append([0, 1])
-            with self.assertRaisesRegex(LocalEvidenceError, "TARGET_COMPLEXITY_LIMIT_EXCEEDED"):
-                _target_vertices(area)
+        self.assertEqual(_target_vertices(area, limit=3), 3)
+        area["geometry"]["coordinates"][0].append([0, 1])
+        with self.assertRaisesRegex(LocalEvidenceError, "TARGET_COMPLEXITY_LIMIT_EXCEEDED"):
+            _target_vertices(area, limit=3)
 
         bundle = SpatialEntityBundle("{}", ('{"geometry":{"coordinates":[[0,0],[1,1]]}}',))
-        with patch.object(graph, "DEFAULT_OUTPUT_VERTICES", 2):
-            self.assertEqual(_output_vertices(bundle), 2)
-            with self.assertRaisesRegex(LocalEvidenceError, "OUTPUT_LIMIT_EXCEEDED"):
-                _output_vertices(bundle, initial=1)
-            with self.assertRaisesRegex(LocalEvidenceError, "OUTPUT_LIMIT_EXCEEDED"):
-                _output_vertices(SpatialEntityBundle("{}", ()), initial=3)
+        self.assertEqual(_output_vertices(bundle, limit=2), 2)
+        with self.assertRaisesRegex(LocalEvidenceError, "OUTPUT_LIMIT_EXCEEDED"):
+            _output_vertices(bundle, limit=2, initial=1)
+        with self.assertRaisesRegex(LocalEvidenceError, "OUTPUT_LIMIT_EXCEEDED"):
+            _output_vertices(SpatialEntityBundle("{}", ()), limit=2, initial=3)
 
     def test_public_graph_entry_refuses_target_before_storage_publication(self):
         import target_area_route_reconstruction.local_graph as graph
         area = {"geometry": {"type": "Polygon", "coordinates": [[[0, 0], [1, 0], [1, 1], [0, 1]]]}}
         with tempfile.TemporaryDirectory() as directory:
             store = LocalGraphStore(Path(directory) / "empty.sqlite")
-            with patch.object(graph, "DEFAULT_TARGET_VERTICES", 3):
-                with self.assertRaisesRegex(LocalEvidenceError, "TARGET_COMPLEXITY_LIMIT_EXCEEDED"):
-                    store.derive_graph("missing", "r1", expected_record_digest="0" * 64,
-                                       target_area=area)
+            from dataclasses import replace
+            from target_area_route_reconstruction.resource_limits import DEFAULT_TASK_RESOURCE_PROFILE
+            with self.assertRaisesRegex(LocalEvidenceError, "TARGET_COMPLEXITY_LIMIT_EXCEEDED"):
+                store.derive_graph("missing", "r1", expected_record_digest="0" * 64,
+                                   target_area=area, resource_profile=replace(
+                                       DEFAULT_TASK_RESOURCE_PROFILE, max_target_vertices=3))
             with sqlite3.connect(store.path) as db:
                 self.assertEqual(db.execute("SELECT COUNT(*) FROM graphs").fetchone()[0], 0)
 
     def test_output_budget_failure_does_not_publish_graph(self):
-        import target_area_route_reconstruction.local_graph as graph
+        from dataclasses import replace
+        from target_area_route_reconstruction.resource_limits import DEFAULT_TASK_RESOURCE_PROFILE
         source = {"schema_version": "0.1.0", "id": "budget", "revision_id": "r1",
                   "activity": {"id": "a"}, "origin": {"namespace": "local"},
                   "representation": {"media_type": "application/gpx+xml"}}
@@ -212,10 +240,10 @@ class ResourceBudgetTests(unittest.TestCase):
             store = LocalGraphStore(Path(directory) / "output.sqlite")
             admission = store.admit_file(FIXTURES / "equivalent" / "basic.gpx",
                                          source_kind="gpx", track_source=source)
-            with patch.object(graph, "DEFAULT_OUTPUT_VERTICES", 1):
-                with self.assertRaisesRegex(LocalEvidenceError, "OUTPUT_LIMIT_EXCEEDED"):
-                    store.derive_graph("budget", "r1", expected_record_digest=admission.record_digest,
-                                       target_area=area)
+            with self.assertRaisesRegex(LocalEvidenceError, "OUTPUT_LIMIT_EXCEEDED"):
+                store.derive_graph("budget", "r1", expected_record_digest=admission.record_digest,
+                                   target_area=area, resource_profile=replace(
+                                       DEFAULT_TASK_RESOURCE_PROFILE, max_output_vertices=1))
             with sqlite3.connect(store.path) as db:
                 self.assertEqual(db.execute("SELECT COUNT(*) FROM graphs").fetchone()[0], 0)
 

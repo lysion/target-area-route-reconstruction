@@ -1,5 +1,5 @@
 """Caller-driven local task attempts; durable metadata is never cached authority."""
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from importlib import metadata
 
 from .ingestion import DEFAULT_SOURCE_BYTES, MAX_SOURCE_BYTES
@@ -8,8 +8,10 @@ from .local_graph import _request, graph_artifacts
 from .local_review import LocalReviewStore
 from .quality_models import QualityPolicy
 from .strict_json import loads_json
+from .resource_limits import DEFAULT_TASK_RESOURCE_PROFILE, TaskResourceProfile
 
-ENCODING = 'm3-local-task-v1'
+ENCODING = 'm3-local-task-v2'
+LEGACY_ENCODING = 'm3-local-task-v1'
 EVENT_ENCODING = 'm3-local-task-event-v1'
 EVENT_LIMIT = 1000
 
@@ -59,7 +61,8 @@ class LocalTaskStore(LocalReviewStore):
         r = request['graph_request']
         return dict(expected_source_digest=request['source']['admission_digest'], target_area=r['target_area'],
                     policy=QualityPolicy(**r['quality_policy']), include_outside=r['include_outside'],
-                    temporal_mode=r['temporal_mode'], max_source_bytes=request['max_source_bytes'])
+                    temporal_mode=r['temporal_mode'], max_source_bytes=request['max_source_bytes'],
+                    resource_profile=TaskResourceProfile(**r['resource_profile']))
 
     @staticmethod
     def _load(db, task_id, expected_request_digest):
@@ -77,7 +80,7 @@ class LocalTaskStore(LocalReviewStore):
                 raise ValueError('hash')
             r = loads_json(encoded)
             if (type(r) is not dict or set(r) != {'encoding','profile','task_id','source','graph_request','artifacts_digest','expected_graph_digest','max_source_bytes'}
-                    or canonical_record(r) != encoded or r['encoding'] != ENCODING or r['profile'] != 'basic-local'
+                    or canonical_record(r) != encoded or r['encoding'] not in (ENCODING, LEGACY_ENCODING) or r['profile'] != 'basic-local'
                     or r['task_id'] != task_id or type(r['source']) is not dict or set(r['source']) != {'id','revision_id','admission_digest'}
                     or r['source']['admission_digest'] != source_digest or not _hex(source_digest)
                     or not _hex(r['artifacts_digest']) or (r['expected_graph_digest'] is not None and not _hex(r['expected_graph_digest']))
@@ -86,10 +89,30 @@ class LocalTaskStore(LocalReviewStore):
             for key in ('id', 'revision_id'):
                 _text(r['source'][key])
             g = r['graph_request']
-            if type(g) is not dict or set(g) != {'target_area','quality_policy','include_outside','temporal_mode'}:
+            current_keys = {'target_area','quality_policy','include_outside','temporal_mode','resource_profile'}
+            legacy_keys = current_keys - {'resource_profile'}
+            if type(g) is not dict or set(g) not in (current_keys, legacy_keys):
                 raise ValueError('graph request')
-            if canonical_record(_request(g['target_area'], QualityPolicy(**g['quality_policy']), g['include_outside'], g['temporal_mode'])) != canonical_record(g):
+            if r['encoding'] == LEGACY_ENCODING:
+                if set(g) != legacy_keys:
+                    raise ValueError('legacy graph request')
+                profile = TaskResourceProfile(max_source_bytes=r['max_source_bytes'])
+            else:
+                if set(g) != current_keys:
+                    raise ValueError('versioned graph request')
+                profile = TaskResourceProfile(**g['resource_profile'])
+            expected_graph_request = _request(g['target_area'], QualityPolicy(**g['quality_policy']),
+                                              g['include_outside'], g['temporal_mode'], profile)
+            if r['encoding'] == LEGACY_ENCODING:
+                expected_graph_request = {k: v for k, v in expected_graph_request.items()
+                                          if k != 'resource_profile'}
+            if (profile.max_source_bytes != r['max_source_bytes']
+                    or canonical_record(expected_graph_request) != canonical_record(g)):
                 raise ValueError('graph request')
+            if r['encoding'] == LEGACY_ENCODING:
+                r = dict(r)
+                r['graph_request'] = _request(g['target_area'], QualityPolicy(**g['quality_policy']),
+                                              g['include_outside'], g['temporal_mode'], profile)
             return r
         except (ValueError, TypeError, KeyError, RecursionError) as exc:
             raise LocalEvidenceError('M3_TASK_CORRUPT') from exc
@@ -143,12 +166,25 @@ class LocalTaskStore(LocalReviewStore):
 
     def submit_task(self, task_id, source_id, revision_id, *, actor, expected_record_digest,
                     target_area, policy=QualityPolicy(), include_outside=True, temporal_mode='speed_mps',
-                    expected_graph_digest=None, max_source_bytes=DEFAULT_SOURCE_BYTES):
+                    expected_graph_digest=None, max_source_bytes=DEFAULT_SOURCE_BYTES,
+                    resource_profile=None):
         for value in (task_id, source_id, revision_id, actor): _text(value)
+        if type(max_source_bytes) is not int or not 1 <= max_source_bytes <= MAX_SOURCE_BYTES:
+            raise LocalEvidenceError('M3_TASK_INPUT_INVALID')
+        if resource_profile is None:
+            resource_profile = replace(DEFAULT_TASK_RESOURCE_PROFILE, max_source_bytes=max_source_bytes)
+        elif (type(resource_profile) is not TaskResourceProfile
+              or max_source_bytes != DEFAULT_SOURCE_BYTES
+              and max_source_bytes != resource_profile.max_source_bytes):
+            raise LocalEvidenceError('M3_RESOURCE_PROFILE_INVALID')
+        max_source_bytes = resource_profile.max_source_bytes
         if (not _hex(expected_record_digest) or (expected_graph_digest is not None and not _hex(expected_graph_digest))
                 or type(max_source_bytes) is not int or not 1 <= max_source_bytes <= MAX_SOURCE_BYTES):
             raise LocalEvidenceError('M3_TASK_INPUT_INVALID')
-        graph_request = _request(target_area, policy, include_outside, temporal_mode)
+        try:
+            graph_request = _request(target_area, policy, include_outside, temporal_mode, resource_profile)
+        except ValueError as exc:
+            raise LocalEvidenceError(str(exc)) from exc
         self._material(source_id, revision_id, expected_record_digest=expected_record_digest, max_source_bytes=max_source_bytes)
         r = dict(encoding=ENCODING, profile='basic-local', task_id=task_id,
                  source=dict(id=source_id, revision_id=revision_id, admission_digest=expected_record_digest),

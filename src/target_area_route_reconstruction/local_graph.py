@@ -5,7 +5,7 @@ import json
 import ctypes
 import sys
 import os
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from importlib import metadata
 from pathlib import Path
 
@@ -16,7 +16,11 @@ from .local_evidence import (
 )
 from .strict_json import loads_json, StrictJSONError
 from .ingestion import DEFAULT_SOURCE_BYTES, ingest_bytes
-from .resource_limits import DEFAULT_TARGET_VERTICES, DEFAULT_OUTPUT_VERTICES
+from .resource_limits import (
+    DEFAULT_TASK_RESOURCE_PROFILE, TaskResourceProfile, DEFAULT_TARGET_VERTICES,
+    DEFAULT_OUTPUT_VERTICES,
+    normalize_task_resource_profile,
+)
 from .quality import project_quality
 from .quality_verifier import verify_quality
 from .quality_models import QualityPolicy, ParentReference, QualityResult, QualityIssue, QualityVerification, QualityAlgorithm, QualityParameters
@@ -31,7 +35,8 @@ from .spatial_entities_models import SpatialAssemblyResult, SpatialEntityBundle,
 from .geojson_export import export_geojson, GeoJSONExportResult, GeoJSONIssue
 from .temporal_overlay import export_temporal_geojson, ALGORITHM as TEMPORAL_ALGORITHM
 
-ENCODING = "m3-local-graph-v1"
+ENCODING = "m3-local-graph-v2"
+LEGACY_ENCODING = "m3-local-graph-v1"
 KINDS = ("request", "M2A", "M2B", "M2C", "M2D", "M2E", "M2F")
 TYPES = EVIDENCE_TYPES | SPATIAL_TYPES | frozenset((
     QualityResult, QualityIssue, QualityVerification, SpatialResult, SpatialIssue,
@@ -47,8 +52,10 @@ def _wire(model):
                       ensure_ascii=False, allow_nan=False)
 
 
-def _target_vertices(area):
+def _target_vertices(area, *, limit=None):
     """Count Polygon/MultiPolygon coordinates iteratively before JSON/GEOS work."""
+    if limit is None:
+        limit = DEFAULT_TARGET_VERTICES
     if type(area) is not dict:
         return 0
     geometry = area.get("geometry")
@@ -69,43 +76,47 @@ def _target_vertices(area):
             stack.pop()
             continue
         visited += 1
-        if visited > DEFAULT_TARGET_VERTICES * 4 + 1024:
+        if visited > limit * 4 + 1024:
             raise LocalEvidenceError("TARGET_COMPLEXITY_LIMIT_EXCEEDED")
         if level == depth:
             count += 1
-            if count > DEFAULT_TARGET_VERTICES:
+            if count > limit:
                 raise LocalEvidenceError("TARGET_COMPLEXITY_LIMIT_EXCEEDED")
         elif type(item) is list:
             stack.append((iter(item), level + 1))
     return count
 
 
-def _output_vertices(bundle, *, initial=0):
+def _output_vertices(bundle, *, limit=None, initial=0):
+    if limit is None:
+        limit = DEFAULT_OUTPUT_VERTICES
     count = initial
-    if count > DEFAULT_OUTPUT_VERTICES:
+    if count > limit:
         raise LocalEvidenceError("OUTPUT_LIMIT_EXCEEDED")
     for encoded in bundle.segment_json:
         segment = loads_json(encoded)
         coordinates = segment["geometry"]["coordinates"]
         count += len(coordinates)
-        if count > DEFAULT_OUTPUT_VERTICES:
+        if count > limit:
             raise LocalEvidenceError("OUTPUT_LIMIT_EXCEEDED")
     return count
 
 
-def _request(area, policy, outside, mode):
+def _request(area, policy, outside, mode, resource_profile=DEFAULT_TASK_RESOURCE_PROFILE):
     if type(policy) is not QualityPolicy or not canonical_snapshot(policy, TYPES):
         raise LocalEvidenceError("QUALITY_POLICY_INVALID")
     if type(outside) is not bool or (mode is not None and (type(mode) is not str or mode not in ("speed_mps", "pace_s_per_km"))):
         raise LocalEvidenceError("M3_GRAPH_OPTIONS_INVALID")
     # Count geometry vertices before canonical serialization and GEOS conversion.
-    _target_vertices(area)
+    limits = normalize_task_resource_profile(resource_profile)
+    _target_vertices(area, limit=limits["max_target_vertices"])
     # Native finite target JSON before any polymorphic copy or GEOS conversion.
     target = loads_json(canonical_record(area))
     if type(target) is not dict or any(type(target.get(k)) is not str or not target[k] for k in ("id", "revision_id")):
         raise LocalEvidenceError("M3_TARGET_INVALID")
     return loads_json(canonical_record({"target_area": target, "quality_policy": asdict(policy),
-                                       "include_outside": outside, "temporal_mode": mode}))
+                                       "include_outside": outside, "temporal_mode": mode,
+                                       "resource_profile": limits}))
 
 
 def graph_artifacts():
@@ -164,19 +175,23 @@ def _node(kind, parents, payload):
     return {**item, "sha256": _sha(canonical_record(item))}
 
 
-def _pipeline(record, source_digest, raw, request, artifacts, *, max_source_bytes=DEFAULT_SOURCE_BYTES):
+def _pipeline(record, source_digest, raw, request, artifacts, *, max_source_bytes=DEFAULT_TASK_RESOURCE_PROFILE.max_source_bytes):
     source = record["source"]
     nodes = []
     def add(kind, payload):
         nodes.append(_node(kind, [source_digest, *(n["sha256"] for n in nodes)], payload))
     add("request", request)
+    limits = request["resource_profile"]
     evidence = ingest_bytes(raw, source_kind=record["source_kind"],
                             track_source={"id": source["id"], "revision_id": source["revision_id"]},
-                            max_source_bytes=max_source_bytes)
+                            max_source_bytes=max_source_bytes,
+                            max_observations=limits["max_observations"],
+                            max_parts=limits["max_parts"])
     _admit_ingestion(evidence)
     add("M2A", {"outcome": evidence.outcome, "result_json": _wire(evidence), "verification_json": None})
     policy = QualityPolicy(**request["quality_policy"])
-    q = project_quality(evidence, policy=policy)
+    q = project_quality(evidence, policy=policy,
+                        max_fragments=limits["max_quality_fragments"])
     qv = verify_quality(q.projection, evidence, policy=policy) if q.outcome == "produced" else None
     if qv is not None and qv.outcome != "valid":
         raise LocalEvidenceError("M3_QUALITY_VERIFICATION_FAILED")
@@ -204,7 +219,8 @@ def _pipeline(record, source_digest, raw, request, artifacts, *, max_source_byte
         if d.bundle is not None:
             source_vertices = sum(len(part["observations"])
                                   for part in evidence.canonical_track["parts"])
-            _output_vertices(d.bundle, initial=_target_vertices(area) + source_vertices)
+            _output_vertices(d.bundle, limit=limits["max_output_vertices"],
+                             initial=_target_vertices(area, limit=limits["max_target_vertices"]) + source_vertices)
         add("M2D", {"outcome": d.outcome, "result_json": _wire(d), "verification_json": _wire(dv) if dv else None})
         if d.outcome not in ("produced", "non_assessable"):
             failure = "M2D:" + d.outcome
@@ -262,7 +278,7 @@ class LocalGraphStore(LocalEvidenceStore):
                 raise LocalEvidenceError("M3_GRAPH_CORRUPT")
             m = loads_json(encoded)
             if (type(m) is not dict or set(m) != {"encoding", "profile", "source", "request", "request_digest", "artifacts", "algorithm_recipe", "nodes", "outcome"}
-                    or canonical_record(m) != encoded or m["encoding"] != ENCODING or m["profile"] != "basic-local"
+                    or canonical_record(m) != encoded or m["encoding"] not in (ENCODING, LEGACY_ENCODING) or m["profile"] != "basic-local"
                     or m["source"]["admission_digest"] != source_digest or m["request_digest"] != request_digest
                     or _sha(canonical_record(m["request"])) != request_digest or len(m["nodes"]) != len(KINDS)):
                 raise LocalEvidenceError("M3_GRAPH_CORRUPT")
@@ -270,6 +286,11 @@ class LocalGraphStore(LocalEvidenceStore):
                     or set(m["source"]) != {"id", "revision_id", "admission_digest"}
                     or any(type(v) is not str or not v for v in m["source"].values())
                     or type(m["algorithm_recipe"]) is not dict or set(m["algorithm_recipe"]) != set(KINDS[1:])):
+                raise LocalEvidenceError("M3_GRAPH_CORRUPT")
+            request_keys = {"target_area", "quality_policy", "include_outside", "temporal_mode"}
+            if m["encoding"] == ENCODING:
+                request_keys.add("resource_profile")
+            if type(m["request"]) is not dict or set(m["request"]) != request_keys:
                 raise LocalEvidenceError("M3_GRAPH_CORRUPT")
             seen = []
             for kind, node in zip(KINDS, m["nodes"]):
@@ -307,8 +328,20 @@ class LocalGraphStore(LocalEvidenceStore):
 
     def derive_graph(self, source_id, revision_id, *, expected_record_digest, target_area,
                      policy=QualityPolicy(), include_outside=True, temporal_mode="speed_mps",
-                     max_source_bytes=DEFAULT_SOURCE_BYTES):
-        request = _request(target_area, policy, include_outside, temporal_mode)
+                     max_source_bytes=None,
+                     resource_profile=None):
+        if resource_profile is None:
+            if max_source_bytes is None:
+                max_source_bytes = DEFAULT_TASK_RESOURCE_PROFILE.max_source_bytes
+            resource_profile = replace(DEFAULT_TASK_RESOURCE_PROFILE,
+                                       max_source_bytes=max_source_bytes)
+        if type(resource_profile) is not TaskResourceProfile:
+            raise LocalEvidenceError("M3_RESOURCE_PROFILE_INVALID")
+        if max_source_bytes is None:
+            max_source_bytes = resource_profile.max_source_bytes
+        if type(max_source_bytes) is not int or max_source_bytes != resource_profile.max_source_bytes:
+            raise LocalEvidenceError("M3_RESOURCE_PROFILE_INVALID")
+        request = _request(target_area, policy, include_outside, temporal_mode, resource_profile)
         record, source_digest, raw = self._material(source_id, revision_id,
             expected_record_digest=expected_record_digest, max_source_bytes=max_source_bytes)
         try:
@@ -347,13 +380,33 @@ class LocalGraphStore(LocalEvidenceStore):
 
     def reload_graph(self, graph_digest, *, expected_source_digest, target_area,
                      policy=QualityPolicy(), include_outside=True, temporal_mode="speed_mps",
-                     max_source_bytes=DEFAULT_SOURCE_BYTES):
+                     max_source_bytes=None,
+                     resource_profile=None):
         if (type(expected_source_digest) is not str or len(expected_source_digest) != 64
                 or any(c not in "0123456789abcdef" for c in expected_source_digest)):
             raise LocalEvidenceError("M3_EXPECTED_RECORD_INVALID")
-        request = _request(target_area, policy, include_outside, temporal_mode)
+        if resource_profile is None:
+            if max_source_bytes is None:
+                max_source_bytes = DEFAULT_TASK_RESOURCE_PROFILE.max_source_bytes
+            resource_profile = replace(DEFAULT_TASK_RESOURCE_PROFILE,
+                                       max_source_bytes=max_source_bytes)
+        if type(resource_profile) is not TaskResourceProfile:
+            raise LocalEvidenceError("M3_RESOURCE_PROFILE_INVALID")
+        if max_source_bytes is None:
+            max_source_bytes = resource_profile.max_source_bytes
+        if type(max_source_bytes) is not int or max_source_bytes != resource_profile.max_source_bytes:
+            raise LocalEvidenceError("M3_RESOURCE_PROFILE_INVALID")
+        request = _request(target_area, policy, include_outside, temporal_mode, resource_profile)
         manifest = self._graph(graph_digest)
-        if manifest["source"]["admission_digest"] != expected_source_digest or canonical_record(request) != canonical_record(manifest["request"]):
+        if manifest["source"]["admission_digest"] != expected_source_digest:
+            raise LocalEvidenceError("M3_GRAPH_SELECTOR_MISMATCH")
+        if manifest["encoding"] == LEGACY_ENCODING:
+            legacy_request = {k: v for k, v in request.items() if k != "resource_profile"}
+            if canonical_record(legacy_request) != canonical_record(manifest["request"]):
+                raise LocalEvidenceError("M3_GRAPH_SELECTOR_MISMATCH")
+            return GraphReload("historical_unverified", self._commit(manifest, graph_digest), None,
+                               ("legacy_graph_encoding",))
+        if canonical_record(request) != canonical_record(manifest["request"]):
             raise LocalEvidenceError("M3_GRAPH_SELECTOR_MISMATCH")
         source = manifest["source"]
         record, _, raw = self._material(source["id"], source["revision_id"],
