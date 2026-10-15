@@ -16,6 +16,7 @@ from .local_evidence import (
 )
 from .strict_json import loads_json, StrictJSONError
 from .ingestion import DEFAULT_SOURCE_BYTES, ingest_bytes
+from .resource_limits import DEFAULT_TARGET_VERTICES, DEFAULT_OUTPUT_VERTICES
 from .quality import project_quality
 from .quality_verifier import verify_quality
 from .quality_models import QualityPolicy, ParentReference, QualityResult, QualityIssue, QualityVerification, QualityAlgorithm, QualityParameters
@@ -46,11 +47,59 @@ def _wire(model):
                       ensure_ascii=False, allow_nan=False)
 
 
+def _target_vertices(area):
+    """Count Polygon/MultiPolygon coordinates iteratively before JSON/GEOS work."""
+    if type(area) is not dict:
+        return 0
+    geometry = area.get("geometry")
+    if type(geometry) is not dict:
+        return 0
+    kind = geometry.get("type")
+    depth = {"Polygon": 2, "MultiPolygon": 3}.get(kind)
+    coordinates = geometry.get("coordinates")
+    if depth is None or type(coordinates) is not list:
+        return 0
+    visited = count = 0
+    stack = [(iter((coordinates,)), 0)]
+    while stack:
+        children, level = stack[-1]
+        try:
+            item = next(children)
+        except StopIteration:
+            stack.pop()
+            continue
+        visited += 1
+        if visited > DEFAULT_TARGET_VERTICES * 4 + 1024:
+            raise LocalEvidenceError("TARGET_COMPLEXITY_LIMIT_EXCEEDED")
+        if level == depth:
+            count += 1
+            if count > DEFAULT_TARGET_VERTICES:
+                raise LocalEvidenceError("TARGET_COMPLEXITY_LIMIT_EXCEEDED")
+        elif type(item) is list:
+            stack.append((iter(item), level + 1))
+    return count
+
+
+def _output_vertices(bundle, *, initial=0):
+    count = initial
+    if count > DEFAULT_OUTPUT_VERTICES:
+        raise LocalEvidenceError("OUTPUT_LIMIT_EXCEEDED")
+    for encoded in bundle.segment_json:
+        segment = loads_json(encoded)
+        coordinates = segment["geometry"]["coordinates"]
+        count += len(coordinates)
+        if count > DEFAULT_OUTPUT_VERTICES:
+            raise LocalEvidenceError("OUTPUT_LIMIT_EXCEEDED")
+    return count
+
+
 def _request(area, policy, outside, mode):
     if type(policy) is not QualityPolicy or not canonical_snapshot(policy, TYPES):
         raise LocalEvidenceError("QUALITY_POLICY_INVALID")
     if type(outside) is not bool or (mode is not None and (type(mode) is not str or mode not in ("speed_mps", "pace_s_per_km"))):
         raise LocalEvidenceError("M3_GRAPH_OPTIONS_INVALID")
+    # Count geometry vertices before canonical serialization and GEOS conversion.
+    _target_vertices(area)
     # Native finite target JSON before any polymorphic copy or GEOS conversion.
     target = loads_json(canonical_record(area))
     if type(target) is not dict or any(type(target.get(k)) is not str or not target[k] for k in ("id", "revision_id")):
@@ -115,14 +164,15 @@ def _node(kind, parents, payload):
     return {**item, "sha256": _sha(canonical_record(item))}
 
 
-def _pipeline(record, source_digest, raw, request, artifacts):
+def _pipeline(record, source_digest, raw, request, artifacts, *, max_source_bytes=DEFAULT_SOURCE_BYTES):
     source = record["source"]
     nodes = []
     def add(kind, payload):
         nodes.append(_node(kind, [source_digest, *(n["sha256"] for n in nodes)], payload))
     add("request", request)
     evidence = ingest_bytes(raw, source_kind=record["source_kind"],
-                            track_source={"id": source["id"], "revision_id": source["revision_id"]})
+                            track_source={"id": source["id"], "revision_id": source["revision_id"]},
+                            max_source_bytes=max_source_bytes)
     _admit_ingestion(evidence)
     add("M2A", {"outcome": evidence.outcome, "result_json": _wire(evidence), "verification_json": None})
     policy = QualityPolicy(**request["quality_policy"])
@@ -151,6 +201,10 @@ def _pipeline(record, source_digest, raw, request, artifacts):
         dv = verify_spatial_entities(d.bundle, proof=c.proof, **inputs) if d.outcome in ("produced", "non_assessable") else None
         if dv is not None and dv.outcome != "valid":
             raise LocalEvidenceError("M3_ENTITY_VERIFICATION_FAILED")
+        if d.bundle is not None:
+            source_vertices = sum(len(part["observations"])
+                                  for part in evidence.canonical_track["parts"])
+            _output_vertices(d.bundle, initial=_target_vertices(area) + source_vertices)
         add("M2D", {"outcome": d.outcome, "result_json": _wire(d), "verification_json": _wire(dv) if dv else None})
         if d.outcome not in ("produced", "non_assessable"):
             failure = "M2D:" + d.outcome
@@ -261,7 +315,8 @@ class LocalGraphStore(LocalEvidenceStore):
             artifacts = graph_artifacts()
         except (OSError, metadata.PackageNotFoundError) as exc:
             raise LocalEvidenceError("M3_ARTIFACT_UNAVAILABLE") from exc
-        manifest = _pipeline(record, source_digest, raw, request, artifacts)
+        manifest = _pipeline(record, source_digest, raw, request, artifacts,
+                             max_source_bytes=max_source_bytes)
         encoded = canonical_record(manifest)
         if len(encoded) > RECORD_BYTES_LIMIT:
             raise LocalEvidenceError("M3_GRAPH_LIMIT_EXCEEDED")
@@ -310,7 +365,8 @@ class LocalGraphStore(LocalEvidenceStore):
             return GraphReload("historical_unverified", commit, None, ("artifact_unavailable",))
         if artifacts != manifest["artifacts"]:
             return GraphReload("historical_unverified", commit, None, ("artifact_digest_mismatch",))
-        fresh = _pipeline(record, expected_source_digest, raw, request, artifacts)
+        fresh = _pipeline(record, expected_source_digest, raw, request, artifacts,
+                          max_source_bytes=max_source_bytes)
         if canonical_record(fresh) != canonical_record(manifest):
             raise LocalEvidenceError("M3_GRAPH_REPLAY_MISMATCH")
         return GraphReload("verified_local", commit, canonical_record(manifest).decode("utf-8"))

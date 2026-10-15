@@ -89,3 +89,5 @@ jobs:
           env -u PYTHONPATH M3_SOURCE_FIXTURES="$GITHUB_WORKSPACE/tests/source-fixtures" "$wheel_check_dir/venv/bin/python" local-tasks.py -v
           cp "$GITHUB_WORKSPACE/tests/test_local_archive.py" "$wheel_check_dir/local-archive.py"
           env -u PYTHONPATH M3_SOURCE_FIXTURES="$GITHUB_WORKSPACE/tests/source-fixtures" "$wheel_check_dir/venv/bin/python" local-archive.py -v
+          cp "$GITHUB_WORKSPACE/tests/test_resource_budgets.py" "$wheel_check_dir/resource-budgets.py"
+          env -u PYTHONPATH M3_SOURCE_FIXTURES="$GITHUB_WORKSPACE/tests/source-fixtures" "$wheel_check_dir/venv/bin/python" resource-budgets.py -v

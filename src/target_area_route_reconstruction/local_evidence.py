@@ -249,7 +249,8 @@ class LocalEvidenceStore:
                 self._raw(db, record, max_source_bytes)
                 return self._admission(record, row[2])
             ingestion = ingest_bytes(data, source_kind=source_kind,
-                                     track_source={"id": source["id"], "revision_id": source["revision_id"]})
+                                     track_source={"id": source["id"], "revision_id": source["revision_id"]},
+                                     max_source_bytes=max_source_bytes)
             _admit_ingestion(ingestion)
             try:
                 artifacts, recipe = parser_artifacts(), _recipe(source_kind)

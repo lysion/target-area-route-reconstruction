@@ -11,11 +11,15 @@ from lxml import etree
 
 from ._values import finite_number, utc_timestamp
 from .models import Diagnostic, ParsedPart, ParsedSample, SourceFailure, SourceLocation
+from .resource_limits import MAX_POSITIONED_OBSERVATIONS, MAX_CONTINUITY_PARTS, validate_limit
 
 NS = "{http://www.topografix.com/GPX/1/1}"
 
 
-def parse_gpx(data: bytes) -> tuple[ParsedPart, ...]:
+def parse_gpx(data: bytes, *, max_observations: int = MAX_POSITIONED_OBSERVATIONS,
+              max_parts: int = MAX_CONTINUITY_PARTS) -> tuple[ParsedPart, ...]:
+    validate_limit(max_observations, MAX_POSITIONED_OBSERVATIONS, "INVALID_OBSERVATION_LIMIT")
+    validate_limit(max_parts, MAX_CONTINUITY_PARTS, "INVALID_PART_LIMIT")
     parser = etree.XMLParser(resolve_entities=False, load_dtd=False, no_network=True, huge_tree=False)
     try:
         root = etree.fromstring(data, parser)
@@ -36,8 +40,12 @@ def parse_gpx(data: bytes) -> tuple[ParsedPart, ...]:
     record_index = 0
     for track_index, track in enumerate(root.findall(NS + "trk")):
         for segment_index, segment in enumerate(track.findall(NS + "trkseg")):
+            if len(parts) >= max_parts:
+                raise SourceFailure("PART_OR_INTERVAL_LIMIT_EXCEEDED")
             samples: list[ParsedSample] = []
             for point_index, point in enumerate(segment.findall(NS + "trkpt")):
+                if record_index >= max_observations:
+                    raise SourceFailure("OBSERVATION_LIMIT_EXCEEDED")
                 location = SourceLocation("gpx", record_index, track_index, segment_index, point_index)
                 record_index += 1
                 position = [finite_number(point.attrib[axis], location, axis) for axis in ("lon", "lat")]
