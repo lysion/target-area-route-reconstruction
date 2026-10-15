@@ -13,6 +13,8 @@ from unittest.mock import patch
 
 from target_area_route_reconstruction import LocalGraphStore, LocalEvidenceStore, LocalEvidenceError, QualityPolicy
 from target_area_route_reconstruction.local_graph import graph_artifacts
+from target_area_route_reconstruction.local_graph import LEGACY_ENCODING
+from target_area_route_reconstruction.local_evidence import canonical_record, _sha
 
 ROOT=Path(__file__).resolve().parent.parent
 FIXTURES=Path(os.environ.get('M3_SOURCE_FIXTURES',ROOT/'tests/source-fixtures'))
@@ -63,6 +65,31 @@ class LocalGraphTests(unittest.TestCase):
         temporal=json.loads(json.loads(stage['M2F']['result_json'])['geojson_json'])
         self.assertEqual(sum(f['properties']['layer']=='target_metric_edge' for f in temporal['features']),2)
         self.assertEqual(self.count(),1)
+
+    def test_legacy_v1_graph_is_preserved_as_unverified_after_profile_identity_upgrade(self):
+        commit = self.derive()
+        with sqlite3.connect(self.path) as db:
+            encoded = db.execute('SELECT manifest FROM graphs WHERE digest=?',
+                                 (commit.graph_digest,)).fetchone()[0]
+            manifest = json.loads(encoded)
+            manifest['encoding'] = LEGACY_ENCODING
+            manifest['request'].pop('resource_profile')
+            manifest['request_digest'] = _sha(canonical_record(manifest['request']))
+            previous = []
+            for node in manifest['nodes']:
+                if node['kind'] == 'request':
+                    node['payload_json'] = canonical_record(manifest['request']).decode('utf-8')
+                node['parents'] = [manifest['source']['admission_digest'], *previous]
+                node['sha256'] = _sha(canonical_record({k: node[k] for k in ('kind','parents','payload_json')}))
+                previous.append(node['sha256'])
+            legacy_bytes = canonical_record(manifest)
+            legacy_digest = _sha(legacy_bytes)
+            db.execute('UPDATE graphs SET digest=?,request_digest=?,manifest=? WHERE digest=?',
+                       (legacy_digest, manifest['request_digest'], legacy_bytes, commit.graph_digest))
+        result = self.store.reload_graph(legacy_digest, expected_source_digest=self.admission.record_digest,
+                                        target_area=area())
+        self.assertEqual(result.status, 'historical_unverified')
+        self.assertEqual(result.issues, ('legacy_graph_encoding',))
 
     def test_multiple_candidates_require_explicit_full_selectors(self):
         first=self.derive();second=self.derive(target_area=area('r2',112.9,112.909));third=self.derive(policy=QualityPolicy(max_implied_speed_mps=1000))

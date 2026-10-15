@@ -10,7 +10,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from target_area_route_reconstruction import LocalTaskStore, LocalEvidenceError
+from target_area_route_reconstruction import LocalTaskStore, LocalEvidenceError, TaskResourceProfile
 
 FIXTURES = Path(os.environ.get('M3_SOURCE_FIXTURES', Path(__file__).resolve().parent / 'source-fixtures'))
 SOURCE = {'schema_version':'0.1.0','id':'s','revision_id':'r','activity':{'id':'a'},'origin':{'namespace':'local'},'representation':{'media_type':'application/gpx+xml'}}
@@ -54,6 +54,65 @@ class TaskTests(unittest.TestCase):
         with self.assertRaisesRegex(LocalEvidenceError,'M3_TASK_HEAD_CONFLICT'): self.run_task(q)
         with self.assertRaisesRegex(LocalEvidenceError,'M3_TASK_ID_CONFLICT'): self.submit(include_outside=False)
         with sqlite3.connect(self.path) as db:self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],4)
+
+    def test_resource_profile_is_bound_to_task_and_replayed_exactly(self):
+        from dataclasses import replace
+        profile = replace(TaskResourceProfile(), max_observations=1000,
+                          max_parts=100, max_quality_fragments=2000,
+                          max_target_vertices=500, max_output_vertices=5000)
+        queued = self.submit(task_id='profiled', resource_profile=profile)
+        done = self.run_task(queued)
+        self.assertEqual(done.state, 'completed')
+        result = self.result(done)
+        self.assertEqual(result.status, 'verified_local')
+        other = self.submit(task_id='profiled-other', resource_profile=TaskResourceProfile())
+        self.assertNotEqual(queued.request_digest, other.request_digest)
+
+    def test_profile_mismatch_is_rejected_before_task_creation(self):
+        from dataclasses import replace
+        profile = replace(TaskResourceProfile(), max_source_bytes=1024)
+        with self.assertRaisesRegex(LocalEvidenceError, 'M3_RESOURCE_PROFILE_INVALID'):
+            self.store.submit_task('bad-profile','s','r',actor='submitter',
+                expected_record_digest=self.a.record_digest,target_area=AREA,
+                max_source_bytes=2048,resource_profile=profile)
+        with self.assertRaisesRegex(LocalEvidenceError, 'TARGET_COMPLEXITY_LIMIT_EXCEEDED'):
+            self.store.submit_task('bad-profile-2','s','r',actor='submitter',
+                expected_record_digest=self.a.record_digest,target_area=AREA,
+                resource_profile=replace(TaskResourceProfile(), max_target_vertices=4))
+        self.assertEqual(self.count('tasks'), 0)
+
+    def test_legacy_v1_task_is_read_and_resumed_with_the_default_profile(self):
+        from target_area_route_reconstruction.local_tasks import LEGACY_ENCODING
+        from target_area_route_reconstruction.local_evidence import canonical_record
+        queued = self.submit(task_id='legacy')
+        with sqlite3.connect(self.path) as db:
+            raw = db.execute('SELECT request FROM tasks WHERE task_id=?', ('legacy',)).fetchone()[0]
+            request = json.loads(raw)
+            request['encoding'] = LEGACY_ENCODING
+            request['graph_request'].pop('resource_profile')
+            encoded = canonical_record(request)
+            digest = hashlib.sha256(encoded).hexdigest()
+            db.execute('UPDATE tasks SET request_digest=?,request=? WHERE task_id=?',
+                       (digest, encoded, 'legacy'))
+            rows = db.execute('SELECT sequence,record FROM task_events WHERE task_id=? ORDER BY sequence',
+                              ('legacy',)).fetchall()
+            previous = None
+            head = None
+            for sequence, event_bytes in rows:
+                event = json.loads(event_bytes)
+                event['request_digest'] = digest
+                event['previous_digest'] = previous
+                event_bytes = canonical_record(event)
+                head = hashlib.sha256(event_bytes).hexdigest()
+                db.execute('UPDATE task_events SET digest=?,record=? WHERE sequence=?',
+                           (head, event_bytes, sequence))
+                previous = head
+        legacy_snapshot = self.store.task_snapshot('legacy', expected_request_digest=digest)
+        self.assertEqual(legacy_snapshot.head_digest, head)
+        done = self.store.run_task('legacy', expected_request_digest=digest,
+                                   expected_head=head, actor='worker')
+        self.assertEqual(done.state, 'completed')
+        self.assertEqual(self.result(done).status, 'verified_local')
 
     def test_explicit_cache_replays_and_never_falls_back(self):
         first = self.run_task(self.submit())
