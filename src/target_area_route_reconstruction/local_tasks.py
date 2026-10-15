@@ -12,7 +12,7 @@ except ImportError:  # pragma: no cover - guarded by the Linux M3 artifact profi
 
 from .ingestion import DEFAULT_SOURCE_BYTES, MAX_SOURCE_BYTES
 from .local_evidence import LocalEvidenceError, canonical_record, _sha
-from .local_graph import _request, graph_artifacts
+from .local_graph import GraphReload, _request, graph_artifacts
 from .local_review import LocalReviewStore
 from .quality_models import QualityPolicy
 from .strict_json import loads_json
@@ -55,12 +55,19 @@ def _resource_worker(store, request, graph, result_pipe):
         except (OSError, ValueError) as exc:
             result_pipe.send(('local_error', 'MEMORY_LIMIT_EXCEEDED'))
             return
-        if graph is None:
+        derived_now = graph is None
+        if derived_now:
             selectors = store._selectors(request)
             selectors['expected_record_digest'] = selectors.pop('expected_source_digest')
             graph = store.derive_graph(request['source']['id'], request['source']['revision_id'], **selectors).graph_digest
-        verified = store._replay(request, graph)
-        result_pipe.send(('ok', graph, verified))
+            manifest = store._graph(graph)
+            verified = GraphReload('verified_local', store._commit(manifest, graph),
+                                   canonical_record(manifest).decode('utf-8'),
+                                   verification_scope='m2a-m2f')
+        else:
+            verified = store._replay(request, graph)
+        peak_rss = _resource.getrusage(_resource.RUSAGE_SELF).ru_maxrss * 1024
+        result_pipe.send(('ok', graph, verified, peak_rss))
     except LocalEvidenceError as exc:
         result_pipe.send(('local_error', exc.code))
     except MemoryError:
@@ -326,6 +333,7 @@ class LocalTaskStore(LocalReviewStore):
 
     def _bounded_attempt(self, request, graph, *, started=None):
         """Execute one full derivation/replay under task-bound wall/RSS limits."""
+        self._last_worker_peak_rss_bytes = None
         try:
             context = multiprocessing.get_context('fork')
         except ValueError as exc:
@@ -398,6 +406,7 @@ class LocalTaskStore(LocalReviewStore):
                 worker.kill()
                 worker.join()
         if message[0] == 'ok':
+            self._last_worker_peak_rss_bytes = message[3]
             return message[2]
         if message[0] == 'local_error':
             raise LocalEvidenceError(message[1])

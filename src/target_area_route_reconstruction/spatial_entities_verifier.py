@@ -8,6 +8,7 @@ shared and separately cross-checked by fixture tests.
 from __future__ import annotations
 
 from dataclasses import asdict
+from operator import itemgetter
 
 from ._m2d_common import (
     M2D_NAME, M2D_VERSION, IDENTITY_POLICY, SNAPSHOT_POLICY, digest, position_dict,
@@ -23,30 +24,42 @@ from .spatial_entities_models import (
 
 def _expected_ranges(proof, quality):
     """Independent sweep over verified parent events, per admitted run."""
+    # Cache positional keys once. This verifier still independently materializes
+    # and sorts its complete event set (the producer uses a streaming merge), but
+    # avoids recomputing the same two keys during sorting and the cursor sweep.
     result = []
+    events = [(position_key(interval.start), position_key(interval.end),
+               interval.start, interval.end, 1)
+              for interval in proof.target_coverage_intervals]
+    events.extend((position_key(item.interval.start), position_key(item.interval.end),
+                   item.interval.start, item.interval.end, 0)
+                  for item in proof.stationary_evidence if item.target_covered)
+    events.sort(key=itemgetter(0, 1))
+    cursor = 0
     for admissible in quality.usable_intervals:
         lo, hi = position_key(admissible.start), position_key(admissible.end)
-        events = []
-        for interval in proof.target_coverage_intervals:
-            if lo <= position_key(interval.start) and position_key(interval.end) <= hi:
-                events.append((interval.start, interval.end, 1))
-        for item in proof.stationary_evidence:
-            if not item.target_covered:
-                continue
-            interval = item.interval
-            if lo <= position_key(interval.start) and position_key(interval.end) <= hi:
-                events.append((interval.start, interval.end, 0))
-        events.sort(key=lambda e: (position_key(e[0]), position_key(e[1])))
-        block = []
-        for item in events:
-            if not block or position_key(block[-1][1]) == position_key(item[0]):
-                block.append(item)
+        while cursor < len(events) and events[cursor][1] <= lo:
+            cursor += 1
+        block_start = block_end = block_end_key = None
+        block_has_positive = False
+        while cursor < len(events) and events[cursor][0] < hi:
+            item = events[cursor]
+            cursor += 1
+            if item[0] < lo or item[1] > hi:
+                raise ValueError("M2D_COVERAGE_CROSSES_QUALITY_RUN")
+            if block_start is None:
+                block_start, block_end, block_end_key = item[2], item[3], item[1]
+                block_has_positive = bool(item[4])
+            elif block_end_key == item[0]:
+                block_end, block_end_key = item[3], item[1]
+                block_has_positive = block_has_positive or bool(item[4])
             else:
-                if any(x[2] for x in block):
-                    result.append((block[0][0], block[-1][1]))
-                block = [item]
-        if block and any(x[2] for x in block):
-            result.append((block[0][0], block[-1][1]))
+                if block_has_positive:
+                    result.append((block_start, block_end))
+                block_start, block_end, block_end_key = item[2], item[3], item[1]
+                block_has_positive = bool(item[4])
+        if block_start is not None and block_has_positive:
+            result.append((block_start, block_end))
     return tuple(result)
 
 
@@ -174,6 +187,8 @@ def _verify_spatial_entities(bundle, *, proof, evidence, quality_projection,
     if len(expected_ranges) != len(segments):
         fail("M2D_TARGET_COVERAGE_NOT_EXHAUSTIVE")
     expected_data = []
+    from ._m2d_common import parent_coordinate_scale
+    coordinate_scale = parent_coordinate_scale(evidence.canonical_track)
     for n, (start, end) in enumerate(expected_ranges):
         expected_data.append({
             "ordinal": n,
@@ -189,7 +204,8 @@ def _verify_spatial_entities(bundle, *, proof, evidence, quality_projection,
         if (item["ordinal"] != n or item["start_position"] != info["start_position"]
                 or item["end_position"] != info["end_position"]):
             fail("M2D_MAXIMALITY_OR_LINEAGE_MISMATCH", path)
-        if not geometry_matches_parent(item["geometry"], info["geometry"], evidence.canonical_track):
+        if not geometry_matches_parent(item["geometry"], info["geometry"], evidence.canonical_track,
+                                       parent_scale=coordinate_scale):
             fail("M2D_GEOMETRY_REGEN_MISMATCH", path)
         if item["canonical_track"] != parent or item["spatial_reference"] != "OGC:CRS84":
             fail("M2D_SEGMENT_PARENT_MISMATCH", path)

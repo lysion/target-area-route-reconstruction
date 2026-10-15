@@ -28,6 +28,6 @@ Quarantine copies exact bytes to a content-digest directory and publishes a cano
 
 Limits: one archive ≤2 GiB; raw blobs retain the existing 256 MiB hard source ceiling; record, graph, review and task sublimits continue to apply. Unsupported schema versions fail closed. The API does not schedule backups, replicate to another device, encrypt data, retain keys/digests independently, purge old snapshots, or automatically replace a database. Store at least one copy and expected digest outside the storage failure domain. This remains a trusted-local function: an attacker rewriting both database and expected hash is outside baseline guarantees.
 
-The 2 GiB cap bounds bytes but does not finish F6 wall-time, RSS or fragmentation budgets. Operator restore drills, backup retention, external custody and independent M3 exit audit remain outstanding.
+The 2 GiB cap bounds archive bytes. Task wall-time/RSS and a 1,600-part end-to-end profile have passing evidence, while the same-batch M2D fragmentation scaling gate remains open after an unstable run exceeded the 2.8 ratio. Operator restore drills, backup retention, external custody and independent M3 exit audit also remain outstanding.
 
 Quarantine actor and reason each require a nonblank UTF-8 string of at most 4,096 bytes. The manifest reader rejects duplicate/noncanonical JSON, wrong field types (including `true` used as byte length), symlinked files, and content/hash mismatches.

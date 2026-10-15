@@ -18,6 +18,9 @@ DEFAULT_PROCESSING_TIME_SECONDS = 90
 MAX_PROCESSING_TIME_SECONDS = 300
 DEFAULT_WORKER_RSS_BYTES = 1024 * 1024 * 1024
 MAX_WORKER_RSS_BYTES = 2 * 1024 * 1024 * 1024
+DEFAULT_GRAPH_BYTES = 32 * 1024 * 1024
+MAX_GRAPH_BYTES = 128 * 1024 * 1024
+GRAPH_BYTES_LIMIT = MAX_GRAPH_BYTES
 
 
 @dataclass(frozen=True)
@@ -32,6 +35,7 @@ class TaskResourceProfile:
     max_output_vertices: int = DEFAULT_OUTPUT_VERTICES
     max_wall_clock_seconds: int = DEFAULT_PROCESSING_TIME_SECONDS
     max_rss_bytes: int = DEFAULT_WORKER_RSS_BYTES
+    max_graph_bytes: int = DEFAULT_GRAPH_BYTES
 
 
 DEFAULT_TASK_RESOURCE_PROFILE = TaskResourceProfile()
@@ -50,6 +54,7 @@ def normalize_task_resource_profile(profile):
         ("max_output_vertices", MAX_OUTPUT_VERTICES, "INVALID_OUTPUT_VERTEX_LIMIT"),
         ("max_wall_clock_seconds", MAX_PROCESSING_TIME_SECONDS, "INVALID_PROCESSING_TIME_LIMIT"),
         ("max_rss_bytes", MAX_WORKER_RSS_BYTES, "INVALID_MEMORY_LIMIT"),
+        ("max_graph_bytes", MAX_GRAPH_BYTES, "INVALID_GRAPH_BYTES_LIMIT"),
     ):
         validate_limit(limits[field], maximum, code)
     return limits
