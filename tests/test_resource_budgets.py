@@ -36,6 +36,10 @@ class ResourceBudgetTests(unittest.TestCase):
             normalize_task_resource_profile(replace(profile, max_observations=True))
         with self.assertRaisesRegex(ValueError, "INVALID_TARGET_VERTEX_LIMIT"):
             normalize_task_resource_profile(replace(profile, max_target_vertices=100_001))
+        with self.assertRaisesRegex(ValueError, "INVALID_PROCESSING_TIME_LIMIT"):
+            normalize_task_resource_profile(replace(profile, max_wall_clock_seconds=True))
+        with self.assertRaisesRegex(ValueError, "INVALID_MEMORY_LIMIT"):
+            normalize_task_resource_profile(replace(profile, max_rss_bytes=2 * 1024 * 1024 * 1024 + 1))
         with self.assertRaisesRegex(ValueError, "INVALID_TASK_RESOURCE_PROFILE"):
             normalize_task_resource_profile(type("Foreign", (), {})())
 
