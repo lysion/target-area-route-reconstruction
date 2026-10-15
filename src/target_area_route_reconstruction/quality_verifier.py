@@ -9,6 +9,7 @@ from ._canonical_snapshot import QUALITY_TYPES, canonical_snapshot
 from ._quality_evidence import GAP_CODES, evidence_digest, evidence_issues
 from ._quality_numerics import distance_metres, utc_seconds
 from .models import IngestionResult, TrackPosition
+from .resource_limits import MAX_QUALITY_FRAGMENTATION
 from .quality_models import (
     DomainProofParameters, EdgeDiagnostic, ParentInterval, ParentReference,
     QualityAlgorithm, QualityIssue, QualityParameters, QualityPolicy,
@@ -55,6 +56,34 @@ def _verify(q, evidence, policy):
     if any(type(value) is not tuple for value in (q.usable_intervals, q.excluded_intervals,
                                                  q.gaps, q.gap_constraints, q.diagnostics)):
         fail("PROJECTION_MALFORMED")
+        return result()
+    # Refuse oversized claims before constructing edge universes, maps, or
+    # expected diagnostics. Count nested per-gap/per-exclusion arrays as part
+    # of the same fragment budget so a small outer tuple cannot hide a large
+    # reference list.
+    fragment_count = sum(len(value) for value in (
+        q.usable_intervals, q.excluded_intervals, q.gaps,
+        q.gap_constraints, q.diagnostics,
+    ))
+    for gap in q.gaps:
+        try:
+            diagnostic_indices = gap.diagnostic_indices
+            causes = gap.causes
+        except AttributeError:
+            continue
+        if type(diagnostic_indices) is tuple:
+            fragment_count += len(diagnostic_indices)
+        if type(causes) is tuple:
+            fragment_count += len(causes)
+    for exclusion in q.excluded_intervals:
+        try:
+            source_indices = exclusion.observation_source_indices
+        except AttributeError:
+            continue
+        if type(source_indices) is tuple:
+            fragment_count += len(source_indices)
+    if fragment_count > MAX_QUALITY_FRAGMENTATION:
+        fail("PART_OR_INTERVAL_LIMIT_EXCEEDED")
         return result()
     track = evidence.canonical_track
     parts = track["parts"]
