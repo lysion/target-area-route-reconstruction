@@ -6,6 +6,7 @@ No M2C clipping, relation inference, gap geometry, or in-place revision edits.
 from __future__ import annotations
 
 from dataclasses import asdict
+from heapq import merge
 
 from ._m2d_common import (
     IDENTITY_POLICY, M2D_NAME, M2D_VERSION, SNAPSHOT_POLICY, canonical_json, digest,
@@ -25,18 +26,14 @@ def _maximal_covered(track, projection, proof):
     make bridging any quality exclusion or source part impossible.
     """
     output = []
+    positive = ((item.start, item.end, True) for item in proof.target_coverage_intervals)
+    stationary = ((item.interval.start, item.interval.end, False)
+                  for item in proof.stationary_evidence if item.target_covered)
+    ordering = lambda entry: (position_key(entry[0]), position_key(entry[1]))
+    candidates = iter(merge(positive, stationary, key=ordering))
+    candidate = next(candidates, None)
     for usable in projection.usable_intervals:
         lower, upper = position_key(usable.start), position_key(usable.end)
-        candidates = []
-        for interval in proof.target_coverage_intervals:
-            if lower <= position_key(interval.start) and position_key(interval.end) <= upper:
-                candidates.append((interval.start, interval.end, True))
-        for witness in proof.stationary_evidence:
-            interval = witness.interval
-            if (witness.target_covered and lower <= position_key(interval.start)
-                    and position_key(interval.end) <= upper):
-                candidates.append((interval.start, interval.end, False))
-        candidates.sort(key=lambda entry: (position_key(entry[0]), position_key(entry[1])))
         current_start = current_end = None
         has_positive = False
 
@@ -44,14 +41,22 @@ def _maximal_covered(track, projection, proof):
             if current_start is not None and has_positive:
                 output.append((current_start, current_end))
 
-        for start, end, positive in candidates:
+        while candidate is not None and position_key(candidate[1]) <= lower:
+            candidate = next(candidates, None)
+        while candidate is not None and position_key(candidate[0]) < upper:
+            start, end, is_positive = candidate
+            start_key, end_key = position_key(start), position_key(end)
+            candidate = next(candidates, None)
+            if start_key < lower or end_key > upper:
+                # A verified M2C interval cannot straddle a quality boundary.
+                raise ValueError("M2D_COVERAGE_CROSSES_QUALITY_RUN")
             if current_start is None:
-                current_start, current_end, has_positive = start, end, positive
+                current_start, current_end, has_positive = start, end, is_positive
             elif position_key(current_end) == position_key(start):
-                current_end, has_positive = end, (has_positive or positive)
+                current_end, has_positive = end, (has_positive or is_positive)
             else:
                 flush()
-                current_start, current_end, has_positive = start, end, positive
+                current_start, current_end, has_positive = start, end, is_positive
         flush()
     return tuple(output)
 

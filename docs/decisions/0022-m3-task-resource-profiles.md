@@ -8,7 +8,7 @@ M3 task execution previously used fixed admission defaults for every task, while
 
 ## Decision
 
-Add a frozen `TaskResourceProfile` carrying the six current per-source limits plus wall-clock and peak-RSS limits. Every field is an exact integer and is validated against its existing documented hard ceiling before source parsing, geometry conversion, or graph publication. The profile is serialized into the graph request and therefore into its digest; task requests retain the same complete selector. Reload requires the exact profile and re-executes the independent stage verifiers.
+Add a frozen `TaskResourceProfile` carrying the six per-source limits, wall-clock, peak-RSS and complete graph-manifest byte limits. Every field is an exact integer and is validated against its documented hard ceiling before source parsing, geometry conversion, or graph publication. The graph-manifest budget is 32 MiB by default, configurable up to 128 MiB; the separate source-record cap remains 16 MiB. The profile is serialized into the graph request and therefore into its digest; task requests retain the same complete selector. Reload requires the exact profile and re-executes the independent stage verifiers.
 
 The default profile preserves existing M3 behavior. Existing `max_source_bytes` call sites remain supported and are translated to a profile with all other defaults unchanged. A custom profile's source-byte value cannot disagree with the separately supplied compatibility argument. Over-budget behavior remains fail-closed with the existing stage/input error codes and no partial trusted graph.
 

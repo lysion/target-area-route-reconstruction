@@ -204,8 +204,9 @@ r=LocalGraphStore(sys.argv[1]).reload_graph(sys.argv[2],expected_source_digest=s
         with patch('target_area_route_reconstruction.local_graph.verify_quality',return_value=QualityVerification('invalid')):
             with self.assertRaisesRegex(LocalEvidenceError,'M3_QUALITY_VERIFICATION_FAILED'):self.derive()
         self.assertEqual(self.count(),0)
-        with patch('target_area_route_reconstruction.local_graph.RECORD_BYTES_LIMIT',1):
-            with self.assertRaisesRegex(LocalEvidenceError,'M3_GRAPH_LIMIT_EXCEEDED'):self.derive()
+        from target_area_route_reconstruction.resource_limits import DEFAULT_TASK_RESOURCE_PROFILE
+        with self.assertRaisesRegex(LocalEvidenceError,'M3_GRAPH_LIMIT_EXCEEDED'):
+            self.derive(resource_profile=replace(DEFAULT_TASK_RESOURCE_PROFILE, max_graph_bytes=1))
         self.assertEqual(self.count(),0)
         self.assertEqual(self.store.reload_source('s','r1',expected_record_digest=self.admission.record_digest).status,'verified_local')
 

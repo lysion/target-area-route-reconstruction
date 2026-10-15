@@ -40,6 +40,13 @@ class ResourceBudgetTests(unittest.TestCase):
             normalize_task_resource_profile(replace(profile, max_wall_clock_seconds=True))
         with self.assertRaisesRegex(ValueError, "INVALID_MEMORY_LIMIT"):
             normalize_task_resource_profile(replace(profile, max_rss_bytes=2 * 1024 * 1024 * 1024 + 1))
+        graph_max = 128 * 1024 * 1024
+        self.assertEqual(normalize_task_resource_profile(replace(
+            profile, max_graph_bytes=graph_max))["max_graph_bytes"], graph_max)
+        with self.assertRaisesRegex(ValueError, "INVALID_GRAPH_BYTES_LIMIT"):
+            normalize_task_resource_profile(replace(profile, max_graph_bytes=graph_max + 1))
+        with self.assertRaisesRegex(ValueError, "INVALID_GRAPH_BYTES_LIMIT"):
+            normalize_task_resource_profile(replace(profile, max_graph_bytes=False))
         with self.assertRaisesRegex(ValueError, "INVALID_TASK_RESOURCE_PROFILE"):
             normalize_task_resource_profile(type("Foreign", (), {})())
 
@@ -51,6 +58,10 @@ class ResourceBudgetTests(unittest.TestCase):
         varied = _request(area, QualityPolicy(), True, "speed_mps", profile)
         self.assertNotEqual(base["resource_profile"], varied["resource_profile"])
         self.assertNotEqual(json.dumps(base, sort_keys=True), json.dumps(varied, sort_keys=True))
+        graph_limited = _request(area, QualityPolicy(), True, "speed_mps",
+                                 replace(TaskResourceProfile(), max_graph_bytes=graph_max))
+        self.assertEqual(graph_limited["resource_profile"]["max_graph_bytes"], graph_max)
+        self.assertNotEqual(base["resource_profile"], graph_limited["resource_profile"])
 
     @staticmethod
     def _fragmented_gpx():

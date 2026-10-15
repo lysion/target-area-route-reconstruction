@@ -118,7 +118,14 @@ def exact_proof_metadata(proof, quality):
                for item in proof.gap_relevance)
 
 
-def geometry_matches_parent(actual, expected, track):
+def parent_coordinate_scale(track):
+    """Compute the invariant full-track coordinate scale once per assembly."""
+    return max(abs(value) for part in track["parts"]
+               for observation in part["observations"]
+               for value in observation["position"])
+
+
+def geometry_matches_parent(actual, expected, track, *, parent_scale=None):
     """Bounded *semantic* comparison; immutable payload identity is separate.
 
     Mirror the documented M1 coordinate budget, not its implementation. Vertex
@@ -131,6 +138,6 @@ def geometry_matches_parent(actual, expected, track):
     if all(point == a[0] for point in a[1:]):
         return False
     length = math.fsum(math.hypot(y[0] - x[0], y[1] - x[1]) for x, y in zip(b, b[1:]))
-    scale = max(abs(v) for part in track["parts"] for obs in part["observations"] for v in obs["position"])
+    scale = parent_coordinate_scale(track) if parent_scale is None else parent_scale
     return all(abs(x - y) <= min(1e-12, 8 * math.ulp(max(scale, *map(abs, p), *map(abs, q))), length / 4)
                for p, q in zip(a, b) for x, y in zip(p, q))

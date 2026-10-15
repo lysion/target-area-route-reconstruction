@@ -1,0 +1,103 @@
+{
+  "clean_runs": [
+    {
+      "artifact_manifest_sha256": "07e678ac59d000f0884b11770f7bd839028dd66f66701b653a448cafa04435c2",
+      "cpu_affinity": [
+        0,
+        1,
+        2
+      ],
+      "cpu_model": "INTEL(R) XEON(R) PLATINUM 8573C",
+      "geos": "3.13.1",
+      "git_head": "814d1a3196a5dbc9faf6cbcc5a4deb0ce20fc3fc",
+      "parts": 1600,
+      "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+      "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+      "raw_bytes": 233724,
+      "reload_seconds": 85.45594285501284,
+      "reload_worker_peak_rss_bytes": 258789376,
+      "resource_profile": {
+        "max_graph_bytes": 33554432,
+        "max_observations": 3200,
+        "max_output_vertices": 250000,
+        "max_parts": 1600,
+        "max_quality_fragments": 10000,
+        "max_rss_bytes": 1073741824,
+        "max_source_bytes": 67108864,
+        "max_target_vertices": 20000,
+        "max_wall_clock_seconds": 90
+      },
+      "shapely": "2.1.2",
+      "task_seconds": 72.52544655100792,
+      "task_worker_peak_rss_bytes": 245448704,
+      "worktree_code_sha256": "11c020e9dec53d6865deb0d464c9c90aca0561e24581b189cc7c4a25f1039d58"
+    },
+    {
+      "artifact_manifest_sha256": "07e678ac59d000f0884b11770f7bd839028dd66f66701b653a448cafa04435c2",
+      "cpu_affinity": [
+        0,
+        1,
+        2
+      ],
+      "cpu_model": "INTEL(R) XEON(R) PLATINUM 8573C",
+      "geos": "3.13.1",
+      "git_head": "814d1a3196a5dbc9faf6cbcc5a4deb0ce20fc3fc",
+      "parts": 1600,
+      "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+      "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+      "raw_bytes": 233724,
+      "reload_seconds": 72.05807198601542,
+      "reload_worker_peak_rss_bytes": 258527232,
+      "resource_profile": {
+        "max_graph_bytes": 33554432,
+        "max_observations": 3200,
+        "max_output_vertices": 250000,
+        "max_parts": 1600,
+        "max_quality_fragments": 10000,
+        "max_rss_bytes": 1073741824,
+        "max_source_bytes": 67108864,
+        "max_target_vertices": 20000,
+        "max_wall_clock_seconds": 90
+      },
+      "shapely": "2.1.2",
+      "task_seconds": 80.39322581101442,
+      "task_worker_peak_rss_bytes": 246239232,
+      "worktree_code_sha256": "11c020e9dec53d6865deb0d464c9c90aca0561e24581b189cc7c4a25f1039d58"
+    },
+    {
+      "artifact_manifest_sha256": "07e678ac59d000f0884b11770f7bd839028dd66f66701b653a448cafa04435c2",
+      "cpu_affinity": [
+        0,
+        1,
+        2
+      ],
+      "cpu_model": "INTEL(R) XEON(R) PLATINUM 8573C",
+      "geos": "3.13.1",
+      "git_head": "814d1a3196a5dbc9faf6cbcc5a4deb0ce20fc3fc",
+      "parts": 1600,
+      "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+      "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+      "raw_bytes": 233724,
+      "reload_seconds": 70.66368373201112,
+      "reload_worker_peak_rss_bytes": 258736128,
+      "resource_profile": {
+        "max_graph_bytes": 33554432,
+        "max_observations": 3200,
+        "max_output_vertices": 250000,
+        "max_parts": 1600,
+        "max_quality_fragments": 10000,
+        "max_rss_bytes": 1073741824,
+        "max_source_bytes": 67108864,
+        "max_target_vertices": 20000,
+        "max_wall_clock_seconds": 90
+      },
+      "shapely": "2.1.2",
+      "task_seconds": 71.24505116097862,
+      "task_worker_peak_rss_bytes": 249241600,
+      "worktree_code_sha256": "11c020e9dec53d6865deb0d464c9c90aca0561e24581b189cc7c4a25f1039d58"
+    }
+  ],
+  "default_rss_bytes": 1073741824,
+  "default_wall_seconds": 90,
+  "pass": true
+}

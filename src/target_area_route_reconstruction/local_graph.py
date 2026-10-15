@@ -12,14 +12,14 @@ from pathlib import Path
 from ._canonical_snapshot import EVIDENCE_TYPES, SPATIAL_TYPES, canonical_snapshot
 from .local_evidence import (
     LocalEvidenceStore, LocalEvidenceError, canonical_record, parser_artifacts,
-    RECORD_BYTES_LIMIT, _sha, _admit_ingestion, _recipe,
+    _sha, _admit_ingestion, _recipe,
 )
 from .strict_json import loads_json, StrictJSONError
 from .ingestion import DEFAULT_SOURCE_BYTES, ingest_bytes
 from .resource_limits import (
     DEFAULT_TASK_RESOURCE_PROFILE, TaskResourceProfile, DEFAULT_TARGET_VERTICES,
     DEFAULT_OUTPUT_VERTICES,
-    normalize_task_resource_profile,
+    GRAPH_BYTES_LIMIT, normalize_task_resource_profile,
 )
 from .quality import project_quality
 from .quality_verifier import verify_quality
@@ -274,7 +274,7 @@ class LocalGraphStore(LocalEvidenceStore):
             raise LocalEvidenceError("M3_GRAPH_NOT_FOUND")
         digest, source_digest, request_digest, encoded = row
         try:
-            if type(encoded) is not bytes or _sha(encoded) != digest:
+            if type(encoded) is not bytes or len(encoded) > GRAPH_BYTES_LIMIT or _sha(encoded) != digest:
                 raise LocalEvidenceError("M3_GRAPH_CORRUPT")
             m = loads_json(encoded)
             if (type(m) is not dict or set(m) != {"encoding", "profile", "source", "request", "request_digest", "artifacts", "algorithm_recipe", "nodes", "outcome"}
@@ -323,7 +323,7 @@ class LocalGraphStore(LocalEvidenceStore):
         if type(digest) is not str or len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
             raise LocalEvidenceError("M3_EXPECTED_GRAPH_INVALID")
         with self._connect() as db:
-            row = db.execute("SELECT digest,source_digest,request_digest,CASE WHEN length(manifest)<=16777216 THEN manifest ELSE NULL END FROM graphs WHERE digest=?", (digest,)).fetchone()
+            row = db.execute("SELECT digest,source_digest,request_digest,CASE WHEN length(manifest)<=? THEN manifest ELSE NULL END FROM graphs WHERE digest=?", (GRAPH_BYTES_LIMIT, digest)).fetchone()
         return self._decode_graph(row)
 
     def derive_graph(self, source_id, revision_id, *, expected_record_digest, target_area,
@@ -351,7 +351,7 @@ class LocalGraphStore(LocalEvidenceStore):
         manifest = _pipeline(record, source_digest, raw, request, artifacts,
                              max_source_bytes=max_source_bytes)
         encoded = canonical_record(manifest)
-        if len(encoded) > RECORD_BYTES_LIMIT:
+        if len(encoded) > request["resource_profile"]["max_graph_bytes"]:
             raise LocalEvidenceError("M3_GRAPH_LIMIT_EXCEEDED")
         digest = _sha(encoded)
         with self._connect() as db:
@@ -361,7 +361,7 @@ class LocalGraphStore(LocalEvidenceStore):
             if parent_row[2] != source_digest:
                 raise LocalEvidenceError("M3_EXPECTED_RECORD_MISMATCH")
             self._raw(db, parent, max_source_bytes)
-            row = db.execute("SELECT digest,source_digest,request_digest,CASE WHEN length(manifest)<=16777216 THEN manifest ELSE NULL END FROM graphs WHERE digest=?", (digest,)).fetchone()
+            row = db.execute("SELECT digest,source_digest,request_digest,CASE WHEN length(manifest)<=? THEN manifest ELSE NULL END FROM graphs WHERE digest=?", (GRAPH_BYTES_LIMIT, digest)).fetchone()
             if row is not None:
                 existing = self._decode_graph(row)
                 if canonical_record(existing) != encoded:

@@ -15,6 +15,7 @@ from urllib.parse import quote
 
 from .ingestion import MAX_SOURCE_BYTES
 from .local_evidence import LocalEvidenceError, RECORD_BYTES_LIMIT, LocalEvidenceStore, _sha, _source, canonical_record
+from .resource_limits import GRAPH_BYTES_LIMIT
 from .local_graph import LocalGraphStore
 from .local_review import LocalReviewStore
 from .local_tasks import LocalTaskStore, _hex
@@ -203,7 +204,7 @@ def _scan(path):
                     raise LocalArchiveError('M3_ARCHIVE_CORRUPT')
                 admissions[rd] = record
             graphs = {}
-            for row in db.execute('SELECT digest,source_digest,request_digest,CASE WHEN typeof(manifest)=\'blob\' AND length(manifest)<=? THEN manifest ELSE NULL END FROM graphs', (RECORD_BYTES_LIMIT,)):
+            for row in db.execute('SELECT digest,source_digest,request_digest,CASE WHEN typeof(manifest)=\'blob\' AND length(manifest)<=? THEN manifest ELSE NULL END FROM graphs', (GRAPH_BYTES_LIMIT,)):
                 digest_key, source_digest, request_digest, _ = row
                 manifest = LocalGraphStore._decode_graph(row)
                 source = admissions.get(source_digest)
