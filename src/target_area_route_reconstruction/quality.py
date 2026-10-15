@@ -6,8 +6,11 @@ from ._canonical_snapshot import QUALITY_TYPES, canonical_snapshot
 from ._quality_evidence import GAP_CODES, evidence_digest, evidence_issues
 from ._quality_numerics import distance_metres, utc_seconds
 from .models import IngestionResult, TrackPosition
+from .resource_limits import (
+    DEFAULT_QUALITY_FRAGMENTATION, MAX_QUALITY_FRAGMENTATION, validate_limit,
+)
 from .quality_models import (
-    EdgeDiagnostic, ExcludedInterval, Gap, GapConstraint, ParentInterval,
+    EdgeDiagnostic, ExcludedInterval, Gap, GapConstraint, ParentInterval, QualityIssue,
     ParentReference, QualityAlgorithm, QualityParameters, QualityPolicy,
     QualityProjection, QualityResult,
 )
@@ -37,8 +40,11 @@ def _decision(left: dict, right: dict, parameters: QualityParameters) -> str:
     return "ADMITTED"
 
 
-def project_quality(evidence: IngestionResult, *, policy: QualityPolicy) -> QualityResult:
+def project_quality(evidence: IngestionResult, *, policy: QualityPolicy,
+                   max_fragments: int = DEFAULT_QUALITY_FRAGMENTATION) -> QualityResult:
     """Policy is explicit, including the choice to disable motion screening."""
+    validate_limit(max_fragments, MAX_QUALITY_FRAGMENTATION,
+                   "INVALID_QUALITY_FRAGMENT_LIMIT")
     if type(policy) is not QualityPolicy or not canonical_snapshot(policy, QUALITY_TYPES):
         raise ValueError("QUALITY_POLICY_INVALID")
     issues = evidence_issues(evidence)
@@ -49,6 +55,17 @@ def project_quality(evidence: IngestionResult, *, policy: QualityPolicy) -> Qual
     algorithm = QualityAlgorithm(QualityParameters(policy))
     fingerprint = evidence_digest(evidence)
     usable, excluded, diagnostics = [], [], []
+    fragment_count = 0
+
+    def reserve(count=1):
+        nonlocal fragment_count
+        fragment_count += count
+        return fragment_count <= max_fragments
+
+    def limit_result():
+        return QualityResult("resource_limit_exceeded", None,
+                             (QualityIssue("PART_OR_INTERVAL_LIMIT_EXCEEDED"),))
+
     source_indices = {m.position: i for i, m in enumerate(evidence.observation_sources)}
     for p, part in enumerate(track["parts"]):
         observations = part["observations"]
@@ -59,33 +76,62 @@ def project_quality(evidence: IngestionResult, *, policy: QualityPolicy) -> Qual
             rejected = decision == "IMPLIED_SPEED_EXCEEDS_POLICY"
             if rejected:
                 if run_start is not None:
+                    if not reserve():
+                        return limit_result()
                     usable.append(ParentInterval(TrackPosition(p, run_start), TrackPosition(p, i)))
                     run_start = None  # rejection breaks usable continuity
+                if not reserve():
+                    return limit_result()
+                if not reserve(2):
+                    return limit_result()
                 excluded.append(ExcludedInterval(interval, decision,
                                 (source_indices[interval.start], source_indices[interval.end])))
             else:
                 if run_start is None:
                     run_start = i
                 if decision != "ADMITTED":
+                    if not reserve():
+                        return limit_result()
                     diagnostics.append(EdgeDiagnostic(interval, decision))
         if run_start is not None:
+            if not reserve():
+                return limit_result()
             usable.append(ParentInterval(TrackPosition(p, run_start), TrackPosition(p, len(observations) - 1)))
 
     # Multiple missing records / empty parts remain individually referenced.
     groups = {}
     for i, diagnostic in enumerate(evidence.diagnostics):
         if diagnostic.code in GAP_CODES:
-            groups.setdefault((diagnostic.previous_position, diagnostic.next_position), []).append(i)
+            key = (diagnostic.previous_position, diagnostic.next_position)
+            if key not in groups:
+                if not reserve():
+                    return limit_result()
+                groups[key] = []
+            if not reserve():
+                return limit_result()
+            groups[key].append(i)
     gaps = [Gap(parent, start, end, "source_gap",
                 tuple(dict.fromkeys(evidence.diagnostics[i].code for i in indices)), tuple(indices))
             for (start, end), indices in groups.items()]
-    gaps.extend(Gap(parent, item.interval.start, item.interval.end, "quality_exclusion",
-                    (item.reason,), excluded_interval_index=i) for i, item in enumerate(excluded))
+    # Account for nested causes and observation-source references, as the
+    # independent verifier does when admitting an untrusted serialized claim.
+    for gap in gaps:
+        if not reserve(len(gap.causes)):
+            return limit_result()
+    for i, item in enumerate(excluded):
+        if not reserve():
+            return limit_result()
+        if not reserve():
+            return limit_result()
+        gaps.append(Gap(parent, item.interval.start, item.interval.end, "quality_exclusion",
+                        (item.reason,), excluded_interval_index=i))
     def order(gap):
         start = (-1, -1) if gap.start is None else (gap.start.part_index, gap.start.observation_index)
         end = (len(track["parts"]), 0) if gap.end is None else (gap.end.part_index, gap.end.observation_index)
         return start, end, gap.kind
     gaps.sort(key=order)
+    if policy.include_domain_bounds and not reserve(len(gaps)):
+        return limit_result()
     constraints = tuple(GapConstraint(i, parent, fingerprint) for i in range(len(gaps))) if policy.include_domain_bounds else ()
     return QualityResult("produced", QualityProjection(parent, algorithm, fingerprint,
                          tuple(usable), tuple(excluded), tuple(gaps), constraints, tuple(diagnostics)))

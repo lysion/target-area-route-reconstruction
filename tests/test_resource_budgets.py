@@ -1,12 +1,14 @@
 """M3 per-source admission guards reject before hashing or downstream geometry."""
 from pathlib import Path
+from datetime import datetime, timedelta, timezone
+import json
 import os
 import sqlite3
 import tempfile
 import unittest
 from unittest.mock import patch
 
-from target_area_route_reconstruction import ingest_bytes
+from target_area_route_reconstruction import ingest_bytes, project_quality, verify_quality
 from target_area_route_reconstruction.fit import parse_fit
 from target_area_route_reconstruction.gpx import parse_gpx
 from target_area_route_reconstruction.local_graph import LocalGraphStore, _output_vertices, _request, _target_vertices
@@ -20,6 +22,19 @@ SOURCE = {"id": "bounded", "revision_id": "r1"}
 
 
 class ResourceBudgetTests(unittest.TestCase):
+    @staticmethod
+    def _fragmented_gpx():
+        # Every other parent edge is a fast one-degree jump; the intervening
+        # stationary edges remain usable. This creates distinct quality runs.
+        longitudes = (0, 1, 1, 2, 2, 3, 3)
+        origin = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        points = "".join(
+            f'<trkpt lat="0" lon="{longitude}"><time>{(origin + timedelta(seconds=i)).isoformat().replace("+00:00", "Z")}</time></trkpt>'
+            for i, longitude in enumerate(longitudes)
+        )
+        return (f'<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="fragment">'
+                f'<trk><trkseg>{points}</trkseg></trk></gpx>').encode()
+
     def test_source_byte_limit_fails_before_hash_and_parse(self):
         with patch("target_area_route_reconstruction.ingestion.hashlib.sha256", side_effect=AssertionError("must not hash")):
             result = ingest_bytes(b"1234", source_kind="gpx", track_source=SOURCE, max_source_bytes=3)
@@ -62,6 +77,85 @@ class ResourceBudgetTests(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(len(result[0].samples), 256)
         self.assertEqual(result[0].samples[-1].source.point_index, 255)
+
+    def test_quality_fragmentation_budget_refuses_without_partial_projection(self):
+        evidence = ingest_bytes(self._fragmented_gpx(), source_kind="gpx", track_source=SOURCE)
+        policy = QualityPolicy(max_implied_speed_mps=1.0)
+        rejected = project_quality(evidence, policy=policy, max_fragments=5)
+        self.assertEqual(rejected.outcome, "resource_limit_exceeded")
+        self.assertIsNone(rejected.projection)
+        self.assertEqual(rejected.issues[0].code, "PART_OR_INTERVAL_LIMIT_EXCEEDED")
+
+        with self.assertRaisesRegex(ValueError, "INVALID_QUALITY_FRAGMENT_LIMIT"):
+            project_quality(evidence, policy=policy, max_fragments=True)
+        over_boundary = project_quality(evidence, policy=policy, max_fragments=17)
+        self.assertEqual(over_boundary.outcome, "resource_limit_exceeded")
+        accepted = project_quality(evidence, policy=policy, max_fragments=18)
+        self.assertEqual(accepted.outcome, "produced")
+        self.assertEqual(verify_quality(accepted.projection, evidence, policy=policy).outcome, "valid")
+
+    def test_quality_verifier_caps_outer_and_nested_fragment_claims_first(self):
+        from dataclasses import replace
+        from dataclasses import dataclass
+        import target_area_route_reconstruction.quality_verifier as verifier
+        from target_area_route_reconstruction.quality_models import Gap
+
+        evidence = ingest_bytes(self._fragmented_gpx(), source_kind="gpx", track_source=SOURCE)
+        policy = QualityPolicy(max_implied_speed_mps=1.0)
+        projection = project_quality(evidence, policy=policy, max_fragments=18).projection
+        with patch.object(verifier, "MAX_QUALITY_FRAGMENTATION", 18):
+            result = verify_quality(projection, evidence, policy=policy)
+        self.assertEqual(result.outcome, "valid")
+        with patch.object(verifier, "MAX_QUALITY_FRAGMENTATION", 17):
+            result = verify_quality(projection, evidence, policy=policy)
+        self.assertEqual(result.outcome, "invalid")
+        self.assertEqual(result.issues[0].code, "PART_OR_INTERVAL_LIMIT_EXCEEDED")
+
+        gap = projection.gaps[0]
+        @dataclass(frozen=True)
+        class ExtendedGap(Gap):
+            marker: str = "foreign"
+
+        oversized_gap = ExtendedGap(gap.canonical_track, gap.start, gap.end, gap.kind,
+                                    gap.causes, tuple(range(12)),
+                                    gap.excluded_interval_index, gap.state)
+        oversized = replace(projection, gaps=(oversized_gap, *projection.gaps[1:]))
+        with patch.object(verifier, "MAX_QUALITY_FRAGMENTATION", 25):
+            result = verify_quality(oversized, evidence, policy=policy)
+        self.assertEqual(result.outcome, "invalid")
+        self.assertEqual(result.issues[0].code, "PART_OR_INTERVAL_LIMIT_EXCEEDED")
+
+    def test_local_graph_records_quality_budget_failure_without_downstream_proofs(self):
+        source = {"schema_version": "0.1.0", "id": "fragment", "revision_id": "r1",
+                  "activity": {"id": "a"}, "origin": {"namespace": "local"},
+                  "representation": {"media_type": "application/gpx+xml"}}
+        area = {"schema_version": "0.1.0", "id": "t", "revision_id": "r1",
+                "spatial_reference": "OGC:CRS84",
+                "geometry": {"type": "Polygon", "coordinates": [[[0, -1], [4, -1], [4, 1], [0, 1], [0, -1]]]},
+                "definition_provenance": {"description": "quality fragmentation test"}}
+        import target_area_route_reconstruction.quality as quality
+        from functools import partial
+        with tempfile.TemporaryDirectory() as directory:
+            store = LocalGraphStore(Path(directory) / "fragment.sqlite")
+            admission = store.admit_bytes(self._fragmented_gpx(), source_kind="gpx", track_source=source)
+            with patch("target_area_route_reconstruction.local_graph.project_quality",
+                       side_effect=partial(quality.project_quality, max_fragments=5)):
+                commit = store.derive_graph("fragment", "r1", expected_record_digest=admission.record_digest,
+                                            target_area=area, policy=QualityPolicy(max_implied_speed_mps=1.0))
+                reloaded = store.reload_graph(commit.graph_digest, expected_source_digest=admission.record_digest,
+                                              target_area=area, policy=QualityPolicy(max_implied_speed_mps=1.0))
+            self.assertEqual(commit.outcome, "stage_unavailable")
+            self.assertEqual(reloaded.status, "verified_local")
+            manifest = json.loads(reloaded.manifest_json)
+            stages = {node["kind"]: json.loads(node["payload_json"])
+                      for node in manifest["nodes"]}
+            self.assertEqual(stages["M2B"]["outcome"], "resource_limit_exceeded")
+            self.assertEqual(stages["M2B"]["result_json"] and
+                             json.loads(stages["M2B"]["result_json"])["issues"][0]["code"],
+                             "PART_OR_INTERVAL_LIMIT_EXCEEDED")
+            for stage in ("M2C", "M2D", "M2E", "M2F"):
+                self.assertEqual(stages[stage]["outcome"], "unavailable")
+                self.assertIsNone(stages[stage]["result_json"])
 
     def test_target_complexity_is_rejected_before_canonical_serialization(self):
         area = {
