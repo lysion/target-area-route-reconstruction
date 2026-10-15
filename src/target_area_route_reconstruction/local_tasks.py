@@ -1,6 +1,14 @@
 """Caller-driven local task attempts; durable metadata is never cached authority."""
 from dataclasses import dataclass, replace
 from importlib import metadata
+import multiprocessing
+import os
+import time
+
+try:
+    import resource as _resource
+except ImportError:  # pragma: no cover - guarded by the Linux M3 artifact profile
+    _resource = None
 
 from .ingestion import DEFAULT_SOURCE_BYTES, MAX_SOURCE_BYTES
 from .local_evidence import LocalEvidenceError, canonical_record, _sha
@@ -31,6 +39,48 @@ def _artifacts():
         return _sha(canonical_record(graph_artifacts()))
     except (OSError, metadata.PackageNotFoundError) as exc:
         raise LocalEvidenceError('M3_ARTIFACT_UNAVAILABLE') from exc
+
+
+def _resource_worker(store, request, graph, result_pipe):
+    """Run untrusted-size parsing/geometry outside the task journal process."""
+    try:
+        memory_cap = request['graph_request']['resource_profile']['max_rss_bytes']
+        if _resource is None:
+            result_pipe.send(('local_error', 'M3_RESOURCE_GUARD_UNAVAILABLE'))
+            return
+        try:
+            # RLIMIT_AS is a hard upper bound on address space, hence also on
+            # resident pages; parent sampling supplies the distinct RSS result.
+            _resource.setrlimit(_resource.RLIMIT_AS, (memory_cap, memory_cap))
+        except (OSError, ValueError) as exc:
+            result_pipe.send(('local_error', 'MEMORY_LIMIT_EXCEEDED'))
+            return
+        if graph is None:
+            selectors = store._selectors(request)
+            selectors['expected_record_digest'] = selectors.pop('expected_source_digest')
+            graph = store.derive_graph(request['source']['id'], request['source']['revision_id'], **selectors).graph_digest
+        verified = store._replay(request, graph)
+        result_pipe.send(('ok', graph, verified))
+    except LocalEvidenceError as exc:
+        result_pipe.send(('local_error', exc.code))
+    except MemoryError:
+        result_pipe.send(('local_error', 'MEMORY_LIMIT_EXCEEDED'))
+    except BaseException as exc:
+        result_pipe.send(('exception', type(exc).__name__, str(exc)))
+    finally:
+        result_pipe.close()
+
+
+def _rss_bytes(pid):
+    """Return Linux worker resident bytes, or None if the kernel view is unavailable."""
+    try:
+        with open(f'/proc/{pid}/status', 'r', encoding='ascii') as status:
+            for line in status:
+                if line.startswith('VmRSS:'):
+                    return int(line.split()[1]) * 1024
+    except (OSError, ValueError, IndexError):
+        return None
+    return None
 
 
 @dataclass(frozen=True)
@@ -244,6 +294,7 @@ class LocalTaskStore(LocalReviewStore):
         return self._transition(task_id, expected_request_digest, expected_head, actor, 'failed', failure='M3_TASK_INTERRUPTED')[1]
 
     def task_result(self, task_id, *, expected_request_digest, expected_head):
+        started = time.monotonic()
         if not _hex(expected_head):
             raise LocalEvidenceError('M3_TASK_INPUT_INVALID')
         with self._connect() as db:
@@ -258,7 +309,10 @@ class LocalTaskStore(LocalReviewStore):
             raise LocalEvidenceError('M3_TASK_ARTIFACT_MISMATCH')
         if request['expected_graph_digest'] is not None and state.graph_digest != request['expected_graph_digest']:
             raise LocalEvidenceError('M3_TASK_CORRUPT')
-        return self._replay(request, state.graph_digest)
+        result = self._bounded_attempt(request, state.graph_digest, started=started)
+        if result.status != 'verified_local':
+            raise LocalEvidenceError('M3_TASK_GRAPH_UNVERIFIED')
+        return result
 
     def _replay(self, request, graph):
         result = self.reload_graph(graph, **self._selectors(request))
@@ -270,7 +324,89 @@ class LocalTaskStore(LocalReviewStore):
             raise LocalEvidenceError('M3_TASK_GRAPH_UNVERIFIED')
         return result
 
+    def _bounded_attempt(self, request, graph, *, started=None):
+        """Execute one full derivation/replay under task-bound wall/RSS limits."""
+        try:
+            context = multiprocessing.get_context('fork')
+        except ValueError as exc:
+            raise LocalEvidenceError('M3_RESOURCE_GUARD_UNAVAILABLE') from exc
+        if started is None:
+            started = time.monotonic()
+        limits = request['graph_request']['resource_profile']
+        deadline = started + limits['max_wall_clock_seconds']
+        if time.monotonic() >= deadline:
+            raise LocalEvidenceError('PROCESSING_TIME_LIMIT_EXCEEDED')
+        receive_pipe, send_pipe = context.Pipe(duplex=False)
+        worker = context.Process(target=_resource_worker,
+                                 args=(self, request, graph, send_pipe), daemon=False)
+        try:
+            worker.start()
+        except (OSError, RuntimeError) as exc:
+            receive_pipe.close()
+            send_pipe.close()
+            raise LocalEvidenceError('M3_RESOURCE_GUARD_UNAVAILABLE') from exc
+        send_pipe.close()
+        message = None
+        try:
+            while True:
+                if receive_pipe.poll():
+                    try:
+                        message = receive_pipe.recv()
+                    except EOFError as exc:
+                        raise LocalEvidenceError('M3_TASK_WORKER_FAILED') from exc
+                    worker.join(timeout=1)
+                    break
+                if not worker.is_alive():
+                    worker.join()
+                    if receive_pipe.poll():
+                        try:
+                            message = receive_pipe.recv()
+                        except EOFError as exc:
+                            raise LocalEvidenceError('M3_TASK_WORKER_FAILED') from exc
+                    else:
+                        raise LocalEvidenceError('M3_TASK_WORKER_FAILED')
+                    break
+                rss = _rss_bytes(worker.pid)
+                if rss is None:
+                    worker.terminate()
+                    worker.join(timeout=1)
+                    if worker.is_alive():
+                        worker.kill()
+                        worker.join()
+                    raise LocalEvidenceError('M3_RESOURCE_GUARD_UNAVAILABLE')
+                if rss > limits['max_rss_bytes']:
+                    worker.terminate()
+                    worker.join(timeout=1)
+                    if worker.is_alive():
+                        worker.kill()
+                        worker.join()
+                    raise LocalEvidenceError('MEMORY_LIMIT_EXCEEDED')
+                if time.monotonic() >= deadline:
+                    worker.terminate()
+                    worker.join(timeout=1)
+                    if worker.is_alive():
+                        worker.kill()
+                        worker.join()
+                    raise LocalEvidenceError('PROCESSING_TIME_LIMIT_EXCEEDED')
+                time.sleep(0.02)
+        finally:
+            receive_pipe.close()
+            if worker.is_alive():
+                worker.terminate()
+                worker.join(timeout=1)
+            if worker.is_alive():
+                worker.kill()
+                worker.join()
+        if message[0] == 'ok':
+            return message[2]
+        if message[0] == 'local_error':
+            raise LocalEvidenceError(message[1])
+        if message[0] == 'exception':
+            raise RuntimeError(message[2])
+        raise LocalEvidenceError('M3_TASK_WORKER_FAILED')
+
     def run_task(self, task_id, *, expected_request_digest, expected_head, actor):
+        started = time.monotonic()
         _text(actor)
         if not _hex(expected_head):
             raise LocalEvidenceError('M3_TASK_INPUT_INVALID')
@@ -284,13 +420,9 @@ class LocalTaskStore(LocalReviewStore):
         try:
             if _artifacts() != request['artifacts_digest']:
                 raise LocalEvidenceError('M3_TASK_ARTIFACT_MISMATCH')
-            selectors = self._selectors(request)
             graph = request['expected_graph_digest']
-            if graph is None:
-                args = dict(selectors)
-                args['expected_record_digest'] = args.pop('expected_source_digest')
-                graph = self.derive_graph(request['source']['id'], request['source']['revision_id'], **args).graph_digest
-            self._replay(request, graph)
+            result = self._bounded_attempt(request, graph, started=started)
+            graph = result.commit.graph_digest
         except Exception as exc:
             code = exc.code if isinstance(exc, LocalEvidenceError) else 'M3_TASK_EXECUTION_FAILED'
             failed = self._transition(task_id, expected_request_digest, claim.head_digest, actor, 'failed', failure=code)[1]

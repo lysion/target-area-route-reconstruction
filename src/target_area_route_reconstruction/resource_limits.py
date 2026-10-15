@@ -14,11 +14,15 @@ DEFAULT_TARGET_VERTICES = 20_000
 MAX_TARGET_VERTICES = 100_000
 DEFAULT_OUTPUT_VERTICES = 250_000
 MAX_OUTPUT_VERTICES = 1_000_000
+DEFAULT_PROCESSING_TIME_SECONDS = 90
+MAX_PROCESSING_TIME_SECONDS = 300
+DEFAULT_WORKER_RSS_BYTES = 1024 * 1024 * 1024
+MAX_WORKER_RSS_BYTES = 2 * 1024 * 1024 * 1024
 
 
 @dataclass(frozen=True)
 class TaskResourceProfile:
-    """Task-bound admission profile; values are part of graph identity."""
+    """Task-bound admission and worker profile; values are graph identity."""
 
     max_source_bytes: int = DEFAULT_SOURCE_BYTES
     max_observations: int = DEFAULT_POSITIONED_OBSERVATIONS
@@ -26,6 +30,8 @@ class TaskResourceProfile:
     max_quality_fragments: int = DEFAULT_QUALITY_FRAGMENTATION
     max_target_vertices: int = DEFAULT_TARGET_VERTICES
     max_output_vertices: int = DEFAULT_OUTPUT_VERTICES
+    max_wall_clock_seconds: int = DEFAULT_PROCESSING_TIME_SECONDS
+    max_rss_bytes: int = DEFAULT_WORKER_RSS_BYTES
 
 
 DEFAULT_TASK_RESOURCE_PROFILE = TaskResourceProfile()
@@ -42,6 +48,8 @@ def normalize_task_resource_profile(profile):
         ("max_quality_fragments", MAX_QUALITY_FRAGMENTATION, "INVALID_QUALITY_FRAGMENT_LIMIT"),
         ("max_target_vertices", MAX_TARGET_VERTICES, "INVALID_TARGET_VERTEX_LIMIT"),
         ("max_output_vertices", MAX_OUTPUT_VERTICES, "INVALID_OUTPUT_VERTEX_LIMIT"),
+        ("max_wall_clock_seconds", MAX_PROCESSING_TIME_SECONDS, "INVALID_PROCESSING_TIME_LIMIT"),
+        ("max_rss_bytes", MAX_WORKER_RSS_BYTES, "INVALID_MEMORY_LIMIT"),
     ):
         validate_limit(limits[field], maximum, code)
     return limits

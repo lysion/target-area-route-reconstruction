@@ -7,6 +7,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -17,6 +18,10 @@ SOURCE = {'schema_version':'0.1.0','id':'s','revision_id':'r','activity':{'id':'
 AREA = {'schema_version':'0.1.0','id':'t','revision_id':'r','spatial_reference':'OGC:CRS84',
         'geometry':{'type':'Polygon','coordinates':[[[112.902,28.19],[112.908,28.19],[112.908,28.22],[112.902,28.22],[112.902,28.19]]]},
         'definition_provenance':{'description':'Task test'}}
+
+
+def _sleep_resource_worker(store, request, graph, result_pipe):
+    time.sleep(2)
 
 
 class TaskTests(unittest.TestCase):
@@ -80,6 +85,29 @@ class TaskTests(unittest.TestCase):
                 expected_record_digest=self.a.record_digest,target_area=AREA,
                 resource_profile=replace(TaskResourceProfile(), max_target_vertices=4))
         self.assertEqual(self.count('tasks'), 0)
+
+    def test_worker_enforces_wall_clock_and_rss_limits_without_graph_publication(self):
+        from dataclasses import replace
+        from target_area_route_reconstruction.resource_limits import DEFAULT_TASK_RESOURCE_PROFILE
+
+        timed = self.submit(task_id='timed', resource_profile=replace(
+            DEFAULT_TASK_RESOURCE_PROFILE, max_wall_clock_seconds=1))
+        with patch('target_area_route_reconstruction.local_tasks._rss_bytes', return_value=0), \
+             patch('target_area_route_reconstruction.local_tasks._resource_worker',
+                   side_effect=_sleep_resource_worker):
+            timed_done = self.store.run_task(timed.task_id, expected_request_digest=timed.request_digest,
+                                             expected_head=timed.head_digest, actor='worker')
+        self.assertEqual((timed_done.state, timed_done.failure_code),
+                         ('failed', 'PROCESSING_TIME_LIMIT_EXCEEDED'))
+
+        memory = self.submit(task_id='memory', resource_profile=replace(
+            DEFAULT_TASK_RESOURCE_PROFILE, max_rss_bytes=1))
+        with patch('target_area_route_reconstruction.local_tasks._rss_bytes', return_value=2):
+            memory_done = self.store.run_task(memory.task_id, expected_request_digest=memory.request_digest,
+                                              expected_head=memory.head_digest, actor='worker')
+        self.assertEqual((memory_done.state, memory_done.failure_code),
+                         ('failed', 'MEMORY_LIMIT_EXCEEDED'))
+        self.assertEqual(self.count('graphs'), 0)
 
     def test_legacy_v1_task_is_read_and_resumed_with_the_default_profile(self):
         from target_area_route_reconstruction.local_tasks import LEGACY_ENCODING
@@ -172,12 +200,15 @@ class TaskTests(unittest.TestCase):
         self.assertEqual(self.count('task_events'),1)
 
     def test_fenced_live_worker_cannot_complete_recovered_attempt(self):
-        q=self.submit(); real=self.store.derive_graph; recovered=[]
-        def interrupted(*args,**kwargs):
+        q=self.submit(); recovered=[]
+        from target_area_route_reconstruction.local_tasks import _rss_bytes as real_rss
+        def interrupted(pid):
+            if recovered:
+                return real_rss(pid)
             running=self.snapshot(q)
             recovered.append(self.store.recover_task('task',expected_request_digest=q.request_digest,expected_head=running.head_digest,actor='operator'))
-            return real(*args,**kwargs)
-        with patch.object(self.store,'derive_graph',side_effect=interrupted):
+            return real_rss(pid)
+        with patch('target_area_route_reconstruction.local_tasks._rss_bytes',side_effect=interrupted):
             with self.assertRaisesRegex(LocalEvidenceError,'M3_TASK_HEAD_CONFLICT'):self.run_task(q)
         self.assertEqual(self.snapshot(q),recovered[0]);self.assertEqual(self.count('graphs'),1)
         done=self.run_task(recovered[0]);self.assertEqual(done.state,'completed');self.assertEqual(self.count('graphs'),1)
@@ -203,10 +234,10 @@ r=LocalTaskStore(sys.argv[1]).task_result('task',expected_request_digest=sys.arg
     def test_crash_after_graph_before_task_completion_recovers_without_duplicates(self):
         q=self.submit()
         code='''import os,sys;from target_area_route_reconstruction import LocalTaskStore
-s=LocalTaskStore(sys.argv[1]);real=s.derive_graph
+s=LocalTaskStore(sys.argv[1]);real=s._bounded_attempt
 def die(*a,**k):
  real(*a,**k);os._exit(77)
-s.derive_graph=die
+s._bounded_attempt=die
 s.run_task('task',expected_request_digest=sys.argv[2],expected_head=sys.argv[3],actor='child')'''
         run=subprocess.run([sys.executable,'-c',code,str(self.path),q.request_digest,q.head_digest],capture_output=True,text=True,timeout=60)
         self.assertEqual(run.returncode,77,run.stderr)
